@@ -1,0 +1,26 @@
+{
+  "outfit": "/Game/Characters/Physis/Clothing/SK_Physis_Outfit.SK_Physis_Outfit",
+  "skeleton": "/MetaHumanCharacter/Female/Medium/NormalWeight/Body/metahuman_base_skel.metahuman_base_skel",
+  "material_slots": [
+    "Charcoal",
+    "Ivory",
+    "Sash",
+    "GoldTrim",
+    "Boots",
+    "Charcoal",
+    "Ivory",
+    "Sash",
+    "GoldTrim",
+    "Boots"
+  ],
+  "textures": [
+    "/Game/Characters/Physis/Textures/T_Physis_Boots_BaseColor.T_Physis_Boots_BaseColor",
+    "/Game/Characters/Physis/Textures/T_Physis_Charcoal_BaseColor.T_Physis_Charcoal_BaseColor",
+    "/Game/Characters/Physis/Textures/T_Physis_Divinity_Mask.T_Physis_Divinity_Mask",
+    "/Game/Characters/Physis/Textures/T_Physis_Fabric_Normal.T_Physis_Fabric_Normal",
+    "/Game/Characters/Physis/Textures/T_Physis_Fabric_ORM.T_Physis_Fabric_ORM",
+    "/Game/Characters/Physis/Textures/T_Physis_GoldTrim_BaseColor.T_Physis_GoldTrim_BaseColor",
+    "/Game/Characters/Physis/Textures/T_Physis_Ivory_BaseColor.T_Physis_Ivory_BaseColor",
+    "/Game/Characters/Physis/Textures/T_Physis_Sash_BaseColor.T_Physis_Sash_BaseColor"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "vertices": 15158,
+  "polygons": 17312,
+  "material_slots": [
+    "Charcoal",
+    "Ivory",
+    "Sash",
+    "GoldTrim",
+    "Boots"
+  ],
+  "texture_resolution": [
+    2048,
+    2048
+  ],
+  "maximum_skin_influences": 4,
+  "binding": "Transferred from slim Physis body, remapped to core deform bones for LOD compatibility",
+  "unweighted_vertices": 0,
+  "notes": [
+    "Skinned garment; cloth simulation not authored yet.",
+    "Concept likeness and animation intersections require Unreal visual review."
+  ]
+}
