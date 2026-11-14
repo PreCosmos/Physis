@@ -88,3 +88,7 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Python bytecode caches
+__pycache__/
+*.pyc

@@ -1,0 +1,4 @@
+{"sequence": "/Game/Trailer/SEQ_Trailer_Station", "center": false, "shots": [
+ {"name": "st_hall", "from": [4250, -380, 195, 10, -1], "to": [5000, -220, 180, 7, 0], "focal": 18, "frames": 120, "absolute": true},
+ {"name": "st_spine", "from": [8250, -300, 330, 2, -8], "to": [9100, -260, 300, 4, -7], "focal": 18, "frames": 120, "absolute": true},
+ {"name": "st_boss", "from": [13600, -620, 240, 22, 1], "to": [14250, -360, 225, 14, 2], "focal": 20, "frames": 120, "absolute": true}]}

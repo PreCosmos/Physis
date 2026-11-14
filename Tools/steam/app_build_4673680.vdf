@@ -1,0 +1,13 @@
+"AppBuild"
+{
+	"AppID" "4673680"
+	"Desc" "Physis - Linux and Windows, four levels"
+	"ContentRoot" "../../Build/"
+	"BuildOutput" "../../Build/SteamOutput/"
+	"SetLive" ""
+	"Depots"
+	{
+		"4673681" "depot_build_4673681.vdf"
+		"4673682" "depot_build_4673682.vdf"
+	}
+}

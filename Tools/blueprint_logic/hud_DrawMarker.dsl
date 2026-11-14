@@ -1,0 +1,11 @@
+{"returnValue":"(fn DrawMarker (X Y Size Red Green Blue)
+  (bind _linearcolor (Utilities|Struct|MakeLinearColor Red Green Blue 1.0))
+  (bind _returnvalue (- X Size))
+  (bind _returnvalue_1 (+ X Size))
+  (bind _returnvalue_2 (- Y Size))
+  (bind _returnvalue_3 (+ Y Size))
+  (HUD|DrawLine _returnvalue _returnvalue_2 _returnvalue_1 _returnvalue_2 _linearcolor 2.0)
+  (HUD|DrawLine _returnvalue_1 _returnvalue_2 _returnvalue_1 _returnvalue_3 _linearcolor 2.0)
+  (HUD|DrawLine _returnvalue_1 _returnvalue_3 _returnvalue _returnvalue_3 _linearcolor 2.0)
+  (HUD|DrawLine _returnvalue _returnvalue_3 _returnvalue _returnvalue_2 _linearcolor 2.0))
+"}

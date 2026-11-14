@@ -1,0 +1,5 @@
+(fn PhysisMove ()
+  (bind (x y) (Math|Vector2D|BreakVector2D (Input|EnhancedActionValues|IA_Move)))
+  (bind facing (Math|Rotator|MakeRotator :Yaw (.yaw (Transformation|GetWorldRotation :self (Variables|Default|GetFollowCamera)))))
+  (Pawn|Input|AddMovementInput :WorldDirection (Math|Vector|GetForwardVector facing) :ScaleValue y)
+  (Pawn|Input|AddMovementInput :WorldDirection (Math|Vector|GetRightVector facing) :ScaleValue x))

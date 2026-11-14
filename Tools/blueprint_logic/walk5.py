@@ -1,0 +1,7 @@
+import time,subprocess
+def run(*a): return subprocess.run(['python3','/var/home/precosmos/.var/app/com.anthropic.Claude/cache/claude-1000/-var-home-precosmos---------Unreal-Projects-Physis/026d8109-8776-4ded-89bb-41a9dbddde52/scratchpad/aaa.py',*a],capture_output=True,text=True).stdout
+def go(x,y,z,w=.5): run('aaa:pie_go:%s,%s,%s'%(x,y,z)); time.sleep(w)
+time.sleep(45)
+go(1640,620,100,1.2); run('play:pie_shot'); time.sleep(.8)
+go(2780,0,110,1.0); run('play:pie_shot'); time.sleep(2.0); run('play:pie_shot'); time.sleep(.8)
+go(8320,0,130,1.2); run('play:pie_shot'); time.sleep(1)

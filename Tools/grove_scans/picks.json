@@ -1,0 +1,1705 @@
+[
+{
+"source": "polyhaven",
+"id": "fern_02",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "shrub_01",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "shrub_02",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "shrub_03",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "shrub_04",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "shrub_sorrel_01",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "nettle_plant",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "periwinkle_plant",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "weed_plant_02",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "dandelion_01",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "moss_01",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "undergrowth: ferns, shrubs, weeds and wildflowers, scattered in the forest and the glades"
+},
+{
+"source": "polyhaven",
+"id": "dead_tree_trunk",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "dead_tree_trunk_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "tree_stump_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "tree_stump_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "root_cluster_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "root_cluster_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "single_root",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "pine_roots",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "dry_branches_medium_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "bark_debris_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 1,
+"purpose": "deadwood: fallen trunks, stumps, exposed roots (the Rift, the Heartwood, the forest floor)"
+},
+{
+"source": "polyhaven",
+"id": "boulder_01",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "boulders and stones"
+},
+{
+"source": "polyhaven",
+"id": "rock_07",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "boulders and stones"
+},
+{
+"source": "polyhaven",
+"id": "rock_09",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "boulders and stones"
+},
+{
+"source": "polyhaven",
+"id": "rock_moss_set_01",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "boulders and stones"
+},
+{
+"source": "polyhaven",
+"id": "rock_moss_set_02",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "boulders and stones"
+},
+{
+"source": "polyhaven",
+"id": "stone_01",
+"kind": "model",
+"res": "2k",
+"use": "scatter",
+"priority": 1,
+"purpose": "boulders and stones"
+},
+{
+"source": "polyhaven",
+"id": "rock_face_01",
+"kind": "model",
+"res": "2k",
+"use": "cliff",
+"priority": 1,
+"purpose": "cliff pieces for the valley edge, the Gully, the Rift and the mesa"
+},
+{
+"source": "polyhaven",
+"id": "rock_face_02",
+"kind": "model",
+"res": "2k",
+"use": "cliff",
+"priority": 1,
+"purpose": "cliff pieces for the valley edge, the Gully, the Rift and the mesa"
+},
+{
+"source": "polyhaven",
+"id": "mountainside",
+"kind": "model",
+"res": "2k",
+"use": "cliff",
+"priority": 1,
+"purpose": "cliff pieces for the valley edge, the Gully, the Rift and the mesa"
+},
+{
+"source": "polyhaven",
+"id": "tree_small_02",
+"kind": "texture",
+"res": "2k",
+"use": "atlas",
+"priority": 1,
+"purpose": "broadleaf leaf sprays and twig bark",
+"maps": [
+"leaves_diff",
+"leaves_alpha",
+"leaves_nor_dx",
+"leaves_arm",
+"branch_diff",
+"branch_nor_dx",
+"branch_arm",
+"Diffuse",
+"nor_dx",
+"arm"
+]
+},
+{
+"source": "polyhaven",
+"id": "jacaranda_tree",
+"kind": "texture",
+"res": "2k",
+"use": "atlas",
+"priority": 1,
+"purpose": "fine pinnate leaf sprays (ash and rowan like) and trunk bark",
+"maps": [
+"leaves_diff",
+"leaves_alpha",
+"leaves_nor_dx",
+"leaves_arm",
+"trunk_diff",
+"trunk_nor_dx",
+"trunk_arm"
+]
+},
+{
+"source": "polyhaven",
+"id": "fir_tree_01",
+"kind": "texture",
+"res": "2k",
+"use": "atlas",
+"priority": 1,
+"purpose": "conifer twig sprays with cutouts, and conifer bark",
+"maps": [
+"twig_diff",
+"twig_alpha",
+"twig_nor_dx",
+"twig_arm",
+"bark_diff",
+"bark_nor_dx",
+"bark_arm",
+"trunk_a_diff",
+"trunk_a_nor_dx",
+"trunk_a_arm"
+]
+},
+{
+"source": "polyhaven",
+"id": "pine_tree_01",
+"kind": "texture",
+"res": "2k",
+"use": "atlas",
+"priority": 1,
+"purpose": "conifer twig sprays with cutouts, and conifer bark",
+"maps": [
+"twig_diff",
+"twig_alpha",
+"twig_nor_dx",
+"twig_arm",
+"bark_diff",
+"bark_nor_dx",
+"bark_arm",
+"trunk_a_diff",
+"trunk_a_nor_dx",
+"trunk_a_arm"
+]
+},
+{
+"source": "polyhaven",
+"id": "grass_medium_01",
+"kind": "texture",
+"res": "2k",
+"use": "atlas",
+"priority": 1,
+"purpose": "grass blade sheets for the meadow patches",
+"maps": [
+"Diffuse",
+"Alpha",
+"nor_dx",
+"arm",
+"dry_diff"
+]
+},
+{
+"source": "polyhaven",
+"id": "grass_medium_02",
+"kind": "texture",
+"res": "2k",
+"use": "atlas",
+"priority": 1,
+"purpose": "grass blade sheets for the meadow patches",
+"maps": [
+"Diffuse",
+"Alpha",
+"nor_dx",
+"arm",
+"dry_diff"
+]
+},
+{
+"source": "polyhaven",
+"id": "celandine_01",
+"kind": "texture",
+"res": "2k",
+"use": "atlas",
+"priority": 2,
+"purpose": "celandine flower and leaf sheet for wildflower patches",
+"maps": [
+"Diffuse",
+"Alpha",
+"nor_dx",
+"arm"
+]
+},
+{
+"source": "polyhaven",
+"id": "jolcham_oak_bark_01",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: oak, pine, the Heartwood (deep furrows), the great trees, dead wood, root-wood"
+},
+{
+"source": "polyhaven",
+"id": "pine_bark",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: oak, pine, the Heartwood (deep furrows), the great trees, dead wood, root-wood"
+},
+{
+"source": "polyhaven",
+"id": "bark_willow",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: oak, pine, the Heartwood (deep furrows), the great trees, dead wood, root-wood"
+},
+{
+"source": "polyhaven",
+"id": "metasequoia_bark",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: oak, pine, the Heartwood (deep furrows), the great trees, dead wood, root-wood"
+},
+{
+"source": "polyhaven",
+"id": "rough_wood",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: oak, pine, the Heartwood (deep furrows), the great trees, dead wood, root-wood"
+},
+{
+"source": "polyhaven",
+"id": "roots",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: oak, pine, the Heartwood (deep furrows), the great trees, dead wood, root-wood"
+},
+{
+"source": "ambientcg",
+"id": "Bark001",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: ancient grey, beech (smooth), birch (white, peeling), oak brown, old bark with lichen"
+},
+{
+"source": "ambientcg",
+"id": "Bark005",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: ancient grey, beech (smooth), birch (white, peeling), oak brown, old bark with lichen"
+},
+{
+"source": "ambientcg",
+"id": "Bark009",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: ancient grey, beech (smooth), birch (white, peeling), oak brown, old bark with lichen"
+},
+{
+"source": "ambientcg",
+"id": "Bark012",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: ancient grey, beech (smooth), birch (white, peeling), oak brown, old bark with lichen"
+},
+{
+"source": "ambientcg",
+"id": "Bark006",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "bark: ancient grey, beech (smooth), birch (white, peeling), oak brown, old bark with lichen"
+},
+{
+"source": "polyhaven",
+"id": "forest_ground_04",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "leaves_forest_ground",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "forest_leaves_03",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "mud_forest",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "rocky_trail",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "stony_dirt_path",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "river_small_rocks",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "ganges_river_pebbles",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "damp_sand",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "polyhaven",
+"id": "burned_ground_01",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: forest floor, leaf litter, wet earth, trail, gravel, riverbed, shore sand, blight"
+},
+{
+"source": "ambientcg",
+"id": "Grass001",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: meadow grass, moss, mossy ground, autumn litter, mossy rock"
+},
+{
+"source": "ambientcg",
+"id": "Grass004",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: meadow grass, moss, mossy ground, autumn litter, mossy rock"
+},
+{
+"source": "ambientcg",
+"id": "Moss002",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: meadow grass, moss, mossy ground, autumn litter, mossy rock"
+},
+{
+"source": "ambientcg",
+"id": "Ground037",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: meadow grass, moss, mossy ground, autumn litter, mossy rock"
+},
+{
+"source": "ambientcg",
+"id": "ScatteredLeaves008",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: meadow grass, moss, mossy ground, autumn litter, mossy rock"
+},
+{
+"source": "ambientcg",
+"id": "Rock059",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "terrain layers: meadow grass, moss, mossy ground, autumn litter, mossy rock"
+},
+{
+"source": "polyhaven",
+"id": "cliff_side",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "cliff and rock surfaces (terrain rock layer, the Gully and Rift walls)"
+},
+{
+"source": "polyhaven",
+"id": "rock_face_03",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "cliff and rock surfaces (terrain rock layer, the Gully and Rift walls)"
+},
+{
+"source": "polyhaven",
+"id": "dark_rock",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "cliff and rock surfaces (terrain rock layer, the Gully and Rift walls)"
+},
+{
+"source": "polyhaven",
+"id": "lichen_rock",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "cliff and rock surfaces (terrain rock layer, the Gully and Rift walls)"
+},
+{
+"source": "polyhaven",
+"id": "dark_wooden_planks",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "weathered timber: tree platforms, crates"
+},
+{
+"source": "polyhaven",
+"id": "raw_plank_wall",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "weathered timber: tree platforms, crates"
+},
+{
+"source": "ambientcg",
+"id": "Concrete026",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete with moss and lichen: the weir, the quay, old walls"
+},
+{
+"source": "polyhaven",
+"id": "old_military_crate",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "wooden_military_crate",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "ammo_box",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "metal_jerrycan",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "metal_jerrycan_green",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "plastic_jerrycan",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "Barrel_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "Barrel_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "barrel_03",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "metal_toolbox",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "metal_tool_chest",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "tool_cart",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "portable_generator",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "old_military_compressor",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "portable_searchlight",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "propane_tank",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "small_lpg_tank",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "Lantern_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "hand_truck",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "industrial_storage_cart",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "steel_frame_shelves_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "plastic_crate_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "plastic_crate_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "cardboard_box_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "binoculars",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "industrial_microscope",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "chemistry_set",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "metal_trash_can",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "wooden_crate_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "wooden_crate_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "ladder_sectioned_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "medical_box",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Field Camp and the Array: field equipment"
+},
+{
+"source": "polyhaven",
+"id": "planter_box_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "planter_box_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "planter_box_03",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "planter_pot_clay",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "seeding_tray_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "watering_can_metal_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "garden_sprinkler_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "rusted_spade_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "trowel_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "compost_bag_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "wooden_bucket_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "wicker_basket_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "Thessaly's nursery"
+},
+{
+"source": "polyhaven",
+"id": "concrete_road_barrier",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "concrete_road_barrier_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "covered_car",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "old_tyre",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "rusted_wheel_rim_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "fire_hydrant",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "street_lamp_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "street_lamp_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "modular_chainlink_fence",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "modular_electricity_poles",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "modular_electric_cables",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "water_manhole_cover",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "rollershutter_door",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "exterior_aircon_unit",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "modular_fire_escape",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "can_rusted",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the Reclaimed Road and Old Town"
+},
+{
+"source": "polyhaven",
+"id": "modular_industrial_pipes_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "modular_pipes",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "power_box_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "utility_box_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "utility_box_02",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "overhead_crane",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "security_light",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "hanging_industrial_lamp",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "caged_hanging_light",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "industrial_wall_lamp",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "mounted_fluorescent_lights",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "modular_airduct_rectangular_01",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "lifebuoy",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "modular_wooden_pier",
+"kind": "model",
+"res": "2k",
+"use": "dressing",
+"priority": 2,
+"purpose": "the weir, the relay, the campus and the Array: industrial fittings"
+},
+{
+"source": "polyhaven",
+"id": "preconcrete_wall_001",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "concrete_slab_wall",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "concrete_wall_003",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "concrete_layers",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "cracked_concrete_wall",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "rebar_reinforced_concrete",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "dirty_concrete",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "concrete_floor_damaged_01",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "painted_concrete",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "concrete_debris",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "concrete: formed with tie holes, panel joints, weathered, board-marked, cracked, spalled with rebar, dirty, damaged floors, painted, rubble"
+},
+{
+"source": "polyhaven",
+"id": "road_damaged",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the old road: cracked and broken asphalt"
+},
+{
+"source": "polyhaven",
+"id": "road_damaged_2",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the old road: cracked and broken asphalt"
+},
+{
+"source": "polyhaven",
+"id": "worn_asphalt",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the old road: cracked and broken asphalt"
+},
+{
+"source": "polyhaven",
+"id": "rusty_metal_02",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "rusty_metal_03",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "rusty_metal_04",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "rusty_metal_sheet",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "rust_coarse_01",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "metal_plate",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "metal_plate_02",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "metal_grate_rusty",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "corrugated_iron",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "worn_corrugated_iron",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "polyhaven",
+"id": "green_metal_rust",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "steel and rust: painted metal rusting, heavy rust, plates, diamond plate, grating, corrugated sheet"
+},
+{
+"source": "ambientcg",
+"id": "PaintedMetal010",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "PaintedMetal011",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "PaintedMetal012",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "SolarPanel003",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "Rust004",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "MetalPlates002",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "MetalPlates013",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "DiamondPlate002",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "Fabric061",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "Metal009",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "Metal030",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "Rope001",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+},
+{
+"source": "ambientcg",
+"id": "MetalWalkway014",
+"kind": "texture",
+"res": "2k",
+"use": "surface",
+"priority": 1,
+"purpose": "the Just's hardware: white enamel chipped and rusting (tinted by vertex colour), solar cells, riveted plates, deck plate, canvas, brushed and graphite steel, rope, walkway grating"
+}
+]

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "unreal": {
+      "command": "python3",
+      "args": ["Tools/unreal_mcp_stdio.py"]
+    }
+  }
+}

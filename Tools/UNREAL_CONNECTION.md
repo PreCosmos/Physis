@@ -4,6 +4,9 @@ Use Unreal Engine's built-in **Unreal MCP** server for editor work.
 
 - Endpoint: `http://127.0.0.1:8000/mcp` (local computer only).
 - Codex project configuration: `.codex/config.toml`.
+- Claude Code project configuration: `.mcp.json`, which starts the stdio bridge
+  `Tools/unreal_mcp_stdio.py`. It loads when a session starts; approve the project
+  server when asked. The editor must be running for its tools to respond.
 - Automatic server startup: `Config/DefaultEditorPerProjectUserSettings.ini`.
 - Listener address and restart port reuse: `Config/DefaultEngine.ini`.
 - Editor tooling: `EditorToolset`.

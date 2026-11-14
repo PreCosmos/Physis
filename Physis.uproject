@@ -1,23 +1,40 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.8",
+	"EngineAssociation": "5.9",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "Physis",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject"
+			]
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "MetaHumanGenerator",
 			"Enabled": true,
-			"TargetAllowList": ["Editor"]
+			"TargetAllowList": [
+				"Editor"
+			]
 		},
 		{
 			"Name": "AnimationAssistantToolset",
 			"Enabled": true,
-			"TargetAllowList": ["Editor"]
+			"TargetAllowList": [
+				"Editor"
+			]
 		},
 		{
 			"Name": "EditorToolset",
 			"Enabled": true,
-			"TargetAllowList": ["Editor"]
+			"TargetAllowList": [
+				"Editor"
+			]
 		},
 		{
 			"Name": "PythonScriptPlugin",
@@ -60,6 +77,33 @@
 		{
 			"Name": "MCPClientToolset",
 			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystem",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemSteam",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemUtils",
+			"Enabled": true
+		},
+		{
+			"Name": "SteamShared",
+			"Enabled": true
+		},
+		{
+			"Name": "LiveLink",
+			"Enabled": true
+		},
+		{
+			"Name": "MovieRenderPipeline",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
 		}
 	]
 }

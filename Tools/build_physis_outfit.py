@@ -1,6 +1,11 @@
 """Run in Blender: fit and skin Physis's outfit to the exported MetaHuman body.
 
 blender --background --factory-startup --python Tools/build_physis_outfit.py -- PROJECT_ROOT
+
+Needs physis-body-guide.fbx and physis-face-guide.fbx (outfit_operation export_face_guide).
+To bring the result into Unreal: close the editor, delete SK_Physis_Outfit.uasset, reopen,
+then run empty_level, import, material_params, relink_outfit, studio, review_scene. Do not
+use the reimport operation: it left every section rendering with one material.
 """
 import bpy
 import bmesh
@@ -27,7 +32,23 @@ for obj in list(bpy.context.scene.objects):
 body.name = 'MetaHuman_Body_Fitting_Guide'
 body.hide_render = True
 body.data.update()
-bvh = BVHTree.FromPolygons([v.co for v in body.data.vertices], [p.vertices[:] for p in body.data.polygons])
+# The body mesh stops at the collarbone: the neck and chest bib belong to the face
+# mesh, so every garment is fitted against both surfaces together.
+before = set(bpy.context.scene.objects)
+bpy.ops.import_scene.fbx(filepath=str(DEST / 'physis-face-guide.fbx'))
+imported = [o for o in bpy.context.scene.objects if o not in before]
+face_guide = next(o for o in imported if o.type == 'MESH' and o.name.endswith('LOD0'))
+for obj in imported:
+    if obj != face_guide:
+        bpy.data.objects.remove(obj, do_unlink=True)
+face_guide.name = 'MetaHuman_Face_Fitting_Guide'
+face_guide.parent = None
+face_guide.matrix_world = body.matrix_world.copy()
+face_guide.hide_render = True
+offset = len(body.data.vertices)
+bvh = BVHTree.FromPolygons([v.co for v in body.data.vertices] + [v.co for v in face_guide.data.vertices],
+                           [p.vertices[:] for p in body.data.polygons] +
+                           [tuple(i + offset for i in p.vertices) for p in face_guide.data.polygons])
 
 # PBR sources are generated from periodic woven thread geometry and seeded
 # branching curves. No lighting, shadows, or wrinkles are painted into albedo.
@@ -114,15 +135,31 @@ save_image('T_Physis_Divinity_Mask',mask,True)
 pieces=[]
 
 
-def skin_mesh(obj):
+def clear_body(obj, clearance):
+    # Anything inside the character, or closer than clearance, moves out along the surface.
+    for vertex in obj.data.vertices:
+        location,normal,_,_=bvh.find_nearest(vertex.co)
+        if location is not None and (vertex.co-location).dot(normal)<clearance:
+            vertex.co=location+normal*clearance
+
+
+def smooth_mesh(obj, iterations):
+    bpy.context.view_layer.objects.active=obj
+    modifier=obj.modifiers.new('Relax fitted panel','SMOOTH')
+    modifier.factor=.5;modifier.iterations=iterations
+    bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+
+def skin_mesh(obj, source=None):
+    source=source or body
     obj.parent=arm
     obj.matrix_world=body.matrix_world.copy()
-    for group in body.vertex_groups:
+    for group in source.vertex_groups:
         if group.name not in obj.vertex_groups:
             obj.vertex_groups.new(name=group.name)
     bpy.context.view_layer.objects.active=obj
     transfer=obj.modifiers.new('Fitted MetaHuman skin weights','DATA_TRANSFER')
-    transfer.object=body;transfer.use_vert_data=True
+    transfer.object=source;transfer.use_vert_data=True
     transfer.data_types_verts={'VGROUP_WEIGHTS'}
     transfer.vert_mapping='POLYINTERP_NEAREST'
     bpy.ops.object.modifier_apply(modifier=transfer.name)
@@ -132,30 +169,36 @@ def skin_mesh(obj):
     return obj
 
 
-def surface(name, vertices, faces, uvs, material):
+def surface(name, vertices, faces, uvs, material, clearance=None, smooth=0, source=None):
     mesh=bpy.data.meshes.new(name);mesh.from_pydata(vertices,[],faces);mesh.update()
     obj=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(obj)
     mesh.materials.append(materials[material])
     layer=mesh.uv_layers.new(name='UVMap')
+    # Large panels stretch the tiling pattern until its branch lines disappear.
+    tile=.28 if material=='Ivory' else 1
     for face in mesh.polygons:
         for loop in face.loop_indices:
-            layer.data[loop].uv=uvs[mesh.loops[loop].vertex_index]
-    return skin_mesh(obj)
+            u,v=uvs[mesh.loops[loop].vertex_index]
+            layer.data[loop].uv=(u*tile,v*tile)
+    if smooth:smooth_mesh(obj,smooth)
+    if clearance is not None:clear_body(obj,clearance)
+    return skin_mesh(obj,source)
 
 
-def fitted_shell(name, material, predicate, thickness):
-    indices=[v.index for v in body.data.vertices if predicate(v)]
+def fitted_shell(name, material, predicate, thickness, source=None, clearance=None):
+    source=source or body
+    indices=[v.index for v in source.data.vertices if predicate(v)]
     keep=set(indices);remap={old:new for new,old in enumerate(indices)}
-    verts=[tuple(body.data.vertices[i].co+body.data.vertices[i].normal*thickness) for i in indices]
-    source_faces=[p for p in body.data.polygons if all(i in keep for i in p.vertices)]
+    verts=[tuple(source.data.vertices[i].co+source.data.vertices[i].normal*thickness) for i in indices]
+    source_faces=[p for p in source.data.polygons if all(i in keep for i in p.vertices)]
     faces=[tuple(remap[i] for i in p.vertices) for p in source_faces]
     uv_by_vertex={}
-    src_uv=body.data.uv_layers.active
+    src_uv=source.data.uv_layers.active
     for p in source_faces:
         for li in p.loop_indices:
-            uv_by_vertex[body.data.loops[li].vertex_index]=tuple(src_uv.data[li].uv)
+            uv_by_vertex[source.data.loops[li].vertex_index]=tuple(src_uv.data[li].uv)
     uvs=[uv_by_vertex.get(i,(0,0)) for i in indices]
-    return surface(name,verts,faces,uvs,material)
+    return surface(name,verts,faces,uvs,material,clearance=clearance,source=source)
 
 
 def hand_vertex(v):
@@ -163,7 +206,44 @@ def hand_vertex(v):
 
 
 fitted_shell('Charcoal_Sleeves_And_Trousers','Charcoal',
-             lambda v: 12<v.co.z and not hand_vertex(v), .55)
+             lambda v: 12<v.co.z and not hand_vertex(v), .55, clearance=.55)
+neck=fitted_shell('Charcoal_Neck_And_Bib','Charcoal',lambda v: v.co.z<144.9,.75,face_guide,clearance=.75)
+# Tuck the bib's lower edge under the chest layer so the join cannot show.
+uses={}
+for polygon in neck.data.polygons:
+    for edge in polygon.edge_keys:uses[edge]=uses.get(edge,0)+1
+for index in {i for edge,count in uses.items() if count==1 for i in edge}:
+    vertex=neck.data.vertices[index]
+    if vertex.co.z<140:
+        location,normal,_,_=bvh.find_nearest(vertex.co)
+        vertex.co=location+normal*.3
+
+
+# Everything but the hands is covered, so the skin there need not be drawn at all. This
+# keeps bending joints from poking through. Skin continues a little way under each cuff.
+def fill_triangle(points):
+    (ax,ay),(bx,by),(cx,cy)=points
+    x0,x1=int(min(ax,bx,cx)),int(max(ax,bx,cx))+1
+    y0,y1=int(min(ay,by,cy)),int(max(ay,by,cy))+1
+    xx,yy=np.mgrid[x0:x1+1,y0:y1+1]
+    area=(bx-ax)*(cy-ay)-(cx-ax)*(by-ay)
+    if abs(area)<1e-6:return
+    w0=((bx-xx)*(cy-yy)-(cx-xx)*(by-yy))/area
+    w1=((cx-xx)*(ay-yy)-(ax-xx)*(cy-yy))/area
+    inside=(w0>=-.02)&(w1>=-.02)&(w0+w1<=1.02)
+    wrapped=(yy[inside]%N,xx[inside]%N)
+    cover[wrapped]=0
+
+
+cover=np.ones((N,N),dtype=np.float32)
+body_uv=body.data.uv_layers.active
+for polygon in body.data.polygons:
+    if any(abs(body.data.vertices[i].co.x)>41 or hand_vertex(body.data.vertices[i]) for i in polygon.vertices):
+        continue
+    corners=[tuple(body_uv.data[li].uv*N) for li in polygon.loop_indices]
+    for i in range(1,len(corners)-1):
+        fill_triangle((corners[0],corners[i],corners[i+1]))
+save_image('T_Physis_Body_Mask',cover,True)
 
 
 def body_surface(x,z,front=True):
@@ -172,7 +252,13 @@ def body_surface(x,z,front=True):
         origin=Vector((x+offset,-60 if front else 60,z))
         hit=bvh.ray_cast(origin,Vector((0,1 if front else -1,0)),120)[0]
         if hit is not None:values.append(hit.y)
-    return (min(values)-1.4 if front else max(values)+1.4) if values else (-7 if front else 8)
+    if values:return min(values)-1.4 if front else max(values)+1.4
+    # A miss is past the silhouette's edge: walk in until the torso is found.
+    step=-1 if x>0 else 1
+    for distance in range(1,31):
+        hit=bvh.ray_cast(Vector((x+step*distance,-60 if front else 60,z)),Vector((0,1 if front else -1,0)),120)[0]
+        if hit is not None:return hit.y-1.4 if front else hit.y+1.4
+    return -7 if front else 8
 
 
 # An independent panel topology produces clean sewn boundaries and a fabric
@@ -200,7 +286,7 @@ for front in (0,1):
 for row in range(rows-1):
     for col in (0,cols-1):
         i=row*cols+col;faces.append((i,i+cols,i+cols+base,i+base))
-surface('Ivory_Wrap_Bodice',verts,faces,uvs,'Ivory')
+surface('Ivory_Wrap_Bodice',verts,faces,uvs,'Ivory',clearance=.9,smooth=6)
 
 # Broad diagonal overlap/lapel carries the wrapped construction in the concept.
 verts=[];faces=[];uvs=[]
@@ -213,15 +299,15 @@ for row in range(48):
 for row in range(47):
     for col in range(4):
         i=row*5+col;faces.append((i,i+1,i+6,i+5))
-surface('Ivory_Diagonal_Wrap_Lapel',verts,faces,uvs,'Ivory')
+surface('Ivory_Diagonal_Wrap_Lapel',verts,faces,uvs,'Ivory',clearance=1.1,smooth=3)
 
 # Four separate curved cloth panels provide the characteristic split silhouette.
 for number,(start,end) in enumerate([(-78,-6),(6,78),(102,178),(182,258)]):
     verts=[];uvs=[];faces=[];cols=25;rows=42
     for r in range(rows):
         t=r/(rows-1)
-        rx=np.interp(t,[0,.2,1],[13.5,18,24])
-        ry=np.interp(t,[0,.2,1],[11,13.5,18])
+        rx=np.interp(t,[0,.2,1],[14.5,21.5,27])
+        ry=np.interp(t,[0,.2,1],[11.5,15.5,20])
         for col in range(cols):
             u=col/(cols-1);angle=math.radians(start+(end-start)*u)
             hem=13+9*u if number in (0,2) else 22-9*u
@@ -232,28 +318,56 @@ for number,(start,end) in enumerate([(-78,-6),(6,78),(102,178),(182,258)]):
     for r in range(rows-1):
         for col in range(cols-1):
             i=r*cols+col;faces.append((i,i+1,i+cols+1,i+cols))
-    surface('Ivory_Split_Tail_'+str(number+1),verts,faces,uvs,'Ivory')
+    tail=surface('Ivory_Split_Tail_'+str(number+1),verts,faces,uvs,'Ivory',clearance=2.5)
+    # Skirt panels hang from the pelvis; a thigh only pulls them partly, toward the hem.
+    for vertex in tail.data.vertices:
+        for group in list(vertex.groups):
+            tail.vertex_groups[group.group].remove([vertex.index])
+        drop=min(max((106-vertex.co.z)/45,0),1)
+        leg=.75*drop*min(abs(vertex.co.x)/6,1)
+        for bone,weight in (('pelvis',1-leg),('thigh_l' if vertex.co.x>0 else 'thigh_r',leg)):
+            group=tail.vertex_groups.get(bone) or tail.vertex_groups.new(name=bone)
+            if weight>0:group.add([vertex.index],weight,'REPLACE')
 
 
-def ring_band(name,z0,z1,rx,ry,material,offset_y=-3):
+def ring_fit(name,z0,z1,clearance,material,center_y=-3,source=None,over=None):
+    # Measured from the character, so the band follows her shape instead of an ellipse.
     verts=[];uvs=[];faces=[];steps=96;rows=5
+    reach=[]
+    for col in range(steps+1):
+        a=col/steps*math.pi*2
+        direction=Vector((math.sin(a),-math.cos(a),0))
+        if over:
+            # Measure from outside in, so the band sits on top of the garment layers.
+            hits=[over.ray_cast(Vector((0,center_y,z))+direction*40,-direction,40)[3] for z in (z0,(z0+z1)*.5,z1)]
+            hits=[40-h for h in hits if h is not None]
+        else:
+            hits=[h for h in (bvh.ray_cast(Vector((0,center_y,z)),direction,40)[3] for z in (z0,(z0+z1)*.5,z1)) if h is not None]
+        reach.append(max(hits,default=reach[-1]-clearance if reach else 8)+clearance)
     for r in range(rows):
         t=r/(rows-1)
         for col in range(steps+1):
             u=col/steps;a=u*math.pi*2
-            ripple=.15*math.sin(u*math.pi*10+t*5)
-            verts.append(((rx+ripple)*math.sin(a),offset_y-(ry+ripple)*math.cos(a),z0+(z1-z0)*t))
+            verts.append((reach[col]*math.sin(a),center_y-reach[col]*math.cos(a),z0+(z1-z0)*t))
             uvs.append((u,t))
     for r in range(rows-1):
         for col in range(steps):
             i=r*(steps+1)+col;faces.append((i,i+1,i+steps+2,i+steps+1))
-    return surface(name,verts,faces,uvs,material)
+    return surface(name,verts,faces,uvs,material,source=source)
 
 
-ring_band('Wrapped_Waist_Sash',107,113,14,11.5,'Sash')
-ring_band('Sash_Upper_Stitch',112.5,112.8,14.2,11.7,'GoldTrim')
-ring_band('Sash_Lower_Stitch',107.2,107.5,14.2,11.7,'GoldTrim')
-ring_band('Charcoal_Standing_Collar',135.5,142,7.0,5.6,'Charcoal',offset_y=2.0)
+worn=[]
+polys=[]
+for piece in [p for p in pieces if p.name.startswith('Ivory')]:
+    base=len(worn)
+    worn.extend(v.co.copy() for v in piece.data.vertices)
+    piece_faces=[tuple(i+base for i in p.vertices) for p in piece.data.polygons]
+    polys.extend(piece_faces)
+outer=BVHTree.FromPolygons(worn,polys)
+ring_fit('Wrapped_Waist_Sash',107,113,.7,'Sash',over=outer)
+ring_fit('Sash_Upper_Stitch',112.5,112.8,.8,'GoldTrim',over=outer)
+ring_fit('Sash_Lower_Stitch',107.2,107.5,.8,'GoldTrim',over=outer)
+ring_fit('Charcoal_Standing_Collar',142.4,145.2,.9,'Charcoal',center_y=1,source=face_guide)
 for side in ('l','r'):
     wrist=arm.data.bones['hand_'+side].head_local
     elbow=arm.data.bones['lowerarm_'+side].head_local
@@ -276,7 +390,9 @@ for side in (-1,1):
     ry=(max(v.y for v in foot_points)-min(v.y for v in foot_points))*.5+1.5
     rx=(max(v.x for v in foot_points)-min(v.x for v in foot_points))*.5+1.0
     cx=(min(v.x for v in foot_points)+max(v.x for v in foot_points))*.5
-    profiles=[(0.6,rx,ry,cy),(2.6,rx,ry,cy),(4,rx,ry,cy),(7,5.2,10,-3),(10,4.7,5.5,0),(18,4.9,5.2,2),(24,5.2,5.5,2.5)]
+    # The first ring reaches the ground so the sole closes the boot at floor level.
+    sole_cy=cy
+    profiles=[(0.05,rx,ry,cy),(0.6,rx,ry,cy),(2.6,rx,ry,cy),(4,rx,ry,cy),(7,5.2,10,-3),(10,4.7,5.5,0),(15,4.9,5.2,2),(19,5.2,5.5,2.5)]
     verts=[];faces=[];uvs=[];steps=48
     for row,(z,rx,ry,cy) in enumerate(profiles):
         for col in range(steps+1):
@@ -286,8 +402,15 @@ for side in (-1,1):
     for row in range(len(profiles)-1):
         for col in range(steps):
             i=row*(steps+1)+col;faces.append((i,i+1,i+steps+2,i+steps+1))
-    surface('Boot_'+('L' if side>0 else 'R'),verts,faces,uvs,'Boots')
+    # Sole: the body mask hides the feet, so an open boot would show straight through.
+    sole=len(verts)
+    verts.append((cx,sole_cy,0.05));uvs.append((.5,0))
+    for col in range(steps):
+        faces.append((sole,col+1,col))
+    surface('Boot_'+('L' if side>0 else 'R'),verts,faces,uvs,'Boots',clearance=.5)
 
+inside=sum(1 for obj in pieces for v in obj.data.vertices
+           if (lambda hit:hit[0] is not None and (v.co-hit[0]).dot(hit[1])<.2)(bvh.find_nearest(v.co)))
 # One deforming mesh, five named material sections, existing MetaHuman hierarchy.
 bpy.ops.object.select_all(action='DESELECT')
 for obj in pieces:obj.select_set(True)
@@ -303,7 +426,8 @@ targets={}
 for group in outfit.vertex_groups:
     bone=arm.data.bones.get(group.name)
     while bone and bone.name not in core:bone=bone.parent
-    targets[group.index]=bone.name if bone else 'pelvis'
+    # Face-rig joints are not in this skeleton; those weights belong to the neck.
+    targets[group.index]=bone.name if bone else 'neck_02' if group.name.startswith('FACIAL') else 'pelvis'
 weights=[]
 for vertex in outfit.data.vertices:
     mapped={}
@@ -323,13 +447,14 @@ bpy.ops.export_scene.fbx(filepath=str(DEST/'SK_Physis_Outfit.fbx'),use_selection
                         object_types={'ARMATURE','MESH'},add_leaf_bones=False,
                         bake_anim=False,mesh_smooth_type='FACE',use_mesh_modifiers=True,
                         axis_forward='-Y',axis_up='Z',path_mode='STRIP')
-body.hide_set(True)
+body.hide_set(True);face_guide.hide_set(True)
 bpy.ops.wm.save_as_mainfile(filepath=str(DEST/'Physis_Outfit.blend'))
 report={'vertices':len(outfit.data.vertices),'polygons':len(outfit.data.polygons),
         'material_slots':[m.name for m in outfit.data.materials],
         'texture_resolution':[N,N], 'maximum_skin_influences':4,
         'binding':'Transferred from slim Physis body, remapped to core deform bones for LOD compatibility',
         'unweighted_vertices':sum(1 for v in outfit.data.vertices if not v.groups),
+        'vertices_closer_than_2mm_to_character':inside,
         'notes':['Skinned garment; cloth simulation not authored yet.',
                  'Concept likeness and animation intersections require Unreal visual review.']}
 (DEST/'outfit-build.json').write_text(json.dumps(report,indent=2))
