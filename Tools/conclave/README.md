@@ -272,6 +272,13 @@ brown: Lumen skylight leaking .15 with a white-blue tint, local exposure (shadow
 saturation .4 (not under .35: it also greys Physis's deepest shadows), and the Spine's sun bounces 1.4 times (its
 indirect lighting intensity). The volume's IndirectLightingColor stays unset: in 5.8.4 only precomputed lighting reads it.
 
+**No ray tracing, no Nanite (author, 2026-11-15).** The project now runs with `r.RayTracing=False`,
+`r.Lumen.HardwareRayTracing=False` and `r.Nanite=0` (Config/DefaultEngine.ini), so the level fits an 8 GB card: in the
+editor at a town camera it took about 4.5 GB of video memory instead of about 5.8 to 6 GB. Lumen stays on and traces in
+software against the mesh distance fields; side-by-side captures of the Wellspring, the Commons and the Reservoir showed
+no visible change. The notes below about hardware tracing, `-noraytracing` and `RT_SKIP` describe the earlier setup;
+`RT_SKIP` still keeps ground cover out of distance-field lighting. No launch flags are needed any more.
+
 **Ray tracing and LODs (round 2).** Ground cover is out of the ray-tracing scene: scatter meshes whose names start with
 `RT_SKIP` (SM_CV_GrassGold, SM_CV_Wheat, SM_CV_Flowers, SM_CV_Lily, SM_CV_Litter) have visible_in_ray_tracing and
 affect_distance_field_lighting off (Lumen's surface-cache traces count every hit as opaque, so card grass roofed the
