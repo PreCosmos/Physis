@@ -1,0 +1,922 @@
+{
+ "S_VO_TalkOrsolya0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 6.32,
+  "pace": 16.6,
+  "tries": 1,
+  "heard": "You came out of the well. Nothing comes out of the well. Things go in, seeds mostly, and the odd prayer.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolya1": {
+  "ok": true,
+  "match": 0.903,
+  "seconds": 8.64,
+  "pace": 16.8,
+  "tries": 1,
+  "heard": "I am or Shoya, I keep this garden. If you have come to help, the Commons is up the road and Kairos at the archive will want to talk your earos.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolya2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.32,
+  "pace": 16.4,
+  "tries": 1,
+  "heard": "If you have come to hurt us, the AL got here first and there is not much left to take.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolya3": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 8.0,
+  "pace": 17.1,
+  "tries": 1,
+  "heard": "A spring of divinity, the wise found it when they built the drum and built the garden around it. Things grow here that grow nowhere else.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolya4": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.8,
+  "pace": 16.4,
+  "tries": 1,
+  "heard": "It carried you in so I suppose it will carry you out. Step into the light when you want to go.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolya5": {
+  "ok": true,
+  "match": 0.933,
+  "seconds": 7.16,
+  "pace": 15.6,
+  "tries": 3,
+  "heard": "There is one thing, my best seed pod, a star lace, was drying on the island in the reservoir when the swarm came.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolya6": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 4.96,
+  "pace": 18.5,
+  "tries": 1,
+  "heard": "If you are ever out on that island, bring it back to me, I would plant it here by the well.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolyathanks0": {
+  "ok": false,
+  "match": 0.88,
+  "seconds": 3.8,
+  "pace": 15.3,
+  "tries": 1,
+  "heard": "My star lace, you found it, and you did not even squash it.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolyathanks1": {
+  "ok": true,
+  "match": 0.906,
+  "seconds": 8.16,
+  "pace": 15.6,
+  "tries": 1,
+  "heard": "Here, the whys grow these in the well's light. They say a life bloom makes a body hold more of itself. I think it will suit you.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkOrsolyathanks2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.0,
+  "pace": 14.6,
+  "tries": 1,
+  "heard": "Quieter. The well is singing again if you listen. It never used to stop.",
+  "voice": "bf_alice",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 8.16,
+  "pace": 14.2,
+  "tries": 1,
+  "heard": "Ah, you must be the one. The relay called you the woman between the fleets. I expected you to be taller or on fire.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 8.52,
+  "pace": 14.8,
+  "tries": 1,
+  "heard": "Kairos. I keep the archive, which means I write down what everyone else is too busy to remember. Lately that is mostly the AL.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 10.96,
+  "pace": 16.4,
+  "tries": 1,
+  "heard": "They came nine days ago, three days after Meridian fell silent, a swarm that lost its fleet and kept its last order. Hold what you take. They have taken the north half of the drum.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos3": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 13.2,
+  "pace": 14.8,
+  "tries": 1,
+  "heard": "Worse, they are drinking the spine, three pylons feed it on the terraces at the reservoir and in the foundry, and the swarm has its mouth on all three. Every day, the conclave is a little darker.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos4": {
+  "ok": true,
+  "match": 0.919,
+  "seconds": 12.6,
+  "pace": 15.3,
+  "tries": 1,
+  "heard": "re-light the pylons and the spine comes back. Then perhaps the light forms will open their spire again. They went silent when the swarm came. I would like to know why, and so, I think, would you.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos5": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 10.8,
+  "pace": 15.2,
+  "tries": 1,
+  "heard": "People who decided the war was a question and not an answer. We collect what both sides forget, their poems, their dead, their reasons, it does not make us popular.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos6": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 9.28,
+  "pace": 14.0,
+  "tries": 1,
+  "heard": "The just call us cowards. The vigil call us thieves. We call ourselves late mostly. Late to every war which is rather the point.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos7": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 10.48,
+  "pace": 15.1,
+  "tries": 1,
+  "heard": "Beings of light. They came to us forty years ago to study stillness if you can believe it and stayed to teach it. Their spire stands north of the reservoir",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos8": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 7.24,
+  "pace": 15.3,
+  "tries": 1,
+  "heard": "They move the way a thought moves. If anyone can teach you to cross a room before your shadow does, it is them.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos9": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 10.6,
+  "pace": 15.5,
+  "tries": 1,
+  "heard": "Eleven years of war, humanity and the first ones, each sure the other is the end of it. At Meridian, for one breath, both sides stopped. The reports do not say why.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairos10": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 7.68,
+  "pace": 16.9,
+  "tries": 1,
+  "heard": "They say a woman in pale clothes was standing in the middle of it. I would very much like to interview her when she has a moment.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosspire0": {
+  "ok": true,
+  "match": 0.941,
+  "seconds": 5.96,
+  "pace": 16.3,
+  "tries": 1,
+  "heard": "The spine is burning again. Do you hear that? That is 2,000 people opening their shutters.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosspire1": {
+  "ok": true,
+  "match": 0.93,
+  "seconds": 6.36,
+  "pace": 16.2,
+  "tries": 1,
+  "heard": "and the spire has opened. Go to the light forms. I have a feeling they were waiting for you, not for us.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosspire2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 6.8,
+  "pace": 15.7,
+  "tries": 1,
+  "heard": "Only what the guards tell me, something large sits in the spindle docks and the swarm moves when it moves.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosspire3": {
+  "ok": true,
+  "match": 0.923,
+  "seconds": 5.56,
+  "pace": 19.4,
+  "tries": 1,
+  "heard": "The docks are walled with lattices now. Whatever the light forms teach you, I suspect you will need it there.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosdone0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 9.8,
+  "pace": 15.9,
+  "tries": 1,
+  "heard": "The AL have stopped. They are standing in the docks like tools left on a bench. Without the shepherd, they have no order to keep, and an AL has nothing else.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosdone1": {
+  "ok": true,
+  "match": 0.952,
+  "seconds": 9.0,
+  "pace": 17.4,
+  "tries": 1,
+  "heard": "You did not un-mate them. You took away the voice telling them what to hold. I will write that down carefully. It is the kind of thing people get wrong later.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosdone2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 9.32,
+  "pace": 17.2,
+  "tries": 1,
+  "heard": "When you come back and you will, the wise can teach you something. Every room remembers what happened in it. We have learned to listen. You might learn to see.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosdone3": {
+  "ok": true,
+  "match": 0.923,
+  "seconds": 9.4,
+  "pace": 17.8,
+  "tries": 1,
+  "heard": "The wellspring will take you home to the centre whenever you wish. The conclave is yours to walk for this. People will want to thank you, let them, it is good for them.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosdone4": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 8.08,
+  "pace": 15.5,
+  "tries": 1,
+  "heard": "We keep them, and keep them still. Somewhere in this war there is a question about what an AL could be if no one ordered it.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkKairosdone5": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.96,
+  "pace": 16.4,
+  "tries": 1,
+  "heard": "Not today. Today I would like to sit in the light and write something that is not a casualty list.",
+  "voice": "bm_george",
+  "kind": "human"
+ },
+ "S_VO_TalkPetra0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 9.0,
+  "pace": 13.9,
+  "tries": 1,
+  "heard": "Mind the shelves, no, the other shelves. Sorry. I am Petra, I help Kairos keep the archive, which mostly means I keep Kairos.",
+  "voice": "bf_isabella",
+  "kind": "human"
+ },
+ "S_VO_TalkPetra1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 10.08,
+  "pace": 17.6,
+  "tries": 1,
+  "heard": "Three pages of the ledger of names blew out of the archive when the swarm broke the North Gate. One went toward the terraces, one toward the reservoir, one into the old quarter.",
+  "voice": "bf_isabella",
+  "kind": "human"
+ },
+ "S_VO_TalkPetra2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.28,
+  "pace": 17.4,
+  "tries": 1,
+  "heard": "Every name on them is someone who died in the war. If you find them, please bring them back.",
+  "voice": "bf_isabella",
+  "kind": "human"
+ },
+ "S_VO_TalkPetra3": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 7.6,
+  "pace": 17.5,
+  "tries": 2,
+  "heard": "Everyone who has died in the war on both sides as far as we know them, four million, one hundred thousand names and we are behind.",
+  "voice": "bf_isabella",
+  "kind": "human"
+ },
+ "S_VO_TalkPetra4": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 3.96,
+  "pace": 17.4,
+  "tries": 1,
+  "heard": "Nobody else writes them down together. That is the whole point of it.",
+  "voice": "bf_isabella",
+  "kind": "human"
+ },
+ "S_VO_TalkPetrathanks0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 6.12,
+  "pace": 19.8,
+  "tries": 1,
+  "heard": "All three. You found all three. I have read these names every morning for six years and I was afraid I would forget them.",
+  "voice": "bf_isabella",
+  "kind": "human"
+ },
+ "S_VO_TalkPetrathanks1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 8.28,
+  "pace": 16.3,
+  "tries": 1,
+  "heard": "Kairos told me to give you this, it came from the foundry before the war, a spun core for a sidearm. It makes every shot strike harder.",
+  "voice": "bf_isabella",
+  "kind": "human"
+ },
+ "S_VO_TalkTamsin0": {
+  "ok": false,
+  "match": 0.786,
+  "seconds": 3.44,
+  "pace": 19.2,
+  "tries": 1,
+  "heard": "Are you a light form? You look like a light form, but you have feet.",
+  "voice": "af_sky",
+  "kind": "human"
+ },
+ "S_VO_TalkTamsin1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 7.36,
+  "pace": 18.3,
+  "tries": 1,
+  "heard": "My kite is stuck up on the terraces right at the top, past the red walls the AL made. I am not allowed past the North Gate, nobody is.",
+  "voice": "af_sky",
+  "kind": "human"
+ },
+ "S_VO_TalkTamsin2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.24,
+  "pace": 19.1,
+  "tries": 1,
+  "heard": "If you get it back, I will give you my whole jar of crystals. I have been saving them since forever.",
+  "voice": "af_sky",
+  "kind": "human"
+ },
+ "S_VO_TalkTamsinthanks0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 3.28,
+  "pace": 16.8,
+  "tries": 1,
+  "heard": "You got it. It is a bit burnt. That makes it look fast.",
+  "voice": "af_sky",
+  "kind": "human"
+ },
+ "S_VO_TalkTamsinthanks1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.36,
+  "pace": 14.6,
+  "tries": 1,
+  "heard": "Here, all of them. You can have the jar, too. No, not the jar, the jar is mine. // //",
+  "voice": "af_sky",
+  "kind": "human"
+ },
+ "S_VO_TalkHalden0": {
+  "ok": true,
+  "match": 0.941,
+  "seconds": 8.8,
+  "pace": 15.7,
+  "tries": 1,
+  "heard": "Welcome to the mendery robots mend robots here and mechanoids and the occasional toaster I am hauled in seven I am missing a part of myself",
+  "voice": "am_echo",
+  "kind": "robot"
+ },
+ "S_VO_TalkHalden1": {
+  "ok": true,
+  "match": 0.967,
+  "seconds": 7.88,
+  "pace": 17.6,
+  "tries": 1,
+  "heard": "When the swarm came, I was working in the foundry. I ran. I left my memory core and a socket by the furnaces, the way you might leave a coat.",
+  "voice": "am_echo",
+  "kind": "robot"
+ },
+ "S_VO_TalkHalden2": {
+  "ok": true,
+  "match": 0.941,
+  "seconds": 4.44,
+  "pace": 18.9,
+  "tries": 1,
+  "heard": "It holds 40 years of the conclave. If you find it, I would like to remember them.",
+  "voice": "am_echo",
+  "kind": "robot"
+ },
+ "S_VO_TalkHalden3": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.48,
+  "pace": 15.5,
+  "tries": 1,
+  "heard": "The just made us to win. Then they asked us to want to win. We discovered we did not.",
+  "voice": "am_echo",
+  "kind": "robot"
+ },
+ "S_VO_TalkHalden4": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.0,
+  "pace": 16.2,
+  "tries": 1,
+  "heard": "Wanting is a strange thing to be given. We are still deciding what to do with it. // // // // // // // // // // // // // // // // // // // // // // // //",
+  "voice": "am_echo",
+  "kind": "robot"
+ },
+ "S_VO_TalkHaldenthanks0": {
+  "ok": false,
+  "match": 0.889,
+  "seconds": 7.16,
+  "pace": 15.4,
+  "tries": 1,
+  "heard": "Restoring. Restoring. Oh, there is the orary and the first harvest and the day patients arrived. Thank you.",
+  "voice": "am_echo",
+  "kind": "robot"
+ },
+ "S_VO_TalkHaldenthanks1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 7.64,
+  "pace": 17.4,
+  "tries": 1,
+  "heard": "I made this in the foundry long ago for someone who did not come back. A ward of six facets, every hit you take will cost you less.",
+  "voice": "am_echo",
+  "kind": "robot"
+ },
+ "S_VO_TalkPatiencedone0": {
+  "ok": true,
+  "match": 0.923,
+  "seconds": 4.56,
+  "pace": 13.4,
+  "tries": 1,
+  "heard": "I have waited 11 years for one of you to stop. Thank you.",
+  "voice": "bm_lewis",
+  "kind": "mecha"
+ },
+ "S_VO_TalkWen0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 4.88,
+  "pace": 16.8,
+  "tries": 1,
+  "heard": "When I was a girl, the spine was so bright we had to invent shade. Now look at it.",
+  "voice": "bf_lily",
+  "kind": "human"
+ },
+ "S_VO_TalkWen1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 8.0,
+  "pace": 15.1,
+  "tries": 1,
+  "heard": "If you are going North child, take something to eat. Fighting on an empty stomach is how heroes become cautionary tales.",
+  "voice": "bf_lily",
+  "kind": "human"
+ },
+ "S_VO_TalkWendone0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.24,
+  "pace": 15.5,
+  "tries": 1,
+  "heard": "There. That is the spine I remember. I shall have to invent shade all over again.",
+  "voice": "bf_lily",
+  "kind": "human"
+ },
+ "S_VO_TalkMarek0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.0,
+  "pace": 14.0,
+  "tries": 1,
+  "heard": "The AL hit the foundry first. Machines know where other machines live.",
+  "voice": "am_michael",
+  "kind": "human"
+ },
+ "S_VO_TalkMarek1": {
+  "ok": true,
+  "match": 0.955,
+  "seconds": 7.64,
+  "pace": 15.2,
+  "tries": 1,
+  "heard": "Forge, Mother Eilek stayed behind to bank the furnaces. Nobody has heard from her since, if you go east, look for her.",
+  "voice": "am_michael",
+  "kind": "human"
+ },
+ "S_VO_TalkSefa0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 6.48,
+  "pace": 13.9,
+  "tries": 1,
+  "heard": "Two days since anyone bought fruit, fruit does not know there is a war, it just goes soft.",
+  "voice": "af_bella",
+  "kind": "human"
+ },
+ "S_VO_TalkSefa1": {
+  "ok": true,
+  "match": 0.933,
+  "seconds": 4.48,
+  "pace": 15.4,
+  "tries": 1,
+  "heard": "If you see Dove down by the reservoir, tell him I have kept his pears.",
+  "voice": "af_bella",
+  "kind": "human"
+ },
+ "S_VO_TalkSefa2": {
+  "ok": true,
+  "match": 0.933,
+  "seconds": 6.4,
+  "pace": 12.7,
+  "tries": 1,
+  "heard": "Peers, terrace greens, and gossip. The gossip is free. Today it is all about you.",
+  "voice": "af_bella",
+  "kind": "human"
+ },
+ "S_VO_TalkQuill0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 7.56,
+  "pace": 15.1,
+  "tries": 3,
+  "heard": "Courier route north, suspended. Courier route south, also suspended. I am delivering this sentence to you instead.",
+  "voice": "am_puck",
+  "kind": "robot"
+ },
+ "S_VO_TalkQuill1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 3.76,
+  "pace": 14.9,
+  "tries": 1,
+  "heard": "Recipient, you, message, good luck, signature everyone.",
+  "voice": "am_puck",
+  "kind": "robot"
+ },
+ "S_VO_TalkQuilldone0": {
+  "ok": false,
+  "match": 0.857,
+  "seconds": 6.56,
+  "pace": 16.0,
+  "tries": 4,
+  "heard": "All routes open. I have 312 deliveries outstanding. This is the best day of my life.",
+  "voice": "am_puck",
+  "kind": "robot"
+ },
+ "S_VO_TalkTeodor0": {
+  "ok": true,
+  "match": 0.914,
+  "seconds": 5.84,
+  "pace": 15.8,
+  "tries": 1,
+  "heard": "This is the North Gate. Past it, the AL hold everything. If you're going through, go armed.",
+  "voice": "bm_daniel",
+  "kind": "human"
+ },
+ "S_VO_TalkTeodor1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 4.8,
+  "pace": 17.9,
+  "tries": 1,
+  "heard": "They do not stop, they do not sleep, they do not even hate us, which is somehow worse.",
+  "voice": "bm_daniel",
+  "kind": "human"
+ },
+ "S_VO_TalkTeodor2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.88,
+  "pace": 17.2,
+  "tries": 2,
+  "heard": "The barricades are AL force, swords bounce off, the guards say you can calm things, try that on them.",
+  "voice": "bm_daniel",
+  "kind": "human"
+ },
+ "S_VO_TalkTeodor3": {
+  "ok": true,
+  "match": 0.962,
+  "seconds": 6.28,
+  "pace": 20.7,
+  "tries": 1,
+  "heard": "and the reservoir boys. Something sits on each one with a red eye. We could never get a clean shot from the shore. Maybe you can.",
+  "voice": "bm_daniel",
+  "kind": "human"
+ },
+ "S_VO_TalkTeodordone0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.44,
+  "pace": 17.6,
+  "tries": 1,
+  "heard": "First quiet watch in 9 days. I keep reaching for my rifle. I keep finding a sandwich instead.",
+  "voice": "bm_daniel",
+  "kind": "human"
+ },
+ "S_VO_TalkAma0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 4.32,
+  "pace": 17.6,
+  "tries": 1,
+  "heard": "You are walking like someone who will need me later. Do not let me be right.",
+  "voice": "af_jessica",
+  "kind": "human"
+ },
+ "S_VO_TalkAma1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 7.24,
+  "pace": 17.7,
+  "tries": 1,
+  "heard": "If you are hurt, rest at a still point. The wise built the commons around three of them, long before anyone knew what they were.",
+  "voice": "af_jessica",
+  "kind": "human"
+ },
+ "S_VO_TalkListener0": {
+  "ok": true,
+  "match": 0.957,
+  "seconds": 6.48,
+  "pace": 15.3,
+  "tries": 1,
+  "heard": "I am off the first ones. I came to hear the wise listen. It is a rare sound. I stayed for the bread.",
+  "voice": "bm_fable",
+  "kind": "light"
+ },
+ "S_VO_TalkListener1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 8.68,
+  "pace": 18.3,
+  "tries": 1,
+  "heard": "My people on the terrace above the orchards left four stones that remember an order. If you wish to hear them, wake them as the serene wake, the tallest first.",
+  "voice": "bm_fable",
+  "kind": "light"
+ },
+ "S_VO_TalkListener2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.0,
+  "pace": 17.4,
+  "tries": 1,
+  "heard": "I fear what both our peoples are becoming. Not you. You are not one of either I think.",
+  "voice": "bm_fable",
+  "kind": "light"
+ },
+ "S_VO_TalkDov0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.56,
+  "pace": 18.3,
+  "tries": 1,
+  "heard": "Careful at the water. They put things on the buoys. Red eyes. I can see them from my window all night.",
+  "voice": "am_adam",
+  "kind": "human"
+ },
+ "S_VO_TalkDov1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 6.12,
+  "pace": 18.6,
+  "tries": 1,
+  "heard": "The island lock is theirs, something that shoots straight could reach the buoys from the shore. I only have a net.",
+  "voice": "am_adam",
+  "kind": "human"
+ },
+ "S_VO_TalkRhea0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.5,
+  "pace": 16.0,
+  "tries": 1,
+  "heard": "Get down. Oh, you are not one of them. I have been hiding behind this tray for two days.",
+  "voice": "af_river",
+  "kind": "human"
+ },
+ "S_VO_TalkRhea1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 10.9,
+  "pace": 18.6,
+  "tries": 1,
+  "heard": "The pylon up top only turns while the channel runs and the channel needs three sluices opened in order. I wrote the order on the irrigation board, read it, and do not get it wrong, it drains and resets.",
+  "voice": "af_river",
+  "kind": "human"
+ },
+ "S_VO_TalkIlex0": {
+  "ok": true,
+  "match": 0.913,
+  "seconds": 6.88,
+  "pace": 17.3,
+  "tries": 4,
+  "heard": "a visitor who is not made of ale. Welcome to my foundry. Mind the floors I bank the furnaces but they still breathe.",
+  "voice": "am_onyx",
+  "kind": "mechanoid"
+ },
+ "S_VO_TalkIlex1": {
+  "ok": true,
+  "match": 0.964,
+  "seconds": 8.28,
+  "pace": 17.4,
+  "tries": 1,
+  "heard": "The pylon yard is across the slag channel. The crane holds its bridge up on three cable locks. Cut them with the blade and the bridge comes down.",
+  "voice": "am_onyx",
+  "kind": "mechanoid"
+ },
+ "S_VO_TalkIlex2": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.2,
+  "pace": 20.0,
+  "tries": 1,
+  "heard": "I would do it myself, but they put a barricade around my workshop and I have four arms and no patience.",
+  "voice": "am_onyx",
+  "kind": "mechanoid"
+ },
+ "S_VO_TalkIlexthanks0": {
+  "ok": true,
+  "match": 0.917,
+  "seconds": 3.8,
+  "pace": 16.3,
+  "tries": 2,
+  "heard": "The foundry pylon sings again. I have forgotten how loud it is.",
+  "voice": "am_onyx",
+  "kind": "mechanoid"
+ },
+ "S_VO_TalkIlexthanks1": {
+  "ok": true,
+  "match": 0.962,
+  "seconds": 7.44,
+  "pace": 18.1,
+  "tries": 1,
+  "heard": "Take this. A shard of edge light cut from the old crane's heart. It will settle into your blade and make every strike count for more.",
+  "voice": "am_onyx",
+  "kind": "mechanoid"
+ },
+ "S_VO_TalkIriel0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 6.36,
+  "pace": 15.7,
+  "tries": 1,
+  "heard": "You walk like a body. You are not one, not really. You are what everything is made of, folded small.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkIriel1": {
+  "ok": true,
+  "match": 0.968,
+  "seconds": 9.28,
+  "pace": 16.9,
+  "tries": 1,
+  "heard": "I am Eriel. We sealed the spire when the swarm came, because AL cannot be reasoned with and light cannot be held. We were waiting for the spine, and for you.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkIriel2": {
+  "ok": true,
+  "match": 0.951,
+  "seconds": 9.28,
+  "pace": 17.6,
+  "tries": 1,
+  "heard": "At Meridian you were still, and the stillness spread. Light is the other half of that, not stillness but a rival. Light does not cross a room, it is simply there.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkIriel3": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 3.6,
+  "pace": 13.1,
+  "tries": 1,
+  "heard": "Do not move toward the far side. Be there now.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkIrielbase0": {
+  "ok": true,
+  "match": 0.957,
+  "seconds": 7.56,
+  "pace": 15.7,
+  "tries": 1,
+  "heard": "The lattice's answer to light step. Some stay open, some close again after a few breaths, so do not stop to admire them.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkIrielbase1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 5.96,
+  "pace": 15.4,
+  "tries": 1,
+  "heard": "The hunters above are AL that copied our speed. They copied nothing else, step through them.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkIrielcrown0": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 4.32,
+  "pace": 15.5,
+  "tries": 1,
+  "heard": "You climbed it. Good. Look down the whole drum and all of it lit.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkIrielcrown1": {
+  "ok": true,
+  "match": 1.0,
+  "seconds": 9.08,
+  "pace": 16.1,
+  "tries": 1,
+  "heard": "The shepherd is in the docks, behind a wall of lattices the swarm grew from our own light. Now you can pass them, stop it, and the rest will stop.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkIrielcrown2": {
+  "ok": true,
+  "match": 0.947,
+  "seconds": 6.8,
+  "pace": 15.0,
+  "tries": 1,
+  "heard": "and physicists what you just did you can do anywhere. The center has lattices of its own, remember them.",
+  "voice": "af_nova",
+  "kind": "light"
+ },
+ "S_VO_TalkWisp0": {
+  "ok": true,
+  "match": 0.933,
+  "seconds": 5.72,
+  "pace": 18.0,
+  "tries": 1,
+  "heard": "Oh, a big one. Are you here to take me home? The lattice is closed and I cannot remember how to be quick.",
+  "voice": "af_sky",
+  "kind": "light"
+ },
+ "S_VO_TalkWisp1": {
+  "ok": true,
+  "match": 0.971,
+  "seconds": 9.68,
+  "pace": 16.5,
+  "tries": 1,
+  "heard": "Ariel says, I am too young to step. I think I am exactly the right age. Here, take this, it fell off me when I was frightened. I am going home now. The fast way.",
+  "voice": "af_sky",
+  "kind": "light"
+ }
+}
