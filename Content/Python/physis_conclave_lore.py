@@ -55,6 +55,10 @@ CONCLAVE_GATES = (
     ('Items', 'Sealed Vault', 'Divinity speaks. A vault of the Wise, sealed with a lock you cannot open yet. Remember where it stands: what opens it is learned elsewhere.'),
 )
 
+# The grass her blade cuts (BP_CutGrass; author, 2026-11-15). Its tag rides on the first tuft of every clump
+# (physis_conclave_scenario.Placer.grass), so it has no point of its own. The Center's grass may share the title.
+GRASS_ENTRY = ('Items', 'Goldgrass', 'Divinity speaks. Goldgrass. The Wise sow it where they once left supplies lying, and it gathers what the Conclave lets fall. Cut it with the blade, and it may give up health, Divinity or ammunition, never the same twice. It grows back.')
+
 # Enemies by level: mesh, health, scale, hover height (cm), Logbook entry.
 CONCLAVE_ENEMIES = {
     1: ('SM_CE_ALMite', 5, 1.0, 130, ('Enemies', 'AL Mite', 'Level 1. The smallest AL of the swarm, quick and many. It keeps no will of its own, only the order it was given. Swat it with the blade or pick it off with the sidearm. Five health.')),
@@ -290,5 +294,5 @@ def conversation_pages(person):
 
 def conclave_entries():
     """Logbook rows (category, title, text) for every scan, lock kind and enemy."""
-    rows = [row[:3] for row in CONCLAVE_SCANS] + list(CONCLAVE_GATES) + [entry[4] for entry in CONCLAVE_ENEMIES.values()]
+    rows = [row[:3] for row in CONCLAVE_SCANS] + list(CONCLAVE_GATES) + [GRASS_ENTRY] + [entry[4] for entry in CONCLAVE_ENEMIES.values()]
     return rows

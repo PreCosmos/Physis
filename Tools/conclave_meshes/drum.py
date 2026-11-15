@@ -1192,7 +1192,11 @@ FOOTPRINT = {'SM_CN_House0': (7, 9), 'SM_CN_House1': (6, 6), 'SM_CN_House2': (8,
              'SM_CN_Ruin0': (7, 9), 'SM_CN_Ruin1': (6, 6), 'SM_CN_TerraceWall': (.6, 12), 'SM_CN_Stairs': (4.5, 3),
              'SM_CN_Lamp': (1, 1), 'SM_CN_Bench': (.6, 2), 'SM_CN_Planter': (1, 2), 'SM_CN_Banner': (1, 1),
              'SM_CV_Hedge': (1, 2)}
-HOUSES = (('SM_CN_House0', .30), ('SM_CN_House1', .24), ('SM_CN_House2', .18), ('SM_CN_House3', .28))
+# The shares are what the Commons ends up with (_buildings, mix=True; author, 2026-11-15): the domed tower is a
+# landmark, about one house in nine, where before it filled every gap a larger house could not and made up almost
+# half the town.
+HOUSES = (('SM_CN_House0', .28), ('SM_CN_House1', .11), ('SM_CN_House2', .25), ('SM_CN_House3', .36))
+HOUSE_SIZES = (.94, 1.07)   # each house's own uniform scale, so eaves and floors do not line up down a street
 RUINS = (('SM_CN_Ruin0', .55), ('SM_CN_Ruin1', .45))
 WATER_PLANTS = ('SM_CV_Reeds', 'SM_CV_Lily')
 FLOWERS = ('SM_CV_FlowersWhite', 'SM_CV_FlowersRed', 'SM_CV_FlowersBlue')
@@ -1280,6 +1284,7 @@ class _Layout:
         self.rows = {}
         self.occ = np.zeros((int(round(2 * HALF_X / OCC)), int(round(2 * HALF_Y / OCC))), np.int32)
         self.owners = 1
+        self.sizes = {}   # a building's own scale, by its owner number (_buildings)
         self.rng = np.random.default_rng(20261106)
         self.roads = [line for line, _, _ in road_lines()]
 
@@ -1509,32 +1514,52 @@ def _stairs(L, region):
                 L.mark(xl, y, side * 90.0, run, 3.0, .4)
 
 
-def _buildings(L, region, kinds, flat_tol, jitter, sink, target):
+def _buildings(L, region, kinds, flat_tol, jitter, sink, target, mix=False, sizes=(1.0, 1.0)):
     """Houses (or ruins) on a region's pads: each faces the nearest road, sits whole on one pad with a garden
-    margin, stays 6 m from every road, off lanes, zones and people, and keeps 3 m from its neighbours."""
+    margin, stays 6 m from every road, off lanes, zones and people, and keeps 3 m from its neighbours.
+    With `mix` the kinds end up in their shares: at each spot the kind furthest under its share is tried first and the
+    others after it, and a kind already a quarter over its share is skipped, so the smallest house no longer takes
+    every spot the larger ones do not fit. `sizes` is the range of each building's own uniform scale (its footprint,
+    garden and keep-clear scale with it; the row carries it)."""
     G, rng = L.G, L.rng
+    style = np.random.default_rng(20261115)   # its own stream: the sizes do not shift the rest of the layout's draws
+    weights = np.array([k[1] for k in kinds], np.float64)
+    share = dict(zip((k[0] for k in kinds), weights / weights.sum()))
+    counts = dict.fromkeys(share, 0)
     cx, cy, r, b = plan.REGIONS[region]
     X, Y = L.candidates(cx - r - b, cx + r + b, -WALK, WALK, 2.5)
     keep = (region_w(region, X, Y) > .95) & clear(G, X, Y, road=ROAD_MARGIN + 3, zone_pad=3.5, people=6.0)
     placed = []
     for x, y in zip(X[keep], Y[keep]):
-        mesh = L.pick(kinds)
-        length, width = FOOTPRINT[mesh]
+        first = L.pick(kinds)
         (px, py), _ = nearest_point(L.roads, x, y)
         yaw = math.degrees(math.atan2(py - y, px - x)) + rng.uniform(-jitter, jitter)
-        xs, ys = footprint_points(x, y, yaw, length, width, .9)
-        hs = L.h(xs, ys)
-        if hs.max() - hs.min() > flat_tol:
-            continue
-        fx, fy = footprint_points(x, y, yaw, length, width, .3)
-        if not clear(G, fx, fy, zone_pad=.5, people=6.0).all() or sample(G['lane_d'], fx, fy).min() < 3.0:
-            continue
-        if not L.free(x, y, yaw, length, width, 1.0):      # a 1 m garden to a wall, 2.4 m to the next house
-            continue
-        L.add(mesh, x, y, float(hs.min()) - sink, yaw)     # a ruin on uneven ground is half buried on its high side
-        owner = L.owner()
-        L.mark(x, y, yaw, length, width, 1.4, owner)
-        placed.append((mesh, x, y, yaw, owner))
+        scale = float(style.uniform(*sizes))
+        if mix:
+            done = max(len(placed), 1)
+            order = sorted(share, key=lambda name: counts[name] / done - share[name])
+            if len(placed) >= 20:
+                order = [name for name in order if counts[name] / done <= share[name] * 1.25]
+        else:
+            order = [first]
+        for mesh in order:
+            length, width = FOOTPRINT[mesh][0] * scale, FOOTPRINT[mesh][1] * scale
+            xs, ys = footprint_points(x, y, yaw, length, width, .9)
+            hs = L.h(xs, ys)
+            if hs.max() - hs.min() > flat_tol:
+                continue
+            fx, fy = footprint_points(x, y, yaw, length, width, .3)
+            if not clear(G, fx, fy, zone_pad=.5, people=6.0).all() or sample(G['lane_d'], fx, fy).min() < 3.0:
+                continue
+            if not L.free(x, y, yaw, length, width, 1.0):      # a 1 m garden to a wall, 2.4 m to the next house
+                continue
+            L.add(mesh, x, y, float(hs.min()) - sink, yaw, scale=scale)   # a ruin on uneven ground is half buried on its high side
+            owner = L.owner()
+            L.sizes[owner] = scale
+            L.mark(x, y, yaw, length, width, 1.4, owner)
+            placed.append((mesh, x, y, yaw, owner))
+            counts[mesh] += 1
+            break
         if len(placed) >= target:
             break
     return placed
@@ -1545,7 +1570,7 @@ def _gardens(L, houses):
     behind or beside it."""
     G, rng = L.G, L.rng
     for mesh, x, y, yaw, own in houses:   # what grows in a house's garden may stand in its margin (own)
-        length, width = FOOTPRINT[mesh]
+        length, width = (side * L.sizes.get(own, 1.0) for side in FOOTPRINT[mesh])
         c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
         if rng.uniform() < .7:
             side = rng.choice((-1, 1))
@@ -1584,8 +1609,8 @@ def _gardens(L, houses):
 def _vines(L, ruins):
     """SM_CV_Vines against the walls of the Old Quarter's ruins, hanging from their broken tops to the ground."""
     rng = L.rng
-    for mesh, x, y, yaw, _ in ruins:
-        length, width = FOOTPRINT[mesh]
+    for mesh, x, y, yaw, own in ruins:
+        length, width = (side * L.sizes.get(own, 1.0) for side in FOOTPRINT[mesh])
         c, s = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
         for _ in range(int(rng.integers(1, 4))):
             if rng.uniform() < .5:
@@ -1791,7 +1816,7 @@ def layout():
     for region in TOWN:
         _terrace_walls(L, region, broken=.3 if region == 'Old Quarter' else 0.0)
         _stairs(L, region)
-    houses = _buildings(L, 'Commons', HOUSES, .12, 3.0, .02, 400)
+    houses = _buildings(L, 'Commons', HOUSES, .12, 7.0, .02, 260, mix=True, sizes=HOUSE_SIZES)
     ruins = _buildings(L, 'Old Quarter', RUINS, .6, 6.0, .2, 60)
     _gardens(L, houses)
     _vines(L, ruins)
@@ -1820,7 +1845,7 @@ def audit(rows):
             length, width = FOOTPRINT[mesh]
             ok = np.ones(len(a), bool)
             for k in range(len(a)):
-                xs, ys = footprint_points(x[k], y[k], yaw[k], length, width)
+                xs, ys = footprint_points(x[k], y[k], yaw[k], length * a[k, 6], width * a[k, 6])
                 ok[k] = clear(G, xs, ys, road=ROAD_MARGIN, zone_pad=0.0, lake_pad=None if water else 0.0).all()
         else:
             ok = clear(G, x, y, road=ROAD_MARGIN, zone_pad=0.0, lake_pad=None if water else 0.0)

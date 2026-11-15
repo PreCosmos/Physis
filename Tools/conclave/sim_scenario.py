@@ -145,6 +145,7 @@ VARS = {
     # ShotOnly (2026-11-08, the Center's BP change): PhysisStrikeNow's blade skips such a Static target.
     'BP_TrainingDrone_C': {'Health': I, 'RoomId': I, 'Boss': B, 'Static': B, 'ShotOnly': B},
     'BP_Pickup_C': {'Kind': I, 'Token': S},
+    'BP_CutGrass_C': {'Regrow': F, 'Chance': F},   # goldgrass (author, 2026-11-15): the Conclave's pickups grow in it
     'BP_LogVoice_C': {'Voice': O, 'Title': S, 'Image': O},
     'BP_TutorialTrigger_C': {'Message': S},
     'BP_ScanTarget_C': {'ScanText': S, 'ScanImportant': B, 'ScanCategory': S, 'ScanTitle': S},
@@ -155,7 +156,7 @@ VARS = {
     'BP_Current_C': {'Need': S, 'Dest': I, 'Radius': F},
     'BP_ConclaveDirector_C': {},
 }
-COMPONENT_KEYS = {'cast_shadow', 'never_distance_cull', 'ld_max_draw_distance', 'allow_cull_distance_volume', 'translucency_sort_priority',
+COMPONENT_KEYS = {'relative_scale3d', 'cast_shadow', 'never_distance_cull', 'ld_max_draw_distance', 'allow_cull_distance_volume', 'translucency_sort_priority',
                   'visible_in_ray_tracing', 'hidden_in_scene_capture', 'receives_decals', 'intensity', 'attenuation_radius', 'sound',
                   'volume_multiplier', 'override_attenuation', 'attenuation_overrides', 'allow_spatialization'}
 TEMPLATES = {'StaticMeshActor': (('StaticMeshComponent', 'StaticMeshComponent0'),), 'PointLight': (('PointLightComponent', 'LightComponent0'),),
@@ -164,7 +165,7 @@ TEMPLATES = {'StaticMeshActor': (('StaticMeshComponent', 'StaticMeshComponent0')
                           ('StaticMeshComponent', 'Head'), ('StaticMeshComponent', 'Shape'), ('ChildActorComponent', 'Look')),
              'BP_TrainingDrone_C': (('StaticMeshComponent', 'Shape'), ('StaticMeshComponent', 'Eye'))}
 for name in ('BP_Switch_C', 'BP_Relic_C', 'BP_Rise_C', 'BP_SettleBarrier_C', 'BP_AbilitySocket_C', 'BP_DivinityRay_C', 'BP_Hazard_C',
-             'BP_Pickup_C', 'BP_Platform_C', 'BP_Current_C'):
+             'BP_Pickup_C', 'BP_Platform_C', 'BP_Current_C', 'BP_CutGrass_C'):
     TEMPLATES[name] = (('StaticMeshComponent', 'Shape'),)
 
 

@@ -415,6 +415,24 @@ Talking pauses the game; `BP_Physis.Talking` mirrors it. A greeting's end gives 
 grants RewardDivinity / RewardHeal (heal after PhysisFidelity so a Health Augmentation heals to the new
 maximum), and TalkEnd says Note once.
 
+**BP_CutGrass, goldgrass** (author, 2026-11-15: no loose pickups in the Conclave; a grass her blade cuts drops them, and
+it can be scanned). `Shape` is `SM_CV_Wheat` in `MI_CN_CutGrass` (a gold-tinted `MI_CN_Leaf`), no collision. Variables:
+`Chance` (float, 0 means 0.5), `Regrow` (float, 0 means 120 s), `CutAt`, `Roll`, `Full` (BeginPlay stores Shape's relative
+scale in it). `GrassCut` flattens Shape to 8% of `Full`'s height, plays `S_SwordSwing2`, starts the `GrassRegrow` timer, and
+half the time (always while she has under 25 Divinity or under 30% health) drops one `BP_Pickup` 1.1 m up: health 40%,
+Divinity 35%, ammo 25%, gone after 3 minutes. `GrassRegrow` puts Shape back to `Full`. `BP_Physis.PhysisStrikeNow` ends with
+a loop that calls `GrassCut` on every tuft within 2.6 m in front of her. The scenario's `pickup()` now calls `grass()`: a
+clump of five tufts (three, drawn in, on a piece in the air) at Shape scale `GRASS_SIZE`, the first carrying the
+`GRASS_ENTRY` tag ('Items', 'Goldgrass'); its voice is `S_VO_Goldgrass`. The level holds 169 tufts in 35 clumps, folder
+`Conclave/Grass`. The Blueprint is shared with the Center, which gives its tufts their own mesh and size. Enemy drops are
+unchanged. The Blueprint and the strike loop were written with the 5.9 tools (see below), not by conclave_logic.py.
+
+**Blueprint tools in 5.9 (2026-11-15).** The `BlueprintToolsets` plugin is enabled in Physis.uproject. Graphs are read and
+written with `BlueprintToolsets.BlueprintDslToolset` (Read, Write, Edit, Schema, FindNodeReferences, Docs; a new dialect
+with backtick names) and Blueprints are edited with `BlueprintToolsets.BlueprintToolset` (AddVariable, AddFunctionGraph,
+CompileBlueprint...). `editor_toolset.toolsets.blueprint.BlueprintTools` and `editor_toolset.toolsets.actor` no longer
+exist, so conclave_logic.py, center_overrides.py and the other Tools/blueprint_logic scripts cannot run until ported.
+
 **BP_Current** (`Shape` = `SM_CN_Current`): `Need` (string), `Dest` (int: 1 to the Conclave, 2 to the
 Center), `Radius` (float, 180). Visible only when Need is held; standing within Radius for 0.8 s
 travels (`PhysisToConclave` / `PhysisConclaveHome`).
@@ -495,6 +513,19 @@ Effects `S_LightStep`, `S_PylonWake`, `S_SpineWake`, `S_CurrentTravel`, `S_TalkO
 ambience `S_Amb_Commons`, `S_Amb_Drum`, `S_Amb_Foundry`, `S_Amb_Water`. Imported to `/Game/Conclave/Audio`
 (voices to `/Game/Conclave/Audio/Voice`). Music and ambience use the Center's `SC_CenterMusic` class and voices
 `SC_CenterVoice`, so BP_Awakening's SyncMix carries the Music and Voice Volume settings to them.
+
+**People's voices, Chatterbox (author, 2026-11-15: "make the voices of the NPCs more natural").** The 92 spoken pages of the
+people (`S_VO_Talk*`) are no longer Kokoro's takes. Each is spoken by Chatterbox (Resemble AI, MIT licence; pip
+`chatterbox-tts`, CPU, in `Saved/AudioTools/chatterbox_venv`), cloning its speaker's Kokoro voice from a dry 10 s
+reference take, then put through that speaker's own chain, room and loudness from Tools/build_physis_voice.py
+(`KINDS`), so robots, the Mechanoid, the Mecha and the Lightforms keep their sound. Divinity's narration is still
+Kokoro. The scripts are copies kept in `Tools/conclave_voice/`; they run from `Saved/AudioTools/voice_test/` (paths are
+relative to that folder): `make_refs.py <voices>` (Kokoro venv, with the bundled espeak variables), `batch.py`
+(Chatterbox venv; about 40 s a page; each take is transcribed with faster-whisper and redone when under 90% of its
+words match; `report.json` holds what was heard), `wet.py` (Kokoro venv), then copy `conclave_wet/*.wav` over
+`Art/Audio/Conclave/Voice/` and import them. Do not run build_physis_voice.py `--conclave` without `--only` after
+deleting any `S_VO_Talk*.wav`: it would remake that page with Kokoro. The previous files are in git history and in
+`Saved/Backup_2026-11-15_voices`.
 
 ## Run order
 

@@ -36,7 +36,7 @@ import unreal
 import physis_conclave_plan as plan
 import physis_gameplay_tools as game
 from physis_aaa_tools import wrap_text
-from physis_conclave_lore import (ARRIVAL_LINE, CONCLAVE_ENEMIES, CONCLAVE_GATES, CONCLAVE_SCANS, CONCLAVE_TUTORIALS, MESSAGES,
+from physis_conclave_lore import (ARRIVAL_LINE, CONCLAVE_ENEMIES, CONCLAVE_GATES, CONCLAVE_SCANS, CONCLAVE_TUTORIALS, GRASS_ENTRY, MESSAGES,
                                   PEOPLE, QUEST_KAIROS, WISP_GIFT, conclave_entries, conversation_pages, person_key)
 from physis_lore import image_name, voice_name
 
@@ -477,15 +477,36 @@ class Place:
             self.tag(actor, entry, place, label, folder)
         return actor
 
+    # Where the tufts of one clump of goldgrass stand round its centre (cm).
+    GRASS = ((0, 0), (95, 30), (-70, 80), (40, -100), (-105, -45))
+
     def pickup(self, kind, label, x, y, lift=120.0, z=None):
-        """BP_Pickup (0 health capsule, 1 Divinity crystal, 2 ammo cell) in its palette mesh."""
+        """No loose pickups lie in the Conclave (author, 2026-11-15): a clump of goldgrass grows where each one lay
+        (grass()). `kind` and `lift` are kept so the call sites read as before; what a tuft drops is random."""
+        return self.grass(label, x, y, z)
+
+    def grass(self, label, x, y, z=None):
+        """A clump of BP_CutGrass tufts (SM_CV_Wheat in MI_CN_CutGrass). Her blade cuts a tuft within 2.6 m in front of
+        her (BP_Physis.PhysisStrikeNow calls GrassCut); half the time, and always while she is short of Divinity or
+        health, it drops a pickup of a random kind (40% health, 35% Divinity, 25% ammo) that lasts 3 minutes, and the
+        tuft grows back after 2 minutes. On a piece built in the air (z, its top) the clump is three tufts drawn in.
+        The first tuft of a clump carries the Logbook tag (GRASS_ENTRY), so the grass can be scanned."""
         if z is None:
             x, y = self.free(x, y, 150.0, 0.0, not self.wet)
-            z = max(self.g.at(x, y), 0.0)
-        actor = self.spawn('BP_Pickup', label, (x, y, z + lift), None, 'Pickups')
-        actor.set_editor_property('Kind', kind)
-        self.reskin(actor, PICKUPS[kind])
-        return actor
+        spots = self.GRASS if z is None else [(dx * .45, dy * .45) for dx, dy in self.GRASS[:3]]
+        first = None
+        for k, (dx, dy) in enumerate(spots):
+            base = max(self.g.at(x + dx, y + dy), 0.0) if z is None else z
+            actor = self.spawn('BP_CutGrass', '%s Grass %d' % (label, k), (x + dx, y + dy, base), None, 'Grass')
+            actor.set_actor_rotation(unreal.Rotator(0, 0, (k * 73) % 360), False)
+            # A tuft cuts down from, and grows back to, the size its Shape has here (BP_CutGrass.Full): the Blueprint's
+            # own 1.3 is the Center's; the Conclave's wheat stands fuller.
+            for part in actor.get_components_by_class(unreal.StaticMeshComponent):
+                part.set_editor_property('relative_scale3d', unreal.Vector(*GRASS_SIZE))
+            if first is None:
+                first = actor
+                self.tag(actor, GRASS_ENTRY, (x + dx, y + dy, base), label + ' Grass', 'Grass')   # one tag a clump: scannable
+        return first
 
     def encounter(self, label, x, y, room, give, message, goal=''):
         return self.spawn('BP_Encounter', label, self.at(x, y, 400), None, 'Encounters', Room=room, Learn=0, Give=give,
@@ -519,6 +540,7 @@ class Place:
         return (lx * M, ly * M, yaw, None)
 
 
+GRASS_SIZE = (2.4, 2.4, 1.5)   # a goldgrass tuft's Shape scale in the Conclave
 PICKUPS = {0: 'SM_CN_PickupHealth', 1: 'SM_CN_PickupDivinity', 2: 'SM_CN_PickupAmmo'}
 
 # Where the Commons folk stand (metres, yaw): inside the generator's keep-clear zones (plaza 45 m round the Orrery,
