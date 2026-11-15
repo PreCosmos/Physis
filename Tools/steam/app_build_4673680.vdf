@@ -1,7 +1,7 @@
 "AppBuild"
 {
 	"AppID" "4673680"
-	"Desc" "Physis - Linux and Windows, four levels"
+	"Desc" "Physis 2026-11-15 - Linux and Windows, UE 5.9, four levels"
 	"ContentRoot" "../../Build/"
 	"BuildOutput" "../../Build/SteamOutput/"
 	"SetLive" ""

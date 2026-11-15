@@ -11,7 +11,7 @@ if [ -f /.flatpak-info ] && command -v flatpak-spawn >/dev/null 2>&1; then
 fi
 [ -f Build/Linux/Physis.sh ] || { echo "No Linux package yet. Run Tools/package_physis.sh first."; exit 1; }
 [ -f Build/Windows/Physis/Binaries/Win64/Physis-Win64-Shipping.exe ] || { echo "No Windows package in Build/Windows. Package it in WinBoat and copy it there."; exit 1; }
-STEAMCMD="${STEAMCMD:-$HOME/steamcmd/steamcmd.sh}"
+STEAMCMD="${STEAMCMD:-$(command -v steamcmd || echo "$HOME/steamcmd/steamcmd.sh")}"
 if [ ! -x "$STEAMCMD" ]; then
     echo "Installing steamcmd into ~/steamcmd from Valve..."
     mkdir -p "$HOME/steamcmd"

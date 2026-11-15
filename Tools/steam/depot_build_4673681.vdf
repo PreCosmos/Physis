@@ -9,5 +9,6 @@
 		"Recursive" "1"
 	}
 	"FileExclusion" "*.debug"
+	"FileExclusion" "*.sym"
 	"FileExclusion" "steam_appid.txt"
 }

@@ -1,7 +1,7 @@
 @echo off
 rem Cooks and packages Physis for Windows (Win64 Shipping) into Build\Windows.
-rem Run inside Windows (for example WinBoat) with Unreal Engine 5.8.4 for Windows and
-rem Visual Studio 2022 ("Game development with C++") installed.
+rem Run inside Windows (for example WinBoat) with Unreal Engine 5.9 for Windows and
+rem Visual Studio 2022 17.14 (MSVC 14.44, Windows 11 SDK 26100) installed; Tools\winboat\setup_vm.ps1 installs the compiler.
 rem Copy the project to a short local ASCII path first, such as C:\PhysisProject:
 rem the ONNX runtime used while cooking cannot open files under non-ASCII folders,
 rem and cooking from a network share is slow and unreliable.
@@ -10,9 +10,9 @@ rem -prereqs stages Engine\Extras\Redist\en-us\vc_redist.x64.exe: the Physis.exe
 rem VC++ 14.50+ runtime and quits without starting the game if it is older and the installer is missing (seen under Proton).
 setlocal
 cd /d "%~dp0.."
-set ENGINE=C:\Program Files\Epic Games\UE_5.8
+if not defined ENGINE set ENGINE=C:\Program Files\Epic Games\UE_5.9
 if not exist "%ENGINE%\Engine\Build\BatchFiles\RunUAT.bat" (
-    echo Unreal Engine 5.8 was not found at "%ENGINE%". Edit ENGINE in this file.
+    echo Unreal Engine 5.9 was not found at "%ENGINE%". Set ENGINE to its folder.
     exit /b 1
 )
 call "%ENGINE%\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
