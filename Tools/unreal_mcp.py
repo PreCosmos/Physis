@@ -2,6 +2,7 @@
 """Small local client for Unreal's built-in MCP server. No external packages."""
 import argparse
 import json
+import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, build_opener, ProxyHandler
 
@@ -44,7 +45,16 @@ class UnrealMCP:
             'clientInfo': {'name': 'Physis Local MCP Client', 'version': '1.0'},
         })
         self.version = result['protocolVersion']
-        self.request('notifications/initialized', notification=True)
+        # The editor registers a new session on its game thread: when its frames are slow (a heavy level, Play
+        # running) the notification can arrive first and be answered 404. Nothing was done by it, so it is sent again.
+        for attempt in range(20):
+            try:
+                self.request('notifications/initialized', notification=True)
+                break
+            except HTTPError as error:
+                if error.code != 404 or attempt == 19:
+                    raise
+                time.sleep(.25)
         return result
 
     def call(self, name, arguments=None):

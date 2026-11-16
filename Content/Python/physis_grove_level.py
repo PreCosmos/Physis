@@ -11,6 +11,7 @@ actors too, so grove:scenario runs after it).
     grove:level            the whole build
     grove:level:look       only the sky, light, fog and look again (tuning without replacing the forest)
     grove:level:scatter    only the forest and the cliffs again
+    grove:level:rim        only the cover of the rim's slopes again
 """
 import json
 import math
@@ -520,12 +521,156 @@ def cliffs():
     return {'pieces': counts, 'missing': missing, 'failed': sorted(set(failed))}
 
 
+# ---------------------------------------------------------------- the rim's slopes
+# The valley's rim climbs 240 m in bare terrain. This covers it: rock faces laid back on the slope, moss boulders
+# bedded into it, firs and birches where a tree can stand, shrubs between. Only beyond the walkable oval (RIM_KEEP of
+# plan.RIM), so nothing here changes where she can go. Every choice is a fixed function of the spot, so a rebuild
+# puts each piece back where it was.
+RIM_KEEP = .97            # of plan.RIM: nearer the valley than this, nothing is placed
+RIM_STEP = 10.0           # m between candidate spots
+RIM_FLAT, RIM_TREE, RIM_STEEP = 24.0, 46.0, 58.0   # degrees: below FLAT it is left alone, trees up to TREE, over STEEP rock only
+RIM_GRASS_STEP, RIM_GRASS_MAX, RIM_GRASS_CULL = 4.0, 76.0, 32000    # m between tufts, the steepest ground that holds one (degrees), cm
+RIM_HERBS = ('SM_GS_FernA', 'SM_GS_FernB', 'SM_GS_FernC', 'SM_GS_FernD', 'SM_GS_NettleA', 'SM_GS_WeedA', 'SM_GS_HerbA')
+RIM_ROCKS = ('SM_GS_MossRockA', 'SM_GS_MossRockB', 'SM_GS_MossRockC', 'SM_GS_MossRockD', 'SM_GS_MossRockE', 'SM_GS_MossRockF',
+             'SM_GS_MossRockK', 'SM_GS_Boulder')
+RIM_SHRUBS = ('SM_GS_ShrubA', 'SM_GS_ShrubB', 'SM_GS_ShrubC', 'SM_GS_ShrubD', 'SM_GV_Bush')
+RIM_FACES = (('SM_GS_CliffC', 10.52, 5.25, (1.0, 2.3)), ('SM_GS_CliffA', 3.57, 3.83, (2.2, 4.6)), ('SM_GS_CliffB', 2.48, 2.13, (2.6, 5.2)))
+
+
+def patches(x, y, size, salt):
+    """Smooth noise in 0..1 with features about `size` m across: a fixed function of the place."""
+    fx, fy = x / size, y / size
+    i, j = math.floor(fx), math.floor(fy)
+    u, v = fx - i, fy - j
+    u, v = u * u * (3 - 2 * u), v * v * (3 - 2 * v)
+    c = [chance('%s:%d:%d' % (salt, i + a, j + b)) for a in (0, 1) for b in (0, 1)]
+    return (c[0] * (1 - v) + c[1] * v) * (1 - u) + (c[2] * (1 - v) + c[3] * v) * u
+
+
+def rim_cover(g):
+    facts = scan_facts()
+    rows, failed, missing = {}, [], set()
+
+    def put(mesh, row):
+        if any_mesh(mesh) is None:
+            missing.add(mesh)
+        else:
+            rows.setdefault(mesh, []).append(row)
+
+    nx, ny = int(2 * g.half_x / RIM_STEP), int(2 * g.half_y / RIM_STEP)
+    for i in range(nx):
+        for j in range(ny):
+            label = 'rim:%d:%d' % (i, j)
+            x = -g.half_x + (i + chance(label + 'x')) * RIM_STEP
+            y = -g.half_y + (j + chance(label + 'y')) * RIM_STEP
+            if math.hypot(x / plan.RIM[0], y / plan.RIM[1]) < RIM_KEEP or abs(x) > g.half_x - 4 or abs(y) > g.half_y - 4:
+                continue
+            gx = (g.metres(x + 3, y) - g.metres(x - 3, y)) / 6.0
+            gy = (g.metres(x, y + 3) - g.metres(x, y - 3)) / 6.0
+            steep = math.degrees(math.atan(math.hypot(gx, gy)))
+            if steep < RIM_FLAT:
+                continue
+            z = g.metres(x, y)
+            down = math.degrees(math.atan2(-gy, -gx))               # the way the slope faces
+            pick = chance(label + 'k')
+            # Crags come in bands and clusters with scrubby slope between them, not evenly: an even spread read as scales.
+            crag = min(1.0, max(0.0, (patches(x, y, 70.0, 'crag') * .65 + patches(x, y, 23.0, 'crag2') * .35 - .3) / .4))
+            rock_share = (.22 if steep < RIM_TREE else .5 if steep < RIM_STEEP else .78) * (.12 + .95 * crag)
+            if pick < rock_share:                                    # a rock face, laid back on the slope
+                mesh, height, depth, (lo, hi) = RIM_FACES[int(chance(label + 'f') * 2.2) % len(RIM_FACES)]
+                sc = (lo + (hi - lo) * chance(label + 's') ** 1.6) * (.75 + .6 * crag)
+                back = math.radians(down)
+                bury = depth * sc * CLIFF_DEPTH * .25
+                lean = (90.0 - steep) * .75
+                put(mesh, ((x - math.cos(back) * bury) * CM, (y - math.sin(back) * bury) * CM, (z - .1 * height * sc) * CM, -lean,
+                           down + (chance(label + 'y2') - .5) * 70.0, (chance(label + 'r') - .5) * 36.0,
+                           sc * CLIFF_DEPTH * 1.3, sc * (.8 + .5 * chance(label + 'm')), sc))   # never mirrored: a mirrored instance drew black here
+            elif pick < rock_share + .2:                             # a moss boulder bedded in
+                mesh = RIM_ROCKS[int(chance(label + 'f') * len(RIM_ROCKS)) % len(RIM_ROCKS)]
+                sc = 1.8 + 3.6 * chance(label + 's') ** 1.5
+                tall = facts.get(mesh, {}).get('size', (0, 0, 1.2))[2]
+                put(mesh, (x * CM, y * CM, (z - .3 * tall * sc) * CM, (chance(label + 'p') - .5) * 30.0, chance(label + 'y2') * 360.0,
+                           (chance(label + 'r') - .5) * 30.0, sc, sc, sc))
+            elif steep < RIM_TREE and pick < rock_share + .62:       # a tree: firs mostly, a birch here and there
+                roll = chance(label + 'f')
+                mesh = 'SM_GV_Pine' if roll < .72 else 'SM_GV_Birch' if roll < .88 else 'SM_GV_Sapling'
+                sc = .55 + .6 * chance(label + 's')
+                put(mesh, (x * CM, y * CM, (z - .5) * CM, 0.0, chance(label + 'y2') * 360.0, 0.0, sc, sc, sc))
+            elif steep < RIM_STEEP + 8.0:                            # shrubs hold what is left
+                mesh = RIM_SHRUBS[int(chance(label + 'f') * len(RIM_SHRUBS)) % len(RIM_SHRUBS)]
+                sc = 1.2 + 1.3 * chance(label + 's')
+                put(mesh, (x * CM, y * CM, (z - .15) * CM, 0.0, chance(label + 'y2') * 360.0, 0.0, sc, sc, sc))
+    # Grass on what the crags leave: big tufts lying on the slope (each turned to the ground's own tilt), thick on the
+    # gentler ground and thinning out as it steepens, none on the crags themselves.
+    grass, herbs = [], {}
+    if any_mesh('SM_GV_Grass') is None:
+        missing.add('SM_GV_Grass')
+    else:
+        step = RIM_GRASS_STEP
+        for i in range(int(2 * g.half_x / step)):
+            for j in range(int(2 * g.half_y / step)):
+                label = 'rimgrass:%d:%d' % (i, j)
+                x = -g.half_x + (i + 2.4 * chance(label + 'x') - .7) * step      # thrown wider than its cell: no rows
+                y = -g.half_y + (j + 2.4 * chance(label + 'y') - .7) * step
+                if math.hypot(x / plan.RIM[0], y / plan.RIM[1]) < RIM_KEEP or abs(x) > g.half_x - 4 or abs(y) > g.half_y - 4:
+                    continue
+                gx = (g.metres(x + 2, y) - g.metres(x - 2, y)) / 4.0
+                gy = (g.metres(x, y + 2) - g.metres(x, y - 2)) / 4.0
+                steep = math.degrees(math.atan(math.hypot(gx, gy)))
+                if steep > RIM_GRASS_MAX:
+                    continue
+                crag = min(1.0, max(0.0, (patches(x, y, 70.0, 'crag') * .65 + patches(x, y, 23.0, 'crag2') * .35 - .3) / .4))
+                keep = (1.0 - .8 * crag) * (1.0 - .55 * max(0.0, steep - 30.0) / (RIM_GRASS_MAX - 30.0)) * (.45 + .8 * patches(x, y, 31.0, 'sward'))
+                if chance(label + 'k') > keep:
+                    continue
+                a = chance(label + 'a') * 2 * math.pi
+                rot = unreal.MathLibrary.make_rot_from_zx(unreal.Vector(-gx, -gy, 1.0), unreal.Vector(math.cos(a), math.sin(a), 0.0))
+                kind = chance(label + 'm')
+                if kind < .5:
+                    sc = 2.2 + 2.0 * chance(label + 's')
+                    grass.append((x * CM, y * CM, (g.metres(x, y) - .12) * CM, rot.pitch, rot.yaw, rot.roll, sc, sc, sc * (.8 + .5 * chance(label + 'h'))))
+                else:                                               # ferns and herbs: dark clumps among the tufts
+                    mesh = RIM_HERBS[int((kind - .5) * 2 * len(RIM_HERBS)) % len(RIM_HERBS)]
+                    sc = 2.4 + 2.4 * chance(label + 's')
+                    herbs.setdefault(mesh, []).append((x * CM, y * CM, (g.metres(x, y) - .08) * CM, rot.pitch, rot.yaw, rot.roll, sc, sc, sc))
+    counts = {}
+    if grass:
+        actor = instanced('Rim Grass', any_mesh('SM_GV_Grass'), grass, False, RIM_GRASS_CULL, False, FOLDER + '/Rim', failed, rt=False)
+        look = T.rim_grass_material()
+        for part in actor.get_components_by_class(unreal.HierarchicalInstancedStaticMeshComponent):
+            part.set_material(0, look)
+        counts['SM_GV_Grass'] = len(grass)
+    for mesh, placed in sorted(herbs.items()):
+        if any_mesh(mesh) is None:
+            missing.add(mesh)
+            continue
+        instanced('Rim ' + mesh[6:], any_mesh(mesh), placed, False, RIM_GRASS_CULL, False, FOLDER + '/Rim', failed, rt=False)
+        counts[mesh] = len(placed)
+    for mesh, placed in sorted(rows.items()):
+        woody = mesh.startswith(('SM_GV_Pine', 'SM_GV_Birch', 'SM_GV_Sapling'))
+        plant = woody or mesh.startswith(('SM_GS_Shrub', 'SM_GV_Bush'))
+        # No collision: none of it can be reached. Rock and trees are seen from across the valley, so never culled.
+        # Out of the ray-traced scene: the lake's reflection drew every rim rock as a black blot.
+        # The terrain casts no shadow past the sun's shadow distance, so the lake lies sunlit under the south-west rim; a
+        # rock up there would still throw its own shadow down onto the water, a blot with no hill behind it. The rim's
+        # sunward half (whose inner slopes face away from the sun anyway) casts none.
+        sx, sy = math.cos(math.radians(SUN_YAW)), math.sin(math.radians(SUN_YAW))
+        lit = [r for r in placed if r[0] * sx + r[1] * sy >= 0]
+        shade = [r for r in placed if r[0] * sx + r[1] * sy < 0]
+        for label, group, shadow in (('Rim ', lit, True), ('Rim sunward ', shade, False)):
+            if group:
+                instanced(label + mesh[6:], any_mesh(mesh), group, False, 60000 if plant and not woody else 0, shadow, FOLDER + '/Rim', failed,
+                          rt=False)
+        counts[mesh] = len(placed)
+    return {'pieces': counts, 'total': sum(counts.values()), 'missing': sorted(missing), 'failed': sorted(set(failed))}
+
+
 def great_trees(g):
     """The three great trees and the Heartwood: single actors, landmarks seen from the whole valley."""
     placed, missing = [], []
     giant = generated('SM_GV_GiantTree')
     for index, (x, y, _) in enumerate(plan.GIANTS):
-        if mesh_actor('Great Tree %d' % (index + 1), giant, g.spot((x, y), -40), (0, 47.0 + 113.0 * index, 0), folder=FOLDER + '/Trees') is None:
+        if mesh_actor('Great Tree %d' % (index + 1), giant, g.spot((x, y), -40), (0, 0, 47.0 + 113.0 * index), folder=FOLDER + '/Trees') is None:
             missing.append('SM_GV_GiantTree')
             break
         placed.append('Great Tree %d' % (index + 1))
@@ -577,6 +722,7 @@ def build_level():
     report['look'] = look()
     report['scatter'] = scatter()
     report['cliffs'] = cliffs()
+    report['rim'] = rim_cover(g)
     report['trees'] = great_trees(g)
     report['start'] = start(g)
     save_level()
@@ -588,6 +734,8 @@ def execute(part):
         report = {'removed': open_level((FOLDER + '/Light',)), 'look': look()}
     elif part == 'scatter':
         report = {'removed': open_level((FOLDER + '/Scatter', FOLDER + '/Bloom', FOLDER + '/Cliffs')), 'scatter': scatter(), 'cliffs': cliffs()}
+    elif part == 'rim':
+        report = {'removed': open_level((FOLDER + '/Rim',)), 'rim': rim_cover(Ground())}
     else:
         raise ValueError('unknown grove level part ' + part)
     save_level()

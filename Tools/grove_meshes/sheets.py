@@ -53,6 +53,18 @@ CELLS = {
         'seed_a': (.730, .160, .773, .547, 'bottom', .70),
         'seed_b': (.715, .215, .746, .586, 'bottom', .70),
     },
+    # celandine_01: round glossy leaf blades (their petiole joins at the named side) and open yellow flowers seen from
+    # above. The sheet's stalks sit in smeared padding, so stalks are solid geometry.
+    'LFlowers': {
+        'leaf_a': (.025, .030, .215, .225, 'bottom', .07),
+        'leaf_b': (.430, .040, .600, .235, 'bottom', .07),
+        'leaf_c': (.750, .135, .960, .345, 'bottom', .08),
+        'leaf_d': (.185, .460, .345, .615, 'top', .06),
+        'leaf_e': (.555, .280, .715, .440, 'top', .06),
+        'bloom_a': (.280, .720, .410, .845, 'bottom', .03),
+        'bloom_b': (.065, .825, .190, .955, 'bottom', .03),
+        'bloom_c': (.455, .810, .560, .930, 'bottom', .03),
+    },
 }
 
 

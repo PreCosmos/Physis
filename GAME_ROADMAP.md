@@ -759,11 +759,157 @@ cache (cyan) and sealed vault (violet). The grove has its own page on the pause-
 `Tools/grove_meshes/*.py` and `Tools/build_physis_grove.py` (terrain, the level's own meshes, scatter),
 `Art/Scans/Grove` (the downloaded scans and their manifest), `Content/Python/physis_grove_lore.py` (all text),
 `physis_grove_tools.py` (`grove:` operations), `physis_grove_scenario.py` (placement),
-`Tools/blueprint_logic/grove_logic.py` (Resonance Link, link nodes, beams, tethers, the director, travel) and Grove
-branches in `center_overrides.py` (music, saves, the Continue row, fidelity, augmentations, the map). The level is
+`Tools/blueprint_logic/grove_logic.py` (Resonance Link, link nodes, beams, tethers, the director, travel, and, as its
+parts `shared`, `hud` and `relic`, the Grove branches in the graphs other levels own: music, saves, the Continue row,
+fidelity, augmentations, the map page, the relics' scan tags). The level is
 `/Game/Levels/L_Grove`, assets `/Game/Grove`. Like the Conclave it holds a `BP_Awakening` (an open-world level for
 the shared logic) and its own `BP_GroveDirector`. A Divinity current in the Center's temple opens once the Shepherd
 has fallen (`,shepherd,`) and carries her to the Hollow.
+
+**Status (2026-11-15).** The level's land, look and gameplay are built and the critical path was tested in
+Play-in-Editor (the link, the three flows, the gate, the core coupling, the tether, the people, travel, save and load).
+What differs from this section is listed in `Tools/grove/DESIGN_NOTES.md`, "As built". Still open: Director Voss's
+own MetaHuman (a Conclave person stands in), the Falls' link course and the sealed vaults for later abilities, and a
+played balance pass of the fights.
+
+## Level 5 — Arche: the City of the Descent (2026-11-16)
+
+Author decisions: the level after the Wounded Grove is **the First Ones' Planet** (2026-11-15); Physis learns
+**Reweave** there (ability 7; the table's order may branch after Settle); its look is **realistic, in a cool palette**;
+**Aeon appears in person**, in a designed native First One form, with Serene keepers; it is **about an hour**, a Great
+Installation; and the planet is to have a **name**. Everything below that is not one of those decisions is Proposed,
+the name included.
+
+### Premise
+
+**Arche**, "the Beginning": the First Ones' homeworld (the book's "sovereign space", concentrated into one place as
+Earth concentrates the human side). **Kathodos**, the city of the Descent, climbs a canyon basin in three tiers. It
+is one of the First Ones' installations, fewer and older than humanity's seventeen: ages ago the Vigil raised the
+**Sundering Lens** at its head, a defence that does not break what it strikes but makes it forget its shape. When
+human engines first crossed Arche's sky the Vigil fed the Lens their own city. Every bridge and stair of Kathodos
+was unwoven, so that no invader could ever walk it. The stones still hang in the air where they were unmade.
+
+The Lens's keepers are AL, tools without will, the same the Vigil sent against Meridian; nothing ever told them to
+stop. The **Serene**, who would neither leave nor fight, have lived cut off on the Lower Tier ever since. **Aeon**, the
+eldest of them, has spent the time counting the stones. Physis's first act left this behind too, and a Divinity
+current brings her to it.
+
+It mirrors the Grove without repeating it: there a living thing was forced; here a made thing was unmade. The
+Just's fear (Voss) was an open sky; the Vigil's (**Maruth**, the Lens-keeper) is a young species with a weapon. Neither
+is argued out of it. Both watch what they kept apart come back together.
+
+**Look (Author, 2026-11-16): realistic, cool.** Physically based materials on scanned surfaces graded to pale stone
+and blue-black rock, silver alloy, deep blue glaze, ice-blue and violet crystal with luminous edges, a small cold
+sun low in a deep sky, pale haze with mist in the Chasm. The First Ones built in large calm forms: battered walls,
+tall pointed openings, long courses of pale stone with one thin line of electrum. Three lights tell three things
+apart: the Serene's is **ice blue**, the Vigil's works glow a cold **violet**, and Reweave glows a warm **pearl gold**.
+The AL keep their red. No post-process stylisation, no 3D text.
+
+**The First Ones' native form (Proposed design).** Tall and slender, about 2.3 m: a body of pale layered mineral plates
+over a dark core that shows at the joints; a long smooth head with no face in the human sense, only one vertical
+seam of light; a crown of thin slivers floating a hand's width off the head; long four-fingered hands; a mantle and
+a long skirt of heavy cloth. They stand very still. The Serene wear pearl and indigo; the Vigil violet over
+night-blue enamel. Built figures, not MetaHumans.
+
+### Layout (x north, y east, metres; the basin is about 1.1 km by 0.8 km, walled by cliffs; tiers of 12 m)
+
+| # | Space | Where | What happens |
+| --- | --- | --- | --- |
+| 1 | The Landing | South end, x −500 | She steps out of the current. Still Point; the current home stays here |
+| 2 | The Processional | x −490 to −300 | The road every First One walked once, between columns. First Ward patrols |
+| 3 | The Hearthold | x −290 | The safe place: **Aeon**; the keepers **Ilun**, **Oreth** and **Sael** |
+| 4 | The First Arch | x −215 | The one thing the unweaving did not take. Aeon shows her how stone remembers: **Reweave** |
+| 5 | The Great Chasm | x −150, wall to wall | 26 m across; its bridge, **the Sundered Span**, hangs above it in pieces. Rewoven for good: the barrier she remembers, and the shortcut |
+| 6 | The Concourse | x −70 | Still Point where the Lower Tier's ways part; bulwarks to reweave under fire |
+| 7 | The Cisterns | West, on the Lower Tier | The city's water. A pier, then restless causeway (it holds nine seconds) to the island and the **western Mirror** |
+| 8 | The First Stair | x +93 | Lower to Middle Tier: rewoven for good |
+| 9 | The Crystal Garden | East, on the Middle Tier | Ten thousand years of grown crystal. A maker's **loom** holds two shapes of three: the stair and the causeway to the pinnacle and the **eastern Mirror** |
+| 10 | The Second Stair | x +276 | Middle to Upper Tier: rewoven for good |
+| 11 | The Galleries | North-east, on the Upper Tier | A mesa whose stair climbs two thirds of it; a knot of the grove's kind draws her the rest (Resonance Link) to the **northern Mirror** |
+| 12 | The Lens Court | North, x +400 | A ring wall and, in its gate, **the Veil**: it falls only when all three Mirrors are turned on it. Inside: the Lens, and **the Sunderer** |
+| 13 | The Ossuary of Names | South-east | Optional: three name-steles to reweave open a vault (Katana Augmentation); a Siegeframe that can be avoided |
+
+Critical path, about 40 to 50 minutes: Landing → Processional → Hearthold (Aeon) → the First Arch (Reweave) → the Span
+→ Concourse → the three Mirrors in any order (the Cisterns need only the Lower Tier; the Garden the First Stair; the
+Galleries both Stairs) → the Veil → the Sunderer → Maruth, in person → back to Aeon. With the side requests, the
+Ossuary, the caches and the sealed vaults the level runs about an hour.
+
+Progress tokens: `,arche,` `,at_arche,` (saves load here), `,aeon,`, `,reweave,`, `,ar_span,`, `,ar_stair1,` `,ar_stair2,`,
+`,ar_mirror_w,` `,ar_mirror_e,` `,ar_mirror_n,`, `,ar_veil,`, `,sunderer,`, `,maruth,`, `,arche_done,`; side requests
+`,ilun,` `,chime,` `,oreth,` `,tab1,` `,tab2,` `,tab3,` `,tablets,` `,sael,` `,seedstone,`; the Ossuary `,ar_name1-3,`
+`,ar_vault,`; guards, caches and seals `,ar_*`.
+
+When the Sunderer falls the Lens goes dark and the world remembers: the stones that hang over Kathodos come down
+(everything tagged for the unweaving goes), the Cisterns' causeway stands for good, and Sael's seedstone, if it was
+brought, is growing at the Hearthold. Aeon tells her there are others, on both worlds.
+
+**The Metroid rule.** The Span and the two Stairs are the map's skeleton: authored, rewoven once, saved by token,
+never changed. Restless stone and looms act only inside a room. Two **sealed vaults** (Trace Reading, Dissonance)
+are seen here and opened later; a few of the Grove's link knots stand in Kathodos, so Resonance Link opens doors on
+this world as Reweave will on the others.
+
+### Reweave
+
+| | |
+| --- | --- |
+| Input | **B** on the keyboard, **right stick click** on a pad |
+| Cost | None; 0.8 s between uses |
+| Aim | What she looks at: the sundered thing whose mark (a ring of slivers turning round a pearl of light) is nearest the centre of the view, within its range and in plain sight; the mark swells when it would be taken |
+| Traversal | **The city's bones** (the Span, the Stairs, the Mirrors' frames) knit together and stay, by token. **Restless stone** (near the Lens, or over water) holds a few seconds and lets go; reweaving it again holds it longer |
+| Combat | **Bulwarks**: a broken wall rewoven stands 14 s between her and the Ward's fire |
+| Puzzle | **Looms**: the weaves of one loom cannot all stand; one more, and the oldest lets go |
+| Locks | It reports `,reweave,` to `PhysisUsedAbility`, so reweave sockets on the other worlds answer it |
+| Visual stage | Complete geometry: what she reweaves is whole, and when the Lens goes dark the whole city is |
+
+### People
+
+| Person | Kind | Role |
+| --- | --- | --- |
+| Aeon | First One, eldest of the Serene | Quest giver; counts the stones; shows her the First Arch; closes the level |
+| Ilun | Serene, keeper of the Cisterns | Side request: a wind chime, on the Garden's pinnacle (Defense Augmentation) |
+| Oreth | Serene, of the record | Side request: three record tablets (the Ossuary, the Middle Tier, the Galleries) (Agility Augmentation) |
+| Sael | Serene, the youngest | Side request: the last seedstone, on the Cisterns' island (Pistol Augmentation) |
+| Maruth | First One, Lens-keeper of the Vigil | A voice in the speaking stone before the Veil; in person once the Sunderer falls |
+
+The book's Aeon is a First One and a central figure; the game keeps that and adds nothing the book contradicts as
+far as this document records it. Aeon's lines here are new writing for the author to review. The Vigil's leader is
+still unnamed (decision 6 below): Maruth keeps one Lens and leads no one.
+
+### Enemies: the Ward (AL: tools, so they are destroyed)
+
+The Conclave's AL, at home: Ward Mite 5, Ward Lancer 9, Ward Bulwark 16 (turns light blows), Ward Hunter 20 (fast),
+Ward Reaver 26 (guards the Mirrors and the Stairs), Ward Siegeframe 60 (the Ossuary road; avoidable), and the boss,
+**the Sunderer**, 120: its face turns every blow, and she fights it among four bulwarks that she must keep reweaving.
+
+### Enemies: the air-swimmers (living, so they scatter and gather again)
+
+Arche has animals older than the city, and the Lens has maddened them. They hold the open ground between the places
+the Ward guards: **Drift Mote** 4 (shoals), **Bell Medusa** 9 (throws light from range), **Shellback** 18 (its shell
+turns light blows), **Sky Ray** 20 (fast), **Crest Stalker** 28 (keeps a territory: three of the caches), and the
+**Leviathan**, 70, circling the Ossuary (avoidable). None of them is destroyed: struck enough, one scatters like breath
+on glass and gathers again somewhere quieter. They are the game's first organic enemies; the same kind of animal is
+wanted on the earlier worlds too (Proposed: grove and basin fauna for levels 1 and 4).
+
+### Rewards
+
+Five augmentations: Health (`,aug_hp8,`, the Lens's Heart), Katana (`,aug_katana6,`, the Ossuary), Pistol
+(`,aug_pistol5,`, Sael), Defense (`,aug_defense6,`, Ilun), Agility (`,aug_agility6,`, Oreth). Geode caches (blue rays),
+the Ossuary's puzzle (gold), the sealed vaults (violet). Arche has its own page on the pause-menu map.
+
+### Implementation
+
+`Tools/arche/README.md` is the build contract. `Content/Python/physis_arche_plan.py` (the world plan),
+`Tools/arche_meshes/*.py` and `Tools/build_physis_arche.py` (terrain, architecture, figures, scatter),
+`Content/Python/physis_arche_lore.py` (all text), `physis_arche_tools.py` (`arche:` operations: materials on the
+Grove's masters and scans, import), `physis_arche_level.py`, `physis_arche_scenario.py`, and
+`Tools/blueprint_logic/arche_logic.py` with `arche_shared.py` (Reweave, `BP_Weave`, the director, travel, and the
+Arche branches in the shared graphs). The level is `/Game/Levels/L_Arche`, assets `/Game/Arche`. A Divinity current
+in the Center's temple opens once the Warden has fallen (`,warden,`) and carries her to the Landing.
+
+**Status (2026-11-16).** Built: the land and look, the architecture and the First Ones as generated meshes, Reweave and
+its Blueprints, the placement of the whole level, the map page, travel, saves. The critical path was tested by script
+in Play-in-Editor (`Tools/arche/README.md`, "Gameplay pieces"). Nobody has played it by hand, and Aeon's and Maruth's
+lines and the First Ones' design are new writing for the author to review.
 
 ## Core play loop
 

@@ -3297,7 +3297,7 @@ def ruin_wall(p, rng, o, u, L, top, fn, holes=(), T=.25, joints=(), sub=.8, rim=
     full = max(top(a) for a in np.linspace(0, L, 80))
     for a in np.arange(.3, L - .2, .45):
         t = top(a)
-        if rng.uniform() < bars and t < full - .25 and not any(h[0] - .1 < a < h[1] + .1 and h[2] - .2 < t < h[3] + .5 for h in holes):
+        if rng.uniform() < bars and .5 < t < full - .25 and not any(h[0] - .1 < a < h[1] + .1 and h[2] - .2 < t < h[3] + .5 for h in holes):
             rebar(p, rng, o + u * a - f * (T * rng.choice((.25, .75))) + Z * (t - .45), Z + u * rng.normal(0, .25), rng.uniform(.5, 1.0), droop=.5, bend=.35)
     return out
 
@@ -3319,7 +3319,7 @@ def ruin0():
     wide (y -1.2 to 1.2) and 3.0 m high leads onto the open ground floor (slab at z 0.15, four interior columns).
     The first floor (3.65) survives over the -y half, the second (7.15) and the roof (10.65) only in the +x -y corner."""
     rng = np.random.default_rng(2670)
-    p = Part('SM_GN_Ruin0', (CONCRETE, STEEL, RUST, MOSS, BARK, LEAF))
+    p = Part('SM_GN_Ruin0', (CONCRETE, STEEL, RUST, MOSS, BARK, LEAF, GLASS))
     conc = concrete(251, damp=2.5, streak=.45, moss=.4, blot=.5, ledges=((3.4, .9), (6.9, .9), (10.4, .9)))
     F0, F1, F2, F3 = .15, 3.65, 7.15, 10.65
     win = [(1.1, 2.6), (4.6, 6.1), (8.1, 9.6)]
@@ -3408,6 +3408,8 @@ def ruin0():
     sprig(p, rng, (-4.6, 3.6, F0 + .25), 1.0, 8, (LEAF_GREEN, LEAF_GOLD), BARK_BROWN)
     ivy(p, rng, (-5.6, -5.03, 0), X, -Y, 7.0, 8.5, 70)
     ivy(p, rng, (6.03, -4.8, 0), Y, X, 2.6, 6.0, 30)
+    for q in p.v:              # leaf cards that droop under the ground plane stop at it
+        q[2] = max(q[2], 0.0)
     return done(p, facts=dict(doorway=dict(face_x=6.0, y=(-1.2, 1.2), z=(0, 3.0)), ground_floor=dict(z=F0, x=(-5.75, 5.75), y=(-4.75, 4.75)),
                               interior_columns=[(-1.93, -1.6), (1.93, -1.6), (1.93, 1.6), (-1.93, 1.6)], first_floor=dict(z=F1, y=(-4.75, 0.0), hole=dict(x=(-.75, 1.65), y=(-2.35, -.55))),
                               second_floor=dict(z=F2, x=(0.0, 5.75), y=(-4.75, -1.5)), open_side='+y', rubble=[(3.6, 3.5), (-3.8, 3.4), (-.9, 2.6)], top=11.0))
@@ -3421,7 +3423,7 @@ def ruin1():
     reached by a flight of mass concrete stairs along the -x wall: 1.6 m wide (x -4.25 to -2.65), eighteen risers of
     0.189 m, starting at y 4.39 and climbing toward -y to land on the slab's edge at y -0.2."""
     rng = np.random.default_rng(2671)
-    p = Part('SM_GN_Ruin1', (CONCRETE, STEEL, RUST, MOSS, BARK, LEAF))
+    p = Part('SM_GN_Ruin1', (CONCRETE, RUST, MOSS, BARK, LEAF))
     conc = concrete(261, damp=2.2, streak=.45, moss=.4, blot=.5, ledges=((3.15, .9),))
     SL, N = 3.4, 18
     rise, run = SL / N, .27
@@ -3471,9 +3473,891 @@ def ruin1():
     sprig(p, rng, (-.2, -3.6, SL), .9, 8, (LEAF_GREEN, LEAF_GOLD), BARK_BIRCH)
     ivy(p, rng, (-4.2, -4.53, 0), X, -Y, 5.5, 5.5, 50)
     ivy(p, rng, (-4.53, 1.0, 0), -Y, -X, 4.5, 4.6, 36)
+    for q in p.v:              # leaf cards that droop under the ground plane stop at it
+        q[2] = max(q[2], 0.0)
     return done(p, facts=dict(slab=dict(z=SL, x=(-4.25, .75), y=(-4.25, -.2), edge='ragged on +x, about x 0.75 +- 0.45; open (no rail) on its +x and +y edges'),
                               stairs=dict(x=(-4.25, -2.65), foot_y=round(y_foot, 3), head_y=-.2, risers=N, rise=round(rise, 4), tread=run, climbs='-y', width=1.6),
                               columns=[(.6, -.35), (-2.65, -.35), (.6, -4.3)], walls='-x and -y stand; +x and +y are stubs under 1.4 m with a gap on +x from y -1.5 to 1.9', top=7.0))
+
+
+# ================================================================ the Field Camp
+# Thessaly-4's camp: the prefab shelter the survey was issued, and the glasshouse she has kept going for forty years.
+# Both are entered: floors are single flat faces, the doorways are open, the inner faces are modelled.
+
+def film(fn, seed, amount=.5, north=(1.0, 0.0), ground=0.0, reach=.9, ramp=None):
+    """The material fn under a green film: algae and moss on tops (in blotches), on the side that faces `north` and
+    low down where the damp rises (amount 0..1). ramp = (x0, x1): the film on tops thickens from x0 toward x1 (a
+    roof's shaded end)."""
+    mg, md = _rgb(MOSS_GREEN), _rgb(MOSS_DEEP)
+
+    def f(P, N):
+        c = np.array(fn(P, N), np.float64)
+        P, N, x, y, z = _pn(P, N)
+        b1 = .5 + .5 * noise2(x / 1.1 + z * .3 + 4.0, y / 1.1 - z * .3, seed + 21)
+        b2 = .5 + .5 * noise2(x / .25 + z, y / .25 - z, seed + 22)
+        up = np.clip((N[:, 2] - .4) / .5, 0, 1)
+        facing = np.clip(N[:, 0] * north[0] + N[:, 1] * north[1], 0, 1)
+        g = np.clip(1 - (z - ground) / reach, 0, 1)
+        top = np.clip(b1 * 1.8 - .55, 0, 1)
+        if ramp is not None:
+            t = np.clip((x - ramp[0]) / (ramp[1] - ramp[0]), 0, 1)
+            top = np.clip(top * (.2 + 1.2 * t ** 1.3) + .5 * t ** 2 * b2, 0, 1)
+        m = amount * (up * top + (1 - up) * (g ** 1.5 * (.3 + .7 * b2) * (.5 + .8 * facing) + .45 * facing * np.clip(b1 * 1.7 - .8, 0, 1)))
+        m = np.clip(m, 0, .8)[:, None]
+        c[:, :3] = c[:, :3] * (1 - m) + (mg * (1 - .6 * b2[:, None]) + md * (.6 * b2[:, None])) * m
+        return c
+    return f
+
+
+def cloth(p, grid, colour, t=.006, slot=CLOTH):
+    """A sheet of canvas through a grid of points (grid[i][j]; its front is the side from which i then j run
+    counter-clockwise), with a back face t behind it so both sides show."""
+    g = np.asarray(grid, np.float64)
+    ni, nj = g.shape[:2]
+    pts = g.reshape(-1, 3)
+    faces = [[i * nj + j, (i + 1) * nj + j, (i + 1) * nj + j + 1, i * nj + j + 1] for i in range(ni - 1) for j in range(nj - 1)]
+    n = unit(np.cross(g[-1, 0] - g[0, 0], g[0, -1] - g[0, 0]))
+    p.add(pts, faces, colour, slot, True)
+    p.add(pts - n * t, [f[::-1] for f in faces], colour, slot, True)
+
+
+def glazing(p, rng, o, u, v, w, h, nx, ny, fn, keep=.7, bar_w=.03, bar_d=.045, tint=.45, skip=(), foot=0.0, slot=STEEL):
+    """Glazing bars and old glass on the rectangle from o, w along u and h along v (it faces u x v; the members round
+    it are the caller's): nx by ny panes. A pane keeps its glass with probability keep, is otherwise broken to shards
+    left in its bars, or gone. skip: panes (i, j) left out altogether. foot: how green the lowest row's glass has
+    gone at its bottom edge (0..1). Returns {(i, j): 'whole' | 'broken' | 'gone'}."""
+    o, u, v = np.asarray(o, np.float64), unit(u), unit(v)
+    f = np.cross(u, v)
+    m = mark(p)
+    for i in range(1, nx):
+        a = o + u * (w * i / nx)
+        bar(p, a, a + v * h, bar_w, bar_d, slot, f)
+    for j in range(1, ny):
+        a = o + v * (h * j / ny)
+        bar(p, a, a + u * w, bar_w * .8, bar_d * .6, slot, f)
+    paint(p, m, fn)
+    gc, algae = tone(GLASS_GREEN, tint), mix(tone(GLASS_GREEN, tint), MOSS_DEEP, .6)
+    e = bar_w / 2
+    state = {}
+
+    def at(a, b):
+        return o + u * a + v * b + f * .006
+    for i in range(nx):
+        for j in range(ny):
+            if (i, j) in skip:
+                continue
+            a0, a1 = w * i / nx + e, w * (i + 1) / nx - e
+            b0, b1 = h * j / ny + e * .8, h * (j + 1) / ny - e * .8
+            r = rng.uniform()
+            c = vary(rng, gc if rng.uniform() < .75 else mix(gc, MOSS_DEEP, .45), .18)
+            if r < keep:
+                low = mix(c, algae, foot * rng.uniform(.5, 1)) if j == 0 and foot else c
+                p.add([at(a0, b0), at(a1, b0), at(a1, b1), at(a0, b1)], [[0, 1, 2, 3]], [low, low, c, c], GLASS, False)
+                state[(i, j)] = 'whole'
+                continue
+            state[(i, j)] = 'gone'
+            if r > keep + (1 - keep) * .55:
+                continue
+            state[(i, j)] = 'broken'
+            for _ in range(int(rng.integers(1, 4))):
+                t0, t1 = np.sort(rng.uniform(0, 1, 2))
+                reach, edge = rng.uniform(.15, .5), int(rng.integers(0, 4))
+                if edge < 2:
+                    b = b0 if edge == 0 else b1
+                    q = [(a0 + (a1 - a0) * t0, b), (a0 + (a1 - a0) * t1, b), (a0 + (a1 - a0) * (t0 + t1) / 2, b + (b1 - b0) * reach * (1 if edge == 0 else -1))]
+                else:
+                    a = a0 if edge == 2 else a1
+                    q = [(a, b0 + (b1 - b0) * t0), (a, b0 + (b1 - b0) * t1), (a + (a1 - a0) * reach * (1 if edge == 2 else -1), b0 + (b1 - b0) * (t0 + t1) / 2)]
+                pts = [at(*qq) for qq in q]
+                p.add(pts, [fl._facing(pts, [0, 1, 2], f)], c, GLASS, False)
+    return state
+
+
+def flowerpot(p, rng, c, r, h, soil=True, R=None, seed=0):
+    """A clay pot standing at c (R tips it over): CONCRETE in terracotta, with a rolled rim; soil = filled (MOSS)."""
+    m = mark(p)
+    prof = [(r * .62, 0), (r * .92, h * .8), (r * 1.06, h * .8), (r * 1.06, h), (r * .93, h), (r * .88, h * .86)]
+    turn(p, prof if soil else prof + [(r * .58, .02)], CONCRETE, 12)
+    disc(p, (0, 0, 0), r * .62, CONCRETE, -Z, 12)
+    if not soil:
+        disc(p, (0, 0, .02), r * .58, CONCRETE, Z, 12)
+    paint(p, m, flat(mix(RUST_ORANGE, SAND, .35), rng.uniform(.7, 1.0)))
+    age(p, m, seed, ground=0.0, reach=h, floor=.7, grime=.3, moss=.5, scale=.25)
+    if soil:
+        disc(p, (0, 0, h * .86), r * .88, MOSS, Z, 12, tone(mix(SOIL, SOIL_DARK, rng.uniform(0, 1)), 1.0))
+    place(p, m, R, c)
+
+
+@mesh('SM_GN_Shelter', (6.0, 4.5, 3.2))
+def shelter():
+    """The camp's prefab field shelter, door to +x. A body 4.8 x 4.0 m (x -2.7 to 2.1, y -2 to 2) of olive sandwich
+    panels in a steel frame on a skid base, its floor at z 0.12; a low ribbed gable roof (eaves 2.45, ridge 3.0 along
+    x, gutters to y +-2.25) carrying solar panels on both slopes over its -x two thirds (one is gone), bare and
+    mossy toward +x, with a vent cowl to 3.2. In the +x end the door opening, 1.3 m wide (y -0.65 to 0.65) and 2.25 m
+    high above the floor, no leaf (a canvas flap is tied back beside it), a deck-plate ramp down to the ground
+    (x 2.12 to 2.78) and a canvas awning on a tube frame out to x 3.0. A window in each long wall, a vent and a
+    battery cabinet on the back (-x, to x -2.98). Inside: lined walls and ceiling, a bench with seed trays under a
+    grow lamp along -y, shelving on the back wall, a camp cot along +y; the middle is clear."""
+    rng = np.random.default_rng(2681)
+    p = Part('SM_GN_Shelter', (PAINT, STEEL, TILE, CLOTH, GLASS, RUST, MOSS, LEAF, GLOW))
+    X0, X1, HY, T, FL = -2.7, 2.1, 2.0, .08, .12
+    EAVE, RIDGE, RT = 2.45, 3.0, .05
+    DY, DH = .65, 2.25
+    DT = FL + DH
+    H = EAVE - FL
+    ta = (RIDGE - EAVE) / HY
+    ca, sa = 1 / math.hypot(1, ta), ta / math.hypot(1, ta)
+    skin = film(steel(301, JUST_OLIVE, .12, ground=FL, damp=1.1, grime=.38, streak=.4), 302, .55, ground=FL)
+    trim = film(steel(303, tone(JUST_OLIVE, .8), .17, ground=FL, damp=1.1, grime=.35, streak=.3), 302, .45, ground=FL)
+    lining = steel(304, mix(JUST_BONE, CONCRETE_STAIN, .4), .1, ground=FL, damp=.8, k=.8, grime=.35, streak=.3)
+    frame_fn = steel(305, STEEL_GREY, .32, ground=0, damp=.8)
+    inside = steel(306, STEEL_GREY, .24, ground=FL, damp=.4)
+    fixings = []                                   # (point, outward normal) of rivets, for the runs below them
+
+    def roofline(y):
+        return RIDGE - ta * abs(y)
+
+    # ---- the skid base and the floor
+    m = mark(p)
+    gbox(p, (X1 - .12, -HY - .02, 0), (X1 + .02, HY + .02, FL), STEEL, .6, .01, 'z')
+    gbox(p, (X0 - .02, -HY - .02, 0), (X0 + .12, HY + .02, FL), STEEL, .6, .01, 'z')
+    for s in (-1, 1):
+        ya, yb = sorted((s * (HY + .02), s * (HY - .12)))
+        gbox(p, (X0 + .12, ya, 0), (X1 - .12, yb, FL), STEEL, .6, .01, 'z')
+    paint(p, m, film(steel(308, STEEL_DARK, .5, ground=0, damp=.25, k=1.6), 309, .6, ground=0, reach=.2))
+    m = mark(p)
+    gquad(p, (X0 + .13, -HY + .13, FL), (X1 - .13, -HY + .13, FL), (X1 - .13, HY - .13, FL), (X0 + .13, HY - .13, FL), PAINT, 9, 8)   # to the rails' top faces, over their chamfers
+    paint(p, m, steel(310, col(.16, .17, .15), .0, ground=-9, grime=.5, streak=0))
+    pts = [(x, s * (HY + .02), FL * .5) for s in (-1, 1) for x in np.arange(X0 + .2, X1, .4)]
+    for s in (-1, 1):
+        bolts(p, [q for q in pts if q[1] * s > 0], s * Y, .013, RUST, tone(RUST_ORANGE, .8))
+    for sx, x in ((1, X1 + .02), (-1, X0 - .02)):
+        bolts(p, [(x, y, FL * .5) for y in np.arange(-1.8, 1.81, .4) if sx < 0 or abs(y) > .8], sx * X, .013, RUST, tone(RUST_ORANGE, .8))
+
+    # ---- walls: an outer and an inner skin, cover strips on the panel joints, a head rail
+    def wall(a, b, holes=(), strips=(), fn=skin):
+        a, b = V3(*a), V3(*b)
+        L = float(np.linalg.norm(b - a))
+        u = (b - a) / L
+        f = np.cross(u, Z)
+        sheet(p, a, u, Z, L, H, T / 2, PAINT, holes=holes, sub=.6, back=False, rim='', arris=.006, fn=fn)
+        sheet(p, b - f * T, -u, Z, L, H, T / 2, PAINT, holes=[(L - q[1], L - q[0], q[2], q[3]) for q in holes], sub=.8, back=False,
+              rim='', arris=.006, fn=lining)
+        R = np.stack([u, Z, f], 1)
+        m = mark(p)
+        riv = []
+        for s in strips:
+            gbox(p, (s - .03, 0, 0), (s + .03, H - .1, .008), PAINT, .5, .003, 'z')
+            riv += [(s, zz, .008) for zz in np.arange(.14, H - .15, .4)]
+        cuts = sorted((hh[0] - .07, hh[1] + .07) for hh in holes if hh[3] > H - .15)      # the head rail stops at a doorway's frame
+        for u0, u1 in zip([0.0] + [c[1] for c in cuts], [c[0] for c in cuts] + [L]):
+            gbox(p, (u0, H - .1, 0), (u1, H - .01, .014), PAINT, .6, .004, 'z')
+            riv += [(q, H - .055, .014) for q in np.arange(u0 + .2, u1 - .1, .4)]
+        place(p, m, R, a)
+        paint(p, m, trim)
+        riv = np.asarray(riv) @ R.T + a
+        bolts(p, riv, f, .009, RUST, tone(RUST_ORANGE, .75), washer=False)
+        fixings.extend((q, f) for q in riv)
+
+    WIN = {-1: (1.5, 2.7, 1.18, 1.88), 1: (2.3, 3.5, 1.18, 1.88)}
+    wall((X1, -HY, FL), (X1, HY, FL), [(HY - DY - .02, HY + DY + .02, 0, DH + .02)], (1.0, 3.0))
+    wall((X0, HY, FL), (X0, -HY, FL), (), (1.0, 2.0, 3.0))
+    wall((X0, -HY, FL), (X1, -HY, FL), [WIN[-1]], (1.2, 3.0, 3.6))
+    wall((X1, HY, FL), (X0, HY, FL), [WIN[1]], (1.2, 2.0, 3.8))
+    ys = np.linspace(-HY, HY, 11)
+    for xo, sg, fn in ((X1, 1, skin), (X1 - T, -1, lining), (X0, -1, skin), (X0 + T, 1, lining)):
+        m = mark(p)
+        for ya, yb in zip(ys, ys[1:]):
+            for z0, z1 in ((0.0, .5), (.5, 1.0)):
+                q = [(xo, ya, EAVE + (roofline(ya) - EAVE) * z0), (xo, yb, EAVE + (roofline(yb) - EAVE) * z0),
+                     (xo, yb, EAVE + (roofline(yb) - EAVE) * z1), (xo, ya, EAVE + (roofline(ya) - EAVE) * z1)]
+                q = [q[k] for k in range(4) if k == 0 or np.linalg.norm(np.subtract(q[k], q[k - 1])) > 1e-6]
+                if len(q) > 3 and np.linalg.norm(np.subtract(q[0], q[-1])) < 1e-6:
+                    q = q[:-1]
+                if len(q) >= 3:
+                    face(p, q, PAINT, sg * X)
+        paint(p, m, fn)
+    m = mark(p)                                     # corner posts
+    for sx, xc in ((1, X1), (-1, X0)):
+        for sy in (-1, 1):
+            xa, xb = sorted((xc + sx * .015, xc - sx * .095))
+            ya, yb = sorted((sy * (HY + .015), sy * (HY - .095)))
+            gbox(p, (xa, ya, FL), (xb, yb, EAVE - .012), STEEL, .6, .012, 'z')
+    paint(p, m, frame_fn)
+
+    # ---- the doorway: a pressed frame, a threshold, the tied-back flap, the ramp
+    m = mark(p)
+    for sy in (-1, 1):
+        ya, yb = sorted((sy * DY, sy * (DY + .07)))
+        gbox(p, (X1 - T - .012, ya, FL), (X1 + .022, yb, DT), STEEL, .6, .008, 'z')
+    gbox(p, (X1 - T - .012, -DY - .07, DT), (X1 + .022, DY + .07, DT + .07), STEEL, .6, .008)
+    gbox(p, (X1 - .13, -DY, FL), (X1 + .02, DY, FL + .006), STEEL, .5, .002, 'z')
+    for z in (FL + .35, FL + 1.15, FL + 1.95):      # the leaf's hinge pins, left on the +y jamb
+        turn(p, [(0, -.05), (.014, -.05), (.014, .05), (0, .05)], STEEL, 8, (X1 + .034, DY + .035, z))
+    RX = 2.78
+    gface(p, (X1 + .02, -.75, FL), (RX, -.75, .012), (RX, .75, .012), (X1 + .02, .75, FL), STEEL, .33, V3(.1, 0, 1))
+    for sy in (-1, 1):
+        face(p, [(X1 + .02, sy * .75, 0), (RX, sy * .75, 0), (RX, sy * .75, .012), (X1 + .02, sy * .75, FL)], STEEL, sy * Y)
+    face(p, [(RX, -.75, 0), (RX, .75, 0), (RX, .75, .012), (RX, -.75, .012)], STEEL, X)
+    rn = unit(V3(FL - .012, 0, RX - X1 - .02))
+    for x in np.arange(X1 + .1, RX - .03, .09):
+        z = FL + (.012 - FL) * (x - X1 - .02) / (RX - X1 - .02)
+        bar(p, (x, -.7, z + .002), (x, .7, z + .002), .018, .005, STEEL, rn)
+    paint(p, m, steel(311, STEEL_GREY, .45, ground=0, damp=.5))
+    m = mark(p)
+    flap = mix(CANVAS, JUST_OLIVE, .45)
+    zs = np.linspace(DT + .02, FL + .22, 9)
+    pipe(p, [(X1 + .1 + .012 * math.sin(k * 2.1), -DY - .17 + .015 * math.cos(k * 1.7), z) for k, z in enumerate(zs)],
+         [.05, .075, .095, .1, .06, .1, .12, .115, .09], CLOTH, 10, [tone(flap, .8 + .2 * math.sin(k * 2.3) ** 2) for k in range(9)])
+    hoop(p, (X1 + .1, -DY - .17, zs[4]), .062, .009, CLOTH, Z, 12, 6, tone(ROPE, .7))
+    age(p, m, 312, ground=FL, reach=1.6, floor=.6, grime=.3, streak=.25, moss=.25)
+
+    # ---- the roof: two ribbed slopes, lined beneath, with purlins; the solar array; ridge, gutters, a vent
+    SL = 2.14 / ca
+    XA, XB = X0 - .1, X1 + .08
+    roof = film(steel(313, STEEL_GREY, .29, ground=EAVE - .3, damp=.5, grime=.3), 314, .8, ground=-9, ramp=(-.4, 2.2))
+    alu = steel(315, mix(STEEL_GREY, JUST_BONE, .3), .12, ground=-9, grime=.3)
+
+    def cells_fn(P, N):                             # solar cells: dark blue, dulled by dust and droppings
+        P, N, x, y, z = _pn(P, N)
+        b1 = .5 + .5 * noise2(x / .7 + 2.0, y / .7 + z, 316)
+        b2 = .5 + .5 * noise2(x / .13, y / .13, 317)
+        dust = (.35 * np.clip(b1 * 1.6 - .5, 0, 1) * (.5 + .5 * b2))[:, None]
+        return _out(_rgb(SOLAR) * (1.05 - .3 * b2)[:, None] * (1 - dust) + _rgb(CONCRETE_STAIN) * .5 * dust)
+    PANELS = (-2.55, -1.52, -.49)
+    panels = []
+    for s in (1, -1):
+        R = np.stack([s * X, V3(0, s * ca, -sa), V3(0, s * sa, ca)], 1)
+        o = V3(0, 0, RIDGE)
+        la, lb = sorted((s * XA, s * XB))
+        m = mark(p)
+        gbox(p, (la, 0, 0), (lb, SL, RT), STEEL, .4, .008, 'z')
+        for xr in np.linspace(la + .06, lb - .06, 14):
+            gbox(p, (xr - .02, .02, RT), (xr + .02, SL - .01, RT + .03), STEEL, .6, .006, 'z')
+        place(p, m, R, o)
+        paint(p, m, roof)
+        m = mark(p)
+        gface(p, (la, 0, 0), (lb, 0, 0), (lb, SL, 0), (la, SL, 0), PAINT, .6, -Z)
+        place(p, m, R, o)
+        paint(p, m, lining)
+        m = mark(p)
+        ia, ib = sorted((s * (X0 + T), s * (X1 - T)))
+        for sp in (.72, 1.45):
+            gbox(p, (ia, sp - .025, -.06), (ib, sp + .025, 0), STEEL, .8, .006, 'Z')
+        place(p, m, R, o)
+        paint(p, m, inside)
+        m = mark(p)
+        ra, rb = sorted((s * (PANELS[0] - .06), s * (PANELS[-1] + 1.06)))
+        for sr in (.6, 1.6):
+            gbox(p, (ra, sr - .02, RT + .03), (rb, sr + .02, RT + .05), STEEL, .7, .004)
+        tops = []
+        for k, x0 in enumerate(PANELS):
+            if s > 0 and k == 2:                    # this one was taken away: its rails stand empty
+                continue
+            a, b = sorted((s * x0, s * (x0 + 1.0)))
+            gbox(p, (a, .3, RT + .05), (b, 1.9, RT + .085), STEEL, .8, .006)
+            tops.append((a, b))
+            panels.append(dict(x=(x0, x0 + 1.0), side='+y' if s > 0 else '-y'))
+        place(p, m, R, o)
+        paint(p, m, alu)
+        m = mark(p)
+        for a, b in tops:
+            gface(p, (a + .025, .325, RT + .087), (b - .025, .325, RT + .087), (b - .025, 1.875, RT + .087), (a + .025, 1.875, RT + .087), TILE, .27, Z)
+        place(p, m, R, o)
+        paint(p, m, cells_fn)
+    m = mark(p)
+    zc = RIDGE + .1
+    angle(p, (XA - .02, 0, zc), (XB + .02, 0, zc), .17, STEEL, V3(0, ca, -sa), V3(0, -ca, -sa))
+    for s in (-1, 1):
+        channel(p, (XA, s * 2.2, EAVE - .09), (XB, s * 2.2, EAVE - .09), .09, .06, STEEL, Y, -1)
+        for x in np.arange(XA + .3, XB, .9):         # gutter brackets off the head rail
+            bar(p, (x, s * (HY + .01), EAVE - .1), (x, s * 2.2, EAVE - .1), .025, .006, STEEL, Z)
+    paint(p, m, roof)
+    m = mark(p)
+    gbox(p, (X0 + T, -.035, RIDGE - .11), (X1 - T, .035, RIDGE - .012), STEEL, .8, .006)      # the ridge beam inside
+    for s in (-1, 1):                                # and a wall plate closing each long wall's head against the lining
+        ya, yb = sorted((s * (HY - T - .04), s * (HY - T + .012)))
+        gbox(p, (X0 + T, ya, EAVE - .06), (X1 - T, yb, EAVE + .021), STEEL, .8, .006)
+    paint(p, m, inside)
+    vz = roofline(.8) + RT / ca - .01
+    vent_stack(p, (1.35, .8, vz), .07, 3.2 - .22 - vz, frame_fn)
+    for s in (-1, 1):
+        downpipe(p, (-2.2, s * HY, EAVE - .1), .06, s * Y, frame_fn, .032)
+
+    # ---- the awning: a tube frame off a wall plate, struts, old canvas with a scalloped valance
+    AW, AX, AZ0, AZ1 = 1.0, 2.975, 2.65, 2.44          # the valance hangs to 2.31: clear of the doorway's 2.37 for anyone walking in
+    b0, b1 = V3(X1 + .045, 0, AZ0), V3(AX, 0, AZ1)
+    m = mark(p)
+    gbox(p, (X1, -AW - .05, AZ0 - .04), (X1 + .02, AW + .05, AZ0 + .04), STEEL, .6, .005, 'x')
+    for q in (b0, b1):
+        pipe(p, [q - Y * AW, q + Y * AW], .016, STEEL, 8)
+    for sy in (-1, 0, 1):
+        pipe(p, [b0 + Y * sy * AW, b1 + Y * sy * AW], .016 if sy else .012, STEEL, 8)
+    for sy in (-1, 1):
+        foot = V3(X1, sy * AW, 1.95)
+        gbox(p, foot - V3(0, .04, .06), foot + V3(.015, .04, .06), STEEL, 9, .004, 'x')
+        pipe(p, [foot + X * .015, b0 + (b1 - b0) * .78 + Y * sy * AW], .012, STEEL, 6)
+    paint(p, m, frame_fn)
+    bolts(p, [(X1 + .02, y, AZ0) for y in np.linspace(-AW, AW, 6)], X, .012, RUST, tone(RUST_ORANGE, .8))
+    m = mark(p)
+    canvas = mix(CANVAS, JUST_OLIVE, .5)
+    ni, nj = 7, 11
+    grid = np.zeros((ni, nj, 3))
+    for i in range(ni):
+        for j in range(nj):
+            t, sy = i / (ni - 1), 2 * j / (nj - 1) - 1
+            grid[i, j] = b0 + (b1 - b0) * t + Y * sy * AW + Z * (.02 - .075 * math.sin(math.pi * t) * (1 - min(abs(sy) * 2 % 2, 2 - abs(sy) * 2 % 2) ** 2 * .6))
+    cloth(p, grid, canvas)
+    yv = np.linspace(-AW, AW, 2 * 8 + 1)
+    val = np.array([[(AX + .02, y, AZ1 + .02), (AX + .024, y, AZ1 - (.08 if k % 2 == 0 else .13))] for k, y in enumerate(yv)])
+    cloth(p, np.swapaxes(val, 0, 1)[::-1], canvas, .004)
+    age(p, m, 318, ground=1.2, reach=1.6, floor=.72, grime=.38, streak=.25, moss=.6, scale=.6)
+
+    # ---- windows, the door's lamp, the back wall's vent and battery cabinet
+    for s, (u0, u1, v0, v1) in WIN.items():
+        a, u = (V3(X0, -HY, FL), X) if s < 0 else (V3(X1, HY, FL), -X)
+        window(p, a + u * u0 + Z * v0, u, u1 - u0, v1 - v0, frame_fn, rng, depth=.012, bar=.035, nx=2, ny=1, glass=.75, back=0)
+    bulkhead(p, (X1, .95, 2.0), X, STEEL, GLOW_AMBER, .08, .7)
+    m = mark(p)
+    conduit(p, [(X1 + .014, .95, 2.1), (X1 + .014, .95, EAVE - .12)], X, STEEL, .012, .3)
+    paint(p, m, frame_fn)
+    louvre(p, (X0, .25, 2.52), -Y, .5, .28, frame_fn, STEEL, 5, .05)
+    m = mark(p)
+    gbox(p, (X0 - .24, -1.6, .55), (X0, -.9, 1.5), PAINT, .35, .012, 'X')
+    gbox(p, (X0 - .252, -1.56, .6), (X0 - .24, -.94, 1.46), PAINT, .35, .004, 'X')
+    gbox(p, (X0 - .28, -1.63, 1.5), (X0, -.87, 1.522), PAINT, .4, .006, 'X')
+    paint(p, m, trim)
+    m = mark(p)
+    for z in (.75, 1.3):
+        turn(p, [(0, -.05), (.012, -.05), (.012, .05), (0, .05)], STEEL, 8, (X0 - .256, -1.56, z))
+    pipe(p, [(X0 - .252, -1.0, .98), (X0 - .275, -1.0, .98), (X0 - .275, -1.0, 1.1), (X0 - .252, -1.0, 1.1)], .008, STEEL, 6)
+    conduit(p, [(X0 - .016, -1.25, 1.522), (X0 - .016, -1.25, EAVE - .12)], -X, STEEL, .016, .3)
+    conduit(p, [(X0 - .016, -1.4, .55), (X0 - .016, -1.4, FL + .02)], -X, STEEL, .016, .3)
+    paint(p, m, frame_fn)
+
+    # ---- inside: the bench with its seed trays and grow lamp, shelving, the cot
+    BX0, BX1, BY0, BY1, BT = -2.2, .4, -HY + T + .02, -1.3, FL + .9
+    m = mark(p)
+    for x in (BX0 + .03, (BX0 + BX1) / 2, BX1 - .03):
+        for y in (BY0 + .03, BY1 - .03):
+            gbox(p, (x - .02, y - .02, FL), (x + .02, y + .02, BT - .04), STEEL, .5, .004, 'zZ')
+    for y in (BY0 + .03, BY1 - .03):
+        gbox(p, (BX0, y - .012, BT - .11), (BX1, y + .012, BT - .04), STEEL, .7, .004)
+        gbox(p, (BX0, y - .012, FL + .2), (BX1, y + .012, FL + .25), STEEL, .7, .004)
+    gbox(p, (BX0 + .01, BY0 + .02, FL + .25), (BX1 - .01, BY1 - .02, FL + .265), STEEL, .5, .004)
+    paint(p, m, inside)
+    m = mark(p)
+    gbox(p, (BX0 - .03, BY0, BT - .04), (BX1 + .03, BY1 + .03, BT), PAINT, .35, .008)
+    paint(p, m, steel(319, mix(JUST_BONE, JUST_OLIVE, .35), .12, ground=BT - .3, damp=.3, grime=.45, k=.85))
+    trays = []
+    for k, x in enumerate((-1.78, -1.12, -.46)):
+        m = mark(p)
+        gbox(p, (x - .28, -1.83, BT), (x + .28, -1.45, BT + .06), PAINT, 9, .008, 'z')
+        paint(p, m, flat(JUST_GRAPHITE, 1.6))
+        gface(p, (x - .262, -1.812, BT + .05), (x + .262, -1.812, BT + .05), (x + .262, -1.468, BT + .05), (x - .262, -1.468, BT + .05), MOSS, .14, Z,
+              tone(mix(SOIL, SOIL_DARK, .4), 1.0))
+        for _ in range(11 if k < 2 else 4):
+            q = (x + rng.uniform(-.23, .23), rng.uniform(-1.79, -1.49), BT + .05)
+            tuft(p, rng, q, rng.uniform(.07, .16), rng.uniform(.08, .13), 2, (LEAF_LIGHT, LEAF_GREEN), fl.CELL_SMALLLEAF)
+        trays.append((x, -1.64, BT + .05))
+    m = mark(p)                                     # a tool box and a tin on the bench, two crates under it
+    gbox(p, (-.05, -1.8, BT), (.33, -1.55, BT + .16), PAINT, .2, .01, 'z')
+    gbox(p, (-.06, -1.81, BT + .16), (.34, -1.54, BT + .19), PAINT, .2, .008)
+    for xa, xb, h in ((BX0 + .12, BX0 + .78, .36), (BX0 + .95, BX0 + 1.5, .3)):
+        gbox(p, (xa, BY0 + .05, FL + .265), (xb, BY1 - .06, FL + .265 + h), PAINT, .25, .012, 'z')
+        gbox(p, (xa - .012, BY0 + .04, FL + .265 + h), (xb + .012, BY1 - .05, FL + .3 + h), PAINT, .25, .008)
+    paint(p, m, steel(320, JUST_OLIVE, .16, ground=FL, damp=.5, grime=.4, k=.9))
+    m = mark(p)
+    pipe(p, [(.13, -1.675, BT + .19), (.13, -1.675, BT + .22), (.15, -1.675, BT + .22)], .008, STEEL, 6)
+    turn(p, [(.06, 0), (.06, .14), (.05, .15), (.02, .15)], STEEL, 12, (-2.05, -1.5, BT))
+    disc(p, (-2.05, -1.5, BT + .15), .02, STEEL, Z, 8)
+    GZ = BT + .74                                    # the grow lamp: a hood hung from the ceiling over the trays
+    gbox(p, (-2.05, -1.74, GZ), (-.2, -1.54, GZ + .05), STEEL, .6, .008)
+    for x in (-1.85, -.4):
+        pipe(p, [(x, -1.64, GZ + .05), (x, -1.64, roofline(1.64) - .002)], .004, STEEL, 4, cap=False)
+    pipe(p, [(-2.05, -1.64, GZ + .03), (-2.3, -1.64, GZ + .03), (-2.4, -1.75, GZ - .1), (-2.5, -HY + T + .012, GZ - .25), (-2.5, -HY + T + .012, FL + .5)], .006, STEEL, 5)
+    paint(p, m, inside)
+    gface(p, (-2.03, -1.72, GZ - .002), (-.22, -1.72, GZ - .002), (-.22, -1.56, GZ - .002), (-2.03, -1.56, GZ - .002), GLOW, 9, -Z, tone(GLOW_WARM, .9))
+    SX0, SX1, SY0, SY1 = X0 + T + .02, -2.2, -1.0, 1.1
+    SHZ = (FL + .3, FL + .8, FL + 1.3, FL + 1.8)
+    m = mark(p)
+    for y in (SY0 + .018, SY1 - .018):
+        for x in (SX0 + .018, SX1 - .018):
+            gbox(p, (x - .018, y - .018, FL), (x + .018, y + .018, FL + 2.0), STEEL, .6, .004, 'z')
+    for z in SHZ:
+        gbox(p, (SX0, SY0, z - .02), (SX1, SY1, z), STEEL, .5, .004)
+    for a, b in (((SX0 + .004, SY0, FL + .3), (SX0 + .004, SY1, FL + 1.8)), ((SX0 + .004, SY1, FL + .3), (SX0 + .004, SY0, FL + 1.8))):
+        bar(p, a, b, .025, .004, STEEL, X)
+    paint(p, m, inside)
+    kit_cols = (JUST_OLIVE, mix(JUST_BONE, STEEL_GREY, .4), tone(JUST_OLIVE, .7), mix(JUST_ORANGE, RUST_DARK, .5))
+    for zi, z in enumerate(SHZ):
+        y = SY0 + .07
+        while y < SY1 - .3:
+            kind = rng.uniform()
+            if kind < .5:
+                w, h = rng.uniform(.25, .45), rng.uniform(.14, .3)
+                m = mark(p)
+                gbox(p, (SX0 + .03, y, z), (SX1 - .03, y + w, z + h), PAINT, .25, .008, 'z')
+                gbox(p, (SX0 + .022, y - .008, z + h), (SX1 - .022, y + w + .008, z + h + .025), PAINT, .25, .006)
+                paint(p, m, steel(321 + int(y * 50) + zi, kit_cols[int(rng.integers(0, 4))], .12, ground=z, damp=.3, grime=.4, k=.9))
+                y += w + rng.uniform(.04, .12)
+            elif kind < .8:
+                r, h = rng.uniform(.05, .085), rng.uniform(.16, .26)
+                m = mark(p)
+                xc = (SX0 + SX1) / 2 + rng.uniform(-.08, .08)
+                turn(p, [(r, 0), (r, h), (r * .7, h + .015), (r * .7, h + .04)], STEEL, 12, (xc, y + r, z))
+                disc(p, (xc, y + r, z + h + .04), r * .7, STEEL, Z, 12)
+                paint(p, m, steel(350 + zi, STEEL_GREY, .3, ground=z, damp=.3))
+                y += 2 * r + rng.uniform(.03, .1)
+            else:
+                w, r = rng.uniform(.3, .5), rng.uniform(.055, .075)
+                m = mark(p)
+                pipe(p, [((SX0 + SX1) / 2, y, z + r), ((SX0 + SX1) / 2, y + w, z + r)], r, CLOTH, 10, vary(rng, mix(CANVAS, (JUST_OLIVE, TARP_OCHRE)[int(rng.integers(0, 2))], .5), .15))
+                age(p, m, 360 + zi, ground=z, reach=.3, floor=.75, grime=.3)
+                y += w + rng.uniform(.04, .12)
+    CX0, CX1, CY0, CY1, CZ = -2.3, -.35, 1.22, HY - T - .03, FL + .38
+    m = mark(p)
+    for y in (CY0, CY1):
+        pipe(p, [(CX0, y, CZ), (CX1, y, CZ)], .014, STEEL, 8)
+    for x in (CX0 + .1, (CX0 + CX1) / 2, CX1 - .1):
+        pipe(p, [(x, CY0, CZ), (x, CY0 + .07, FL + .014), (x, CY1 - .07, FL + .014), (x, CY1, CZ)], .012, STEEL, 6)
+    paint(p, m, inside)
+    m = mark(p)
+    grid = np.array([[(CX0 + (CX1 - CX0) * i / 8, CY0 + (CY1 - CY0) * j / 4, CZ + .014 - .045 * math.sin(math.pi * j / 4) * (.6 + .4 * math.sin(math.pi * i / 8)))
+                      for j in range(5)] for i in range(9)])
+    cloth(p, grid, mix(CANVAS, JUST_OLIVE, .3))
+    gbox(p, (CX0 + .08, CY0 + .07, CZ - .025), (CX0 + .55, CY1 - .07, CZ + .07), CLOTH, .16, .025, colour=mix(TARP_OCHRE, CANVAS, .45))
+    age(p, m, 370, ground=FL, reach=.5, floor=.8, grime=.4, scale=.5)
+
+    # ---- forty years: runs under the fixings, moss at the foot and on the roof's north end, grass, ivy
+    pick = rng.choice(len(fixings), 26, replace=False)
+    for k in pick:
+        q, f = fixings[k]
+        if q[2] > .7:
+            streaks(p, rng, [q - Z * .012], f, (.2, .7), (.025, .05))
+    streaks(p, rng, [(x, -HY, FL + 1.14) for x in (X0 + 1.52, X0 + 2.68)] + [(X0 + 1.2, -HY, EAVE - .11)], -Y, (.3, .8), (.03, .06))
+    streaks(p, rng, [(X1 - 2.32, HY, FL + 1.14), (X1 - 3.48, HY, FL + 1.14), (.9, HY, EAVE - .11)], Y, (.3, .8), (.03, .06))
+    streaks(p, rng, [(X0 - .24, -1.5, .55), (X0 - .24, -1.05, .55)], -X, (.15, .4), (.03, .05))
+    streaks(p, rng, [(X1, s * (AW + .03), AZ0 - .04) for s in (-1, 1)] + [(X1, s * AW, 1.89) for s in (-1, 1)], X, (.25, .6), (.03, .05))
+    for a, b, out, climb in (((X1 + .02, -HY - .02, 0), (X1 + .02, -.78, 0), X, .1), ((X1 + .02, .78, 0), (X1 + .02, HY + .02, 0), X, .1),
+                             ((X0 - .02, -HY - .02, 0), (X1 + .02, -HY - .02, 0), -Y, .06), ((X1 + .02, HY + .02, 0), (X0 - .02, HY + .02, 0), Y, .06),
+                             ((X0 - .02, HY + .02, 0), (X0 - .02, -HY - .02, 0), -X, .05)):
+        moss_line(p, rng, a, b, out, .055, .025, climb=climb)
+    for _ in range(64):
+        x = XB - .1 - abs(rng.normal(0, .8))
+        s = rng.choice((-1, 1))
+        yy = rng.uniform(.2, 2.05)
+        if x < .62 or (s > 0 and abs(x - 1.35) < .2 and abs(yy - .8) < .2):
+            continue
+        moss_patch(p, rng, (x, s * yy, roofline(yy) + RT / ca), rng.uniform(.03, .085), .018, V3(0, s * sa, ca), 7)
+    for s in (-1, 1):
+        moss_line(p, rng, (.3, s * 2.165, EAVE - .082), (XB - .05, s * 2.165, EAVE - .082), s * Y, .05, .03, step=.25)
+    for _ in range(18):
+        side = int(rng.integers(0, 4))
+        t = rng.uniform(-1, 1)
+        q = [(X1 + .08, t * HY), (X0 - .07, t * HY), (t * 2.4 - .3, HY + .07), (t * 2.4 - .3, -HY - .07)][side]
+        if side == 0 and abs(q[1]) < .95 or side == 1 and -1.7 < q[1] < -.8:
+            continue
+        tuft(p, rng, (q[0], q[1], 0), rng.uniform(.22, .45), rng.uniform(.25, .38))
+    ivy(p, rng, (X0 - .03, .5, 0), Y, -X, 1.45, 2.1, 26, size=.36)
+    ivy(p, rng, (X0 + .05, HY + .03, 0), X, Y, 1.2, 1.6, 16, size=.34)
+    for q in p.v:              # leaf cards that droop under the ground plane stop at it
+        q[2] = max(q[2], 0.0)
+    return done(p, facts=dict(
+        door=dict(face_x=X1, centre=(X1, 0.0, FL), y=(-DY, DY), z=(FL, DT), width=2 * DY, height=DH, leaf='none: an open doorway'),
+        floor_z=FL, ramp=dict(x=(X1 + .02, RX), y=(-.75, .75), z=(FL, .012)),
+        interior=dict(x=(X0 + T, X1 - T), y=(-HY + T, HY - T), ceiling='2.45 at the walls to 3.0 under the ridge (a ridge beam down to 2.89)'),
+        clear=dict(x=(-2.15, X1 - T), y=(-1.25, 1.17), z=(FL, 2.6)), stand=[(.9, 0.0, FL), (-.6, -.2, FL), (-1.5, .2, FL)],
+        bench=dict(x=(BX0 - .03, BX1 + .03), y=(BY0, BY1 + .03), top=BT, trays=trays, lamp_z=GZ),
+        shelving=dict(x=(SX0, SX1), y=(SY0, SY1), shelves_z=SHZ, top=FL + 2.0), cot=dict(x=(CX0, CX1), y=(CY0, CY1), top=CZ),
+        windows=dict(minus_y=dict(x=(X0 + 1.5, X0 + 2.7), z=(FL + 1.18, FL + 1.88)), plus_y=dict(x=(X1 - 3.5, X1 - 2.3), z=(FL + 1.18, FL + 1.88))),
+        awning=dict(x=(X1, 3.0), y=(-AW, AW), underside=round(AZ1 - .13, 3)), lamp=(X1 + .08, .95, 2.0), cabinet=dict(x=(X0 - .28, X0), y=(-1.63, -.87), z=(.55, 1.52)),
+        eaves_z=EAVE, ridge_z=RIDGE, solar=panels, top=3.2))
+
+
+@mesh('SM_GN_Greenhouse', (9.0, 6.0, 4.2))
+def greenhouse():
+    """The camp's glasshouse, 9 x 6 m on a concrete slab (top at z 0.05), door to +x. A dwarf wall 0.6 m high carries
+    seven steel portal ribs at 1.45 m (posts to the eaves at 2.4, rafters to the ridge at 4.08 along x, tie rods at
+    2.46) and glazing bars with old glass, some of it broken or gone; a roof vent stands open on each slope. In the +x
+    gable the doorway, 1.5 m wide (y -0.75 to 0.75) and 2.3 m high, its sliding leaf run open along the outside toward
+    +y. Inside, an aisle 1.7 m wide along x between four raised beds (kerbs 0.42 m high) of saplings, a potting bench
+    across the -x end, a water butt by the door, irrigation pipes hung from the rafters over the beds."""
+    rng = np.random.default_rng(2682)
+    p = Part('SM_GN_Greenhouse', (CONCRETE, STEEL, GLASS, RUST, BRASS, MOSS, BARK, LEAF))
+    HX, HY, FL, PL, EV, RG = 4.5, 3.0, .05, .6, 2.4, 4.08
+    GX, GY, PT = 4.35, 2.85, .18
+    PX, PY = HX - .06, HY - .06
+    DY, DT = .75, 2.35
+    ta = (RG - EV) / GY
+    ca, sa = 1 / math.hypot(1, ta), ta / math.hypot(1, ta)
+    RL = math.hypot(GY, RG - EV)
+    conc = concrete(381, damp=1.0, moss=.55, blot=.5, streak=.35, north=(1.0, 0.0))
+    rf = steel(382, STEEL_GREY, .55, ground=0, damp=3.2)
+    bars = steel(383, mix(STEEL_GREY, JUST_BONE, .3), .5, ground=0, damp=3.0)
+    rust = rusty(384)
+    xs = np.linspace(-GX, GX, 7)
+    BAY = float(xs[1] - xs[0])
+
+    def rafter_z(y):
+        return RG - ta * abs(y)
+
+    # ---- the slab and the dwarf wall with its steel sill
+    sheet(p, (-HX, -HY, FL), X, Y, 2 * HX, 2 * HY, FL, CONCRETE, ju=np.arange(1.5, 8.9, 1.5), jv=(HY - .8, HY + .8), groove=(.02, .008), sub=.75,
+          back=False, rim='lrbt', arris=.012, fn=concrete(380, damp=.6, moss=.5, blot=.6))
+    runs = [((-PX, -PY), (PX, -PY), 'tlr'), ((PX, PY), (-PX, PY), 'tlr'), ((-PX, PY - PT), (-PX, -PY + PT), 't'),
+            ((PX, -PY + PT), (PX, -DY - .06), 'tr'), ((PX, DY + .06), (PX, PY - PT), 'tl')]
+    for a, b, rim in runs:
+        a, b = V3(*a, FL), V3(*b, FL)
+        L = float(np.linalg.norm(b - a))
+        sheet(p, a, (b - a) / L, Z, L, PL - FL, PT, CONCRETE, ju=np.arange(1.48, L - .5, 1.48), sub=.5, back=True, rim=rim, fn=conc)
+    m = mark(p)
+    for s in (-1, 1):
+        ya, yb = sorted((s * (PY + .02), s * (PY - PT - .02)))
+        gbox(p, (-PX - .02, ya, PL), (PX + .02, yb, PL + .03), STEEL, .7, .008)
+    gbox(p, (-PX - .02, -PY + PT + .02, PL), (-PX + PT + .02, PY - PT - .02, PL + .03), STEEL, .7, .008)
+    for ya, yb in ((-PY + PT + .02, -DY - .06), (DY + .06, PY - PT - .02)):
+        gbox(p, (PX - PT - .02, ya, PL), (PX + .02, yb, PL + .03), STEEL, .7, .008)
+    paint(p, m, rf)
+
+    # ---- the ribs: posts on base plates, rafters, knee plates, eave and ridge members, tie rods
+    m = mark(p)
+    anchor, knee = [], []
+    for i, x in enumerate(xs):
+        for s in (-1, 1):
+            ibeam(p, (x, s * GY, PL + .04), (x, s * GY, EV), .09, .06, STEEL, Y)
+            ibeam(p, (x, s * GY, EV), (x, 0, RG), .09, .06, STEEL, Z)
+            gbox(p, (x - .07, s * GY - .075, PL + .03), (x + .07, s * GY + .075, PL + .042), STEEL, 9, .003, 'z')
+            anchor += [(x + sx * .05, s * GY + sy * .055, PL + .042) for sx in (-1, 1) for sy in (-1, 1)]
+            yk = s * (GY - .045)
+            tri = [(x, yk, EV - .42), (x, yk, EV - .02), (x, s * (GY - .6), rafter_z(GY - .6) - .06)]
+            plate(p, tri, .008, STEEL)
+            knee.append([np.mean(tri, 0) + (np.asarray(q) - np.mean(tri, 0)) * .55 for q in tri])
+    for s in (-1, 1):
+        ya, yb = sorted((s * (GY - .045), s * (GY + .045)))
+        gbox(p, (-GX - .03, ya, EV - .05), (GX + .03, yb, EV + .04), STEEL, 1.0, .008)
+        gbox(p, (-GX, ya + .01, PL + .042), (GX, yb - .01, PL + .08), STEEL, 1.0, .006)
+    gbox(p, (-GX - .03, -.035, RG - .075), (GX + .03, .035, RG + .045), STEEL, 1.0, .008)
+    angle(p, (-GX - .05, 0, RG + .075), (GX + .05, 0, RG + .075), .1, STEEL, V3(0, ca, -sa), V3(0, -ca, -sa))
+    for x in (-GX - .03, GX + .03):                   # finials on the gable peaks
+        turn(p, [(.03, 0), (.03, .02), (.012, .035), (.028, .06), (.03, .075), (.01, .1), (.004, .125)], STEEL, 8, (x * .995, 0, RG - .005))
+        disc(p, (x * .995, 0, RG + .12), .004, STEEL, Z, 8)
+    for s in (-1, 1):
+        channel(p, (-GX - .06, s * 2.945, EV - .02), (GX + .06, s * 2.945, EV - .02), .09, .06, STEEL, Y, -1)
+        pipe(p, [(-GX - .02, s * 2.945, EV - .03), (-GX - .02, s * 2.945, EV - .12), (-GX - .02, s * 2.975, EV - .22)], .03, STEEL, 8)
+    paint(p, m, rf)
+    bolts(p, anchor, Z, .011, RUST, tone(RUST_ORANGE, .8))
+    for sx in (-1, 1):
+        bolts(p, [q + sx * X * .004 for tri in knee for q in tri], sx * X, .011, RUST, tone(RUST_ORANGE, .8), washer=False)
+    m = mark(p)
+    for x in xs[1:-1]:
+        pipe(p, [(x, -GY + .04, EV + .06), (x, GY - .04, EV + .06)], .011, RUST, 6)
+        pipe(p, [(x, 0, EV + .06), (x, 0, RG - .075)], .008, RUST, 5, cap=False)
+        turn(p, [(0, -.06), (.02, -.06), (.02, .06), (0, .06)], RUST, 6, (x, 0, EV + .06), Y)
+    paint(p, m, rust)
+
+    # ---- glass: the long walls and the roof, bay by bay; two roof vents propped open
+    WZ, WH = PL + .08, EV - .05 - PL - .08
+    VENTS = {(-1, 2), (1, 4)}
+    panes = dict(whole=0, broken=0, gone=0)
+
+    def tally(st):
+        for v in st.values():
+            panes[v] += 1
+    for i in range(6):
+        w = BAY - .07
+        for s in (-1, 1):
+            u = -s * X
+            x0 = xs[i + 1] - .035 if s > 0 else xs[i] + .035
+            tally(glazing(p, rng, (x0, s * GY, WZ), u, Z, w, WH, 3, 2, bars, keep=.74, foot=.8))
+            v = V3(0, -s * ca, sa)
+            o = V3(x0, s * GY, EV) + v * .07
+            h = RL - .07 - .06
+            vent = (s, i) in VENTS
+            tally(glazing(p, rng, o, u, v, w, h, 3, 3, bars, keep=.68, skip={(k, 2) for k in range(3)} if vent else ()))
+            if vent:
+                f = np.cross(u, v)
+                hl, th = h / 3, math.radians(24)
+                v2 = unit(v * math.cos(th) - f * math.sin(th))
+                top = o + v * h
+                o2 = top - v2 * hl
+                f2 = np.cross(u, v2)
+                m = mark(p)
+                for a, b in ((o2, o2 + u * w), (top, top + u * w), (o2, top), (o2 + u * w, top + u * w)):
+                    bar(p, a, b, .035, .04, STEEL, f2)
+                paint(p, m, bars)
+                tally(glazing(p, rng, o2, u, v2, w, hl, 3, 1, bars, keep=.85))
+                m = mark(p)
+                pipe(p, [o + v * (h - hl) + u * w * .5, o2 + u * w * .5], .006, RUST, 5)
+                paint(p, m, rust)
+
+    # ---- the gables: posts, a transom at the eaves, glass below it and in the triangle above
+    def gable(x, sg, posts, doorway):
+        u = sg * Y
+        m = mark(p)
+        for y in posts[1:-1]:
+            if doorway and abs(abs(y) - DY - .03) < 1e-6:
+                gbox(p, (x - .05, y - .03, FL), (x + .05, y + .03, EV), STEEL, .6, .008, 'z')
+            else:
+                ibeam(p, (x, y, PL + .04), (x, y, EV), .09, .06, STEEL, X)
+        gbox(p, (x - .04, -GY, (DT if doorway else EV - .04)), (x + .04, GY, EV + .04), STEEL, 1.0, .008)
+        for ya, yb in zip(posts, posts[1:]):
+            if doorway and ya < 0 < yb:
+                continue
+            gbox(p, (x - .02, ya, PL + .042), (x + .02, yb, PL + .08), STEEL, 1.0, .006)
+        yt = np.linspace(-GY, GY, 13)
+        for y in yt[1:-1]:
+            if rafter_z(y) - EV > .2:
+                bar(p, (x, y, EV + .04), (x, y, rafter_z(y) - .04), .03, .045, STEEL, sg * X)
+        paint(p, m, rf)
+        for ya, yb in zip(posts, posts[1:]):
+            if doorway and ya < 0 < yb:
+                continue
+            w = yb - ya - .07
+            o = (x, ya + .035, WZ) if sg > 0 else (x, yb - .035, WZ)
+            tally(glazing(p, rng, o, u, Z, w, WH, max(2, round(w / .5)), 2, bars, keep=.74, foot=.8))
+        gc = tone(GLASS_GREEN, .45)
+        for ya, yb in zip(yt, yt[1:]):
+            r = rng.uniform()
+            c = vary(rng, gc if rng.uniform() < .7 else mix(gc, MOSS_DEEP, .45), .18)
+            q = [(x + sg * .006, ya + .016, EV + .05), (x + sg * .006, yb - .016, EV + .05)]
+            q += [(x + sg * .006, yy, rafter_z(yy) - .075) for yy in (yb - .016, ya + .016) if rafter_z(yy) - .075 > EV + .06]
+            if len(q) < 3 or r > .78:
+                panes['gone'] += 1
+                continue
+            face(p, q, GLASS, sg * X, c)
+            panes['whole'] += 1
+    gable(GX, 1, [-GY, -DY - .03, DY + .03, GY], True)
+    gable(-GX, -1, [-GY, -.95, .95, GY], False)
+
+    # ---- the sliding door: its track over the doorway, the leaf run open toward +y, a floor guide
+    LX, LY0, LY1, LZ0, LZ1 = PX + .03, DY + .05, DY + 1.65, FL + .03, DT + .01     # the leaf runs clear of the dwarf wall's face
+    m = mark(p)
+    gbox(p, (PX, -DY - .1, DT + .03), (PX + .06, LY1 + .05, DT + .1), STEEL, .8, .006)
+    for y in (-DY, 0, DY + .03, 1.6, LY1):
+        gbox(p, (GX, y - .025, DT + .1), (PX + .05, y + .025, DT + .112), STEEL, 9, .003)
+    gbox(p, (PX + .004, LY0, FL), (PX + .052, LY1, FL + .018), STEEL, .8, .004, 'z')
+    for y0, y1 in ((LY0, LY0 + .05), (LY1 - .05, LY1), ((LY0 + LY1) / 2 - .02, (LY0 + LY1) / 2 + .02)):
+        gbox(p, (LX - .02, y0, LZ0), (LX + .02, y1, LZ1), STEEL, .7, .006)
+    for z0, z1 in ((LZ0, LZ0 + .09), (.86, .92), (LZ1 - .06, LZ1)):
+        gbox(p, (LX - .019, LY0 + .05, z0), (LX + .019, LY1 - .05, z1), STEEL, .7, .006)
+    for y in (LY0 + .25, LY1 - .25):
+        gbox(p, (LX - .008, y - .03, LZ1), (LX + .008, y + .03, DT + .05), STEEL, 9, .003)
+        turn(p, [(0, -.012), (.03, -.012), (.03, .012), (0, .012)], STEEL, 10, (LX, y, DT + .06), X)
+    pipe(p, [(LX + .018, LY0 + .025, 1.0), (LX + .03, LY0 + .025, 1.03), (LX + .03, LY0 + .025, 1.22), (LX + .018, LY0 + .025, 1.25)], .008, STEEL, 6)
+    paint(p, m, rf)
+    m = mark(p)
+    gbox(p, (LX - .005, LY0 + .05, LZ0 + .09), (LX + .005, LY1 - .05, .86), RUST, .3, .001, 'yYzZ')
+    paint(p, m, rust)
+    for y0 in (LY0 + .05, (LY0 + LY1) / 2 + .02):
+        tally(glazing(p, rng, (LX, y0, .92), Y, Z, (LY1 - LY0) / 2 - .07, LZ1 - .06 - .92, 1, 2, bars, keep=.62, bar_w=.024, bar_d=.03))
+
+    # ---- raised beds: precast kerbs, mounded soil, rows of saplings on canes, weeds
+    KT, KH = .1, .42
+    bedc = concrete(385, damp=.6, moss=.6, blot=.55, k=.95, north=(1.0, 0.0))
+    beds = []
+    for s in (-1, 1):
+        for bi, (xa, xb) in enumerate(((-3.4, -.25), (.25, 3.2))):
+            ya, yb = sorted((s * .85, s * 2.72))
+            m = mark(p)
+            for y0 in (ya, yb - KT):
+                gbox(p, (xa, y0, FL), (xb, y0 + KT, FL + KH), CONCRETE, .5, .015, 'z')
+            for x0 in (xa, xb - KT):
+                gbox(p, (x0, ya + KT, FL), (x0 + KT, yb - KT, FL + KH), CONCRETE, .5, .015, 'z')
+            paint(p, m, bedc)
+            sd = 390 + bi + (2 if s > 0 else 0)
+
+            def soil_z(x, y, xa=xa, xb=xb, ya=ya, yb=yb, sd=sd):
+                tx, ty = (x - xa - KT) / (xb - xa - 2 * KT), (y - ya - KT) / (yb - ya - 2 * KT)
+                hump = np.sin(np.pi * np.clip(ty, 0, 1)) ** .7 * np.clip(np.minimum(tx, 1 - tx) * 8, 0, 1)
+                return FL + .3 + .035 * noise2(x * 2.3, y * 2.3, sd) + .055 * hump
+            nxs, nys = cells(xb - xa - 2 * KT, .2), cells(yb - ya - 2 * KT, .2)
+            gx, gy = np.meshgrid(np.linspace(xa + KT, xb - KT, nxs + 1), np.linspace(ya + KT, yb - KT, nys + 1), indexing='ij')
+            gz = soil_z(gx, gy)
+            k1 = .5 + .5 * noise2(gx * 1.4 + 3.0, gy * 1.4, sd + 5)
+            k2 = .5 + .5 * noise2(gx * 6.0, gy * 6.0, sd + 6)
+            green = np.clip(k1 * 2.2 - 1.35, 0, 1) * .7
+            sc = fl.mix(mix(SOIL, RUST_DARK, .3), SOIL_DARK, np.clip(.25 + .3 * k1 + .55 * k2, 0, 1).ravel())
+            sc[:, :3] = sc[:, :3] * (1 - green.ravel()[:, None]) + _rgb(mix(MOSS_GREEN, MOSS_DEEP, .4)) * green.ravel()[:, None]
+            n = nys + 1
+            p.add(np.stack([gx, gy, gz], -1).reshape(-1, 3), [[i * n + j, (i + 1) * n + j, (i + 1) * n + j + 1, i * n + j + 1] for i in range(nxs) for j in range(nys)],
+                  sc, MOSS, True)
+            beds.append(dict(x=(xa, xb), y=(ya, yb), kerb_top=FL + KH, soil_z=FL + .34))
+            for x in np.arange(xa + .42, xb - .3, .56):
+                for off, hh in ((.42, (.55, 1.0)), (1.02, (.8, 1.35)), (1.55, (.9, 1.6))):
+                    q = V3(x + rng.normal(0, .07), s * (.85 + off) + rng.normal(0, .06), 0)
+                    q[2] = float(soil_z(q[0], q[1])) - .02
+                    r, h = rng.uniform(), rng.uniform(*hh)
+                    h = min(h, rafter_z(q[1]) - q[2] - .75)
+                    if r < .1:
+                        continue
+                    if rng.uniform() < .55:        # a cane and its tie
+                        cane = q + V3(.03, .02, 0)
+                        pipe(p, [cane, cane + V3(rng.normal(0, .02), rng.normal(0, .02), h * rng.uniform(.75, 1.05))], .006, BARK, 5, tone(WOOD_PALE, rng.uniform(.5, .8)))
+                    if r < .2:                      # one that did not take: a bare whip
+                        fl.limb(p, [q, q + V3(.03, -.02, h * .5), q + V3(.08, .0, h * .8)], [.01, .007, .003], tone(BARK_GREY, .7), BARK, 5)
+                        continue
+                    gold = rng.uniform() < .22
+                    cols = (LEAF_GREEN, LEAF_GOLD) if gold else (LEAF_GREEN, LEAF_LIGHT)
+                    bark = BARK_BIRCH if gold else (BARK_BROWN if rng.uniform() < .6 else BARK_GREY)
+                    sprig(p, rng, q, h, int(7 + h * 7), cols, bark, .011 + .008 * h, .22 + .08 * h)
+                    if h > .8:                      # a second flush lower down fills the young crown
+                        sprig(p, rng, q + Z * h * .3, h * .55, int(5 + h * 5), cols, bark, .007, .2 + .06 * h)
+            for _ in range(9):
+                q = V3(rng.uniform(xa + .2, xb - .2), rng.uniform(ya + .18, yb - .18), 0)
+                q[2] = float(soil_z(q[0], q[1])) - .01
+                tuft(p, rng, q, rng.uniform(.15, .4), rng.uniform(.25, .4), 3, (GRASS, LEAF_LIGHT) if rng.uniform() < .6 else (GRASS, GRASS_DRY))
+    # the one that got away: a young tree in the back bed on -y, up under the glass
+    q = V3(-2.5, -1.35, FL + .33)
+    fl.limb(p, [q, q + V3(.05, .03, .8), q + V3(-.04, .08, 1.6), q + V3(.02, .02, 2.25)], [.04, .03, .02, .008], tone(BARK_BROWN, np.array([.8, 1.0, 1.05, 1.1])), BARK, 7)
+    for dz, h, lean in ((.7, 1.1, (.5, .2)), (1.0, 1.0, (-.4, .35)), (1.3, .9, (.2, -.45)), (1.55, .75, (-.3, -.2)), (1.7, .7, (.1, .3))):
+        b = q + V3(.03, .05, dz)
+        sprig(p, rng, b + V3(lean[0] * .15, lean[1] * .15, 0), h, 12, (LEAF_GREEN, LEAF_LIGHT), BARK_BROWN, .014, .34)
+
+    # ---- the potting bench across the -x end, pots, trays, a copper can; the water butt and spare pots by the door
+    PX0, PX1, PW, PTOP = -4.2, -3.6, 1.3, FL + .85
+    m = mark(p)
+    for x in (PX0 + .03, PX1 - .03):
+        for y in (-PW + .03, 0, PW - .03):
+            angle(p, (x, y, FL), (x, y, PTOP - .02), .04, STEEL, X if x < -3.9 else -X, Y if y <= 0 else -Y)
+        gbox(p, (x - .02, -PW, PTOP - .08), (x + .02, PW, PTOP - .02), STEEL, .8, .004)
+        gbox(p, (x - .015, -PW, FL + .22), (x + .015, PW, FL + .26), STEEL, .8, .004)
+    for k in range(6):
+        x = PX0 + .05 + k * (PX1 - PX0 - .1) / 5
+        gbox(p, (x - .04, -PW - .02, PTOP - .02), (x + .04, PW + .02, PTOP), STEEL, .6, .004)
+    for k in range(4):
+        x = PX0 + .08 + k * (PX1 - PX0 - .16) / 3
+        gbox(p, (x - .05, -PW + .02, FL + .26), (x + .05, PW - .02, FL + .275), STEEL, .6, .004)
+    paint(p, m, steel(386, STEEL_GREY, .5, ground=FL, damp=1.2))
+    on_bench = []
+    for k, (y, r, h) in enumerate(((-1.12, .11, .2), (-.86, .09, .16), (-.62, .075, .13), (-.42, .075, .13), (.45, .1, .18), (.72, .12, .22), (1.08, .085, .15), (-.72, .07, .12))):
+        x = PX0 + (.2 if k < 7 else .46) + rng.uniform(-.03, .03)
+        full = rng.uniform() < .75
+        flowerpot(p, rng, (x, y, PTOP), r, h, full, seed=400 + k)
+        on_bench.append((x, y, PTOP))
+        if full and rng.uniform() < .8:
+            if rng.uniform() < .5:
+                sprig(p, rng, (x, y, PTOP + h * .84), rng.uniform(.25, .5), 6, (LEAF_GREEN, LEAF_LIGHT), BARK_BROWN, .006, .17)
+            else:
+                tuft(p, rng, (x, y, PTOP + h * .84), rng.uniform(.14, .26), .2, 3, (LEAF_LIGHT, GRASS))
+    flowerpot(p, rng, (PX1 - .16, 1.0, PTOP + .08), .09, .17, False, rot('y', 96) @ rot('z', 40), seed=410)
+    for y in (-.1, .22):                             # seed trays
+        m = mark(p)
+        gbox(p, (PX0 + .08, y - .13, PTOP), (PX0 + .5, y + .13, PTOP + .05), STEEL, 9, .006, 'z')
+        paint(p, m, steel(387, STEEL_DARK, .3, ground=PTOP, damp=.2, k=1.5))
+        gface(p, (PX0 + .095, y - .115, PTOP + .042), (PX0 + .485, y - .115, PTOP + .042), (PX0 + .485, y + .115, PTOP + .042), (PX0 + .095, y + .115, PTOP + .042),
+              MOSS, .13, Z, tone(mix(SOIL, SOIL_DARK, .5), 1.0))
+        for _ in range(9):
+            tuft(p, rng, (PX0 + rng.uniform(.12, .46), y + rng.uniform(-.09, .09), PTOP + .042), rng.uniform(.06, .14), .1, 2, (LEAF_LIGHT, LEAF_GREEN), fl.CELL_SMALLLEAF)
+    m = mark(p)                                      # the watering can
+    cc = V3(PX1 - .18, -.2, PTOP)
+    turn(p, [(.095, 0), (.105, .02), (.105, .2), (.095, .22), (.07, .225)], BRASS, 14, cc)
+    disc(p, cc + Z * .225, .07, BRASS, Z, 14)
+    pipe(p, [cc + V3(0, .09, .05), cc + V3(0, .2, .16), cc + V3(0, .3, .27)], [.02, .015, .012], BRASS, 8)
+    turn(p, [(.012, 0), (.035, .03), (.0, .034)], BRASS, 8, cc + V3(0, .3, .27), unit(V3(0, .1, .11)))
+    pipe(p, arc_pts(cc + Z * .225, .075, 0, 180, -Y, Z, 8), .008, BRASS, 6)
+    paint(p, m, copper(388, .45))
+    for x, y, n in ((PX0 + .2, -.9, 5), (PX0 + .22, -.55, 3), (PX0 + .42, -.75, 4), (3.72, -2.35, 6), (3.98, -2.1, 4), (3.6, -2.05, 2)):
+        z0 = FL + .275 if x < 0 else FL
+        for k in range(n):
+            flowerpot(p, rng, (x, y, z0 + k * .045), .1, .18, False, seed=420 + k)
+    flowerpot(p, rng, (3.95, -2.5, FL + .095), .1, .18, False, rot('x', 88) @ rot('z', 20), seed=430)
+    BUTT = (3.75, 2.25)
+    m = mark(p)
+    turn(p, [(.28, 0), (.29, .02), (.29, .3), (.305, .31), (.305, .33), (.29, .34), (.29, .62), (.305, .63), (.305, .65), (.29, .66), (.29, .93), (.3, .95), (.27, .95), (.27, .8)],
+         STEEL, 20, (BUTT[0], BUTT[1], FL))
+    paint(p, m, film(steel(389, STEEL_GREY, .45, ground=FL, damp=.9), 389, .5, ground=FL, reach=.6))
+    disc(p, (BUTT[0], BUTT[1], FL + .82), .27, STEEL, Z, 20, tone(mix(STEEL_DARK, MOSS_DEEP, .5), .5))
+
+    # ---- irrigation: two galvanised lines hung from the rafters over the beds, brass nozzles, a riser with its valve
+    IZ, IY = 2.22, 1.75
+    m = mark(p)
+    lines = {1: [(-4.1, IY, IZ), (3.3, IY, IZ)], -1: [(-4.1, -IY, IZ), (1.05, -IY, IZ), (1.5, -IY - .02, IZ - .06), (1.9, -IY - .04, IZ - .3), (2.15, -IY - .05, IZ - .62)]}
+    for s, pts in lines.items():
+        pipe(p, pts, .019, STEEL, 8)
+        for x in xs[1:5]:
+            turn(p, [(.019, -.03), (.026, -.03), (.026, .03), (.019, .03)], STEEL, 8, (x + .2, s * IY, IZ), X)
+    RYV = 2.45
+    pipe(p, [(-4.1, -IY, IZ), (-4.1, RYV, IZ), (-4.1, RYV, FL + .22), (-4.3, RYV, FL + .22)], .019, STEEL, 8)
+    paint(p, m, steel(391, STEEL_GREY, .4, ground=-2, damp=1.0))
+    m = mark(p)
+    for s in (-1, 1):
+        for x in xs[1:6]:
+            if lines[s][1][0] > x - .01:
+                pipe(p, [(x, s * IY, IZ + .017), (x, s * IY, rafter_z(IY) - .04)], .004, RUST, 4, cap=False)
+    paint(p, m, rust)
+    m = mark(p)
+    nozzles = []
+    for s in (-1, 1):
+        for x in np.arange(-3.7, lines[s][1][0] - .1, .74):
+            pipe(p, [(x, s * IY, IZ - .017), (x, s * IY, IZ - .05)], .008, BRASS, 6)
+            turn(p, [(.016, -.012), (.016, 0), (.006, .0)], BRASS, 6, (x, s * IY, IZ - .05))
+            nozzles.append((float(x), s * IY, IZ - .06))
+    vc = V3(-4.1, RYV, 1.05)
+    turn(p, [(.019, -.06), (.036, -.06), (.036, .06), (.019, .06)], BRASS, 10, vc)
+    for z in (-.06, .06):
+        turn(p, [(.019, z - .012), (.05, z - .012), (.05, z + .012), (.019, z + .012)], BRASS, 10, vc)
+    pipe(p, [vc, vc + X * .11], .01, BRASS, 6)
+    hoop(p, vc + X * .11, .06, .008, BRASS, X, 16, 6)
+    for a in np.radians((0, 120, 240)):
+        pipe(p, [vc + X * .11, vc + X * .11 + (Y * math.cos(a) + Z * math.sin(a)) * .06], .005, BRASS, 4, cap=False)
+    tap = V3(-4.1, RYV, .55)
+    pipe(p, [tap, tap + X * .09, tap + V3(.12, 0, -.04)], .013, BRASS, 6)
+    pipe(p, [tap + V3(.06, 0, .0), tap + V3(.06, 0, .05), tap + V3(.06, .04, .05)], .006, BRASS, 5)
+    paint(p, m, steel(392, tone(BRASS_WARM, .45), .0, ground=-9, grime=.5))
+
+    # ---- what the years did: runs, moss, broken glass on the floor, weeds, ivy
+    for s in (-1, 1):
+        streaks(p, rng, [(rng.uniform(-4.2, 4.2), s * PY, PL - .005) for _ in range(7)], s * Y, (.15, .45), (.03, .07))
+        moss_line(p, rng, (-PX * s, s * PY, FL), (PX * s, s * PY, FL), s * Y, .05, .025, climb=.22)
+        moss_line(p, rng, (-HX * s, s * HY, 0), (HX * s, s * HY, 0), s * Y, .055, .025, climb=.04)
+        moss_line(p, rng, (xs[0] + 1.0, s * 2.915, EV - .012), (xs[0] + 5.2, s * 2.915, EV - .012), s * Y, .05, .03, step=.25)
+        for xa, xb in ((-3.4, -.25), (.25, 3.2)):
+            moss_line(p, rng, (xa if s > 0 else xb, s * .85, FL), (xb if s > 0 else xa, s * .85, FL), -s * Y, .06, .02, climb=.1)
+    streaks(p, rng, [(-PX, rng.uniform(-2.6, 2.6), PL - .005) for _ in range(5)], -X, (.15, .45), (.03, .07))
+    streaks(p, rng, [(PX, y, PL - .005) for y in (-2.3, -1.4, 1.2, 2.1)], X, (.15, .45), (.03, .07))
+    moss_line(p, rng, (-PX, PY, FL), (-PX, -PY, FL), -X, .05, .025, climb=.2)
+    moss_line(p, rng, (-HX, HY, 0), (-HX, -HY, 0), -X, .055, .025, climb=.04)
+    for ya, yb in ((-HY, -DY - .1), (DY + .1, HY)):
+        moss_line(p, rng, (HX, ya, 0), (HX, yb, 0), X, .055, .025, climb=.04)
+    for k in range(24):                              # moss cushions, most of them in the lee of the kerbs
+        y = rng.uniform(-.5, .5) if k < 5 else rng.choice((-1, 1)) * (.85 - rng.uniform(.04, .22))
+        moss_patch(p, rng, (rng.uniform(-3.5, 4.2), y, FL), rng.uniform(.03, .08), .014, n=7)
+    for _ in range(10):
+        q = (rng.uniform(-4.2, 4.2), rng.choice((-1, 1)) * rng.uniform(2.86, 2.92), PL + .03)
+        moss_patch(p, rng, q, rng.uniform(.04, .08), .02, n=7)
+    gc = tone(GLASS_GREEN, .4)
+    for _ in range(22):                              # fallen glass, flat on the floor
+        c = V3(rng.uniform(-3.4, 4.1), rng.choice((-1, 1)) * rng.uniform(.3, .82), FL + .004)
+        a0 = rng.uniform(0, TAU)
+        pts = [c + rng.uniform(.03, .12) * V3(math.cos(a0 + k * TAU / 3 + rng.normal(0, .3)), math.sin(a0 + k * TAU / 3 + rng.normal(0, .3)), 0) for k in range(3)]
+        p.add(pts, [fl._facing(pts, [0, 1, 2], Z)], vary(rng, gc, .2), GLASS, False)
+    for _ in range(26):
+        side = int(rng.integers(0, 4))
+        t = rng.uniform(-1, 1)
+        q = [(HX + .03, t * HY), (-HX - .03, t * HY), (t * HX, HY + .03), (t * HX, -HY - .03)][side]
+        if side == 0 and abs(q[1]) < 1.0:
+            continue
+        tuft(p, rng, (q[0], q[1], 0), rng.uniform(.25, .5), rng.uniform(.22, .34))
+    for q in ((-3.5, .8), (-.1, -.83), (.1, .84), (3.3, -.9), (3.4, 1.4), (4.1, -1.2), (-3.5, -2.6), (-4.1, 1.9), (3.3, 2.6), (-.05, 2.3), (0, -2.2)):
+        tuft(p, rng, (q[0], q[1], FL), rng.uniform(.2, .4), rng.uniform(.25, .4))
+    ivy(p, rng, (-4.3, -GY - .05, PL - .05), X, -Y, 3.0, 2.3, 46)
+    ivy(p, rng, (-4.3, -PY - .03, 0), X, -Y, 2.4, .6, 12, size=.34)
+    ivy(p, rng, (-GX - .06, 2.75, PL - .05), -Y, -X, 2.5, 2.7, 38)
+    ivy(p, rng, (-PX - .03, 2.8, 0), -Y, -X, 2.0, .6, 10, size=.34)
+    ivy(p, rng, (xs[3] - .25, GY - .09, FL + .4), X, -Y, .55, 2.4, 18, size=.3)
+    ivy(p, rng, (xs[1] - .25, -GY + .09, FL + .4), X, Y, .5, 1.9, 12, size=.3)
+    for q in p.v:              # leaf cards that droop under the ground plane stop at it
+        q[2] = max(q[2], 0.0)
+    return done(p, facts=dict(
+        door=dict(face_x=GX, centre=(GX, 0.0, FL), y=(-DY, DY), z=(FL, DT), width=2 * DY, height=round(DT - FL, 3),
+                  leaf=dict(x=round(LX, 3), y=(LY0, round(LY1, 3)), z=(LZ0, LZ1), state='slid open along the outside of the +x gable'), plinth_x=(round(PX - PT, 3), PX)),
+        floor_z=FL, slab=dict(x=(-HX, HX), y=(-HY, HY)), interior=dict(x=(round(-PX + PT, 3), round(PX - PT, 3)), y=(round(-PY + PT, 3), round(PY - PT, 3))),
+        aisle=dict(x=(PX1 + .05, round(PX - PT, 3)), y=(-.85, .85), z=(FL, EV + .04), width=1.7), stand=[(2.6, 0.0, FL), (0.0, 0.0, FL), (-2.4, 0.0, FL)],
+        beds=beds, bench=dict(x=(PX0, PX1), y=(-PW, PW), top=PTOP, pots=on_bench), butt=dict(centre=(BUTT[0], BUTT[1], FL), r=.3, top=FL + .95),
+        tree=(-2.5, -1.35), irrigation=dict(y=(-IY, IY), z=IZ, nozzles=nozzles, valve=(-4.1, RYV, 1.05)), tie_rods_z=EV + .06,
+        plinth_top=PL, eaves_z=EV, ridge_z=RG, ribs_x=[float(x) for x in xs], vents=[dict(side='+y' if s > 0 else '-y', bay=i) for s, i in sorted(VENTS)],
+        panes=panes, top=4.2))
 
 
 # ---------------------------------------------------------------- the module's meshes and their contract

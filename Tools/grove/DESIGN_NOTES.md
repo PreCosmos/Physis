@@ -132,3 +132,60 @@ Center. After the load the current sees `,trip_g,`, takes it and moves her to th
 (here) or GroveReturn (the Center). `PhysisLoadGame` and the menu's Continue open L_Grove for a save holding
 `,at_grove,`. The save's exact spot uses world 4 (a BP_GroveDirector is present). A carried flow, a pull or a tether
 is never saved: a load starts with LinkFlow empty.
+
+## As built (2026-11-15)
+
+The gameplay above was built on 2026-11-15 by `Tools/blueprint_logic/grove_logic.py` (the Blueprints, in Unreal 5.9's
+Blueprint dialect) and `Content/Python/physis_grove_scenario.py` (placement, `grove:scenario` and `grove:portal`).
+Where the build differs from the notes above, this section is what is in the level.
+
+- **Aim.** `BP_GroveDirector` calls `BP_Physis.PhysisLinkFind` every frame once she has the link, so the knot the
+  next press would take swells and brightens (`BP_LinkNode.Aimed`). The sight trace runs against the meshes
+  themselves (complex), not their collision hulls.
+- **Knots hang over their landing.** An anchor's actor stands 1.5 to 6.5 m above where she lands and `Perch` brings
+  her down (and, on roofs and decks, 2 m in from the edge), so parapets, railings and platform edges never hide the
+  seed. `Place.fit()` raises any knot whose hop is still blocked, and `routes()` traces every hop and every leg of
+  every flow in the editor world; the scenario's report lists what is blocked, and it must be empty (it is: 24 hops,
+  13 flow legs).
+- **Flows are bounded by thread plus reach.** She must stand within the source's (or last relay's) `Reach` and
+  within the next node's `Range`, so a leg can be at most Reach + Range long. Relays and sockets have a Range of 8
+  to 12 m; anchors 32 to 70 m. The carried thread breaks after 1.5 s without a clear line to where it comes from,
+  so nothing may stand between a flow's nodes (the Weir's flow keeps to the deck's downstream half: its gate towers
+  stand on the upstream half).
+- **The Gully and the Rift** are lined by cliff rock standing 2 m and more above their rims. The scenario takes out
+  the rock within 13 m of each crossing (`open_crossings`: the Gully at the trail, the Rift's west, south and east),
+  so the knots can be seen and the root bridges walked onto. One pair of anchors crosses the Gully, at the trail;
+  from its floor either bank's knot is a way up.
+- **The core coupling.** The Root Court's Still Point is just inside the gate (265, -20); the dais and the surge stand
+  at (282, -20), the Heartwood's heart at (311, -20), 29 m apart (surge thread 20 m, heart Range 8 m). Relays at
+  (292, -20 ± 22) and (306, -20 ± 18): west if `,gr_first_w,`, east if `,gr_first_e,`. Two forced vents lie on each
+  route (`,gr_vent1-4,`).
+- **The Forecourt's Still Point** stands at the Rift's inner rim (bearing 180, 104 m from the trunk), 22 m from the
+  gate's guard, not at `plan.FORECOURT`.
+- **The Warden's cage** is two lines of thorn from the trunk to the wall at bearings 62 and -62 degrees.
+- **Quests.** `BP_GroveDirector.State` sets the goals that follow from a token (`,gr_q_gully,` `,gr_q_gate,`
+  `,gr_q_core,` `,gr_q_warden,` mark each as given) and gives `,gr_first_w,` or `,gr_first_e,`.
+- **Travel.** Earth's current stands in the Center's sanctum 16 m east of the Heartbloom's pedestal (the Conclave's
+  is 16 m north), Need `,shepherd,`; she returns 5 m short of it. `PhysisToGrove` takes `,at_conclave,` away, so only
+  one `,at_*,` is ever held.
+- **Stand-ins** (2026-11-16: most are gone). Wick, the intercom posts, the seed caches, the canisters and Burr's pin
+  are now their own meshes (`machines.py`), and the camp has its shelter and glasshouse (`structures.py`). Still
+  stand-ins: Burr's hauler is the scan `SM_GS_CoveredCar`, and Old Town's vault is `SM_GN_Bunker` with
+  `SM_GN_BunkerDoor`. **Director Voss is her own MetaHuman**, `/Game/Conclave/People/Voss/BP_Voss`, built by the
+  Conclave's people pipeline from `Content/Python/physis_grove_people.py` (`grove:voss:<people op>`; her costume by
+  `Tools/build_grove_people.py`). Her shared MetaHuman assets are a copy, `/Game/MetaHumans/CommonGrove`: a 5.9
+  assembly into the 5.8 `/Game/MetaHumans/Common` asks to overwrite Physis's assets and is cancelled when scripted.
+- **Placing the scenario without the GUI editor**: run it twice in one process (`ue.sh scenario scenario`). On the
+  first pass the level's collision is not ready, so the sight traces see nothing: no platform is raised and the Gully
+  hop comes out 52 m long.
+- **Not built:** the Falls' link course (its cliff is one rock face to the lip; `falls()` is kept in the scenario
+  but not called), the sealed vaults for later abilities, and room 402.
+- **The great trees** were standing 20 to 87 degrees off upright (the level build put their turn in the Rotator's
+  pitch slot); the scenario sets them upright and `physis_grove_level.great_trees` is corrected.
+
+Tests run in Play-in-Editor on 2026-11-15 (`Saved/Grove/pie/`): arrival and first quest; the pull across the Gully;
+the Weir's flow to `,water,` and `,gr_first_w,`; the Relay's flow to `,power,` and the gate (`,arraygate,`); the
+core coupling by the west relays to `,stabilized,` and the cage sinking; the tether's shared damage; Thessaly's
+conversation (`,tess,`) and the Graft (`,resonance,`); the Center's current to Earth, a save and load on Earth, and
+the Hollow's current home. Not played by hand: combat balance, the Warden fight as a fight, Old Town's vault, the
+side requests' rewards.

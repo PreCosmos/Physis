@@ -20,6 +20,7 @@ Writes Art/Meshes/Grove/<mesh>.fbx, height.bin, height.json and scatter.json; th
 (Tools/build_physis_grove_map.py) and `grove:import` in the editor. Exit status 1 if anything failed.
 """
 import importlib
+import importlib.util
 import sys
 import time
 import traceback

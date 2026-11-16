@@ -77,6 +77,14 @@ namespace PhysisLoading
 		{
 			return TEXT("The Conclave");
 		}
+		if (Map == TEXT("L_Grove"))
+		{
+			return TEXT("Earth");
+		}
+		if (Map == TEXT("L_Arche"))
+		{
+			return TEXT("Arche");
+		}
 		return FString();
 	}
 

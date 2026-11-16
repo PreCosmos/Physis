@@ -598,10 +598,10 @@ def material_scan_plant():
 # the moss scan is a bright yellow-green and the dirt a pale ochre beside a forest floor four times darker; asphalt
 # and cliff rock lose most of their red.
 GROUND_LAYERS = (('Forest', 'GForest', .88, (1.0, 1.0, 1.0, 1.0)), ('Litter', 'GLitter', .86, (.8, .82, .8, .9)),
-                 ('Moss', 'GMoss', .9, (.36, .47, .4, 1.0)), ('Grass', 'GGrass', .84, (.8, .85, .8, 1.0)),
+                 ('Moss', 'GMoss', .9, (.36, .47, .4, 1.0)), ('Grass', 'GGrass', .84, (.5, .56, .42, .85)),
                  ('Gravel', 'GGravel', .62, (.95, .97, 1.0, .8)), ('Dirt', 'GDirt', .86, (.62, .6, .58, .9)),
                  ('Asphalt', 'GAsphalt', .7, (1.25, 1.3, 1.35, .3)), ('Blight', 'GBlight', .8, (.5, .42, .47, .6)),
-                 ('Rock', 'GRock', .78, (1.05, 1.1, 1.15, .4)))
+                 ('Rock', 'GRock', .78, (.32, .37, .37, .5)))
 TOP_LAYERS = tuple(row[0] for row in GROUND_LAYERS if row[0] != 'Rock')
 GROUND_WEIGHT = {'Forest': '(1.0 - wLitter)', 'Litter': 'wLitter', 'Moss': 'wMoss', 'Grass': 'wGrass', 'Gravel': 'wGravel', 'Dirt': 'wDirt',
                  'Asphalt': 'wAsphalt', 'Blight': 'wBlight'}
@@ -618,8 +618,16 @@ def ground_code():
     rough = {key: value for key, _, value, _ in GROUND_LAYERS}
     code = ('float2 p = WP.xy;\nfloat2 dpx = DDX(p), dpy = DDY(p);\nfloat3 n = normalize(VN);\n' +
             cn.value_noise2('n1', 'p / 4000.0 + float2(1.7, 8.3)') + cn.value_noise2('n2', 'p / 16000.0 + float2(6.1, 2.9)') +
-            cn.value_noise2('n3', 'p / 900.0 + float2(3.3, 5.1)') + '''float heal = saturate(Heal);
-float wGrass = VC.r, wDirt = VC.g, wGravel = VC.b, wBlight = (1.0 - VC.a) * (1.0 - heal);
+            cn.value_noise2('n3', 'p / 900.0 + float2(3.3, 5.1)') + cn.value_noise2('wa', 'p / 750.0 + float2(9.7, 1.3)') +
+            cn.value_noise2('wb', 'p / 750.0 + float2(2.1, 7.9)') + cn.value_noise2('wm', 'p / 310.0 + float2(4.4, 6.2)') +
+            cn.value_noise2('wr', 'p / 1100.0 + WP.z / 800.0 + float2(5.5, 0.7)') + '''float heal = saturate(Heal);
+// Against tiling: every layer's uv is pushed about by a slow noise (its grid lines wander instead of running straight)
+// and its colour is shaded by the same scan five times larger, so no two tiles of a wide floor are alike.
+float2 warp = float2(wa, wb) - 0.5;
+// And each layer is two layings of its scan, the second turned a quarter and a little larger, changing over in
+// patches a few metres across: the eye finds no row or column to follow.
+float mixm = smoothstep(0.38, 0.62, wm + 0.3 * (n3 - 0.5));
+float wGrass = VC.r, wDirt = VC.g, wGravel = VC.b, wBlight = (1.0 - VA) * (1.0 - heal);
 float wAsphalt = UV.x, wMoss = UV.y;
 float wLitter = smoothstep(0.40, 0.62, n3 + 0.25 * (n1 - 0.5));
 float slope = sqrt(saturate(1.0 - n.z * n.z)) / max(n.z, 0.05);
@@ -628,10 +636,18 @@ float keep = 1.0 - wRock;
 ''')
     for key in TOP_LAYERS:
         code += ('float4 c{k} = float4(0.1, 0.1, 0.1, 0.5); float2 g{k} = float2(0.0, 0.0);\n'
-                 'BRANCH if ({w} * keep > 0.004)\n{{\n    float2 uv = p / Tile{k};\n    c{k} = {d};\n    g{k} = {n}.rg * 2.0 - 1.0;\n'
+                 'BRANCH if ({w} * keep > 0.004)\n{{\n    float2 uv = p / Tile{k} + warp * 0.9;\n    c{k} = {d};\n    g{k} = {n}.rg * 2.0 - 1.0;\n'
+                 '    float2 uw = float2(-uv.y, uv.x) * 0.83 + float2(0.31, 0.67);\n'
+                 '    float2 wdx = float2(-dpx.y, dpx.x) * (0.83 / Tile{k}), wdy = float2(-dpy.y, dpy.x) * (0.83 / Tile{k});\n'
+                 '    float2 h{k} = {n2}.rg * 2.0 - 1.0;\n'
+                 '    c{k} = lerp(c{k}, {d2}, mixm);\n    g{k} = lerp(g{k}, float2(h{k}.y, -h{k}.x), mixm);\n'
+                 '    float big{k} = dot({b}.rgb, float3(0.3, 0.59, 0.11)) / max(dot(Mean{k}.rgb, float3(0.3, 0.59, 0.11)), 0.004);\n'
+                 '    c{k}.rgb *= lerp(1.0, clamp(big{k}, 0.55, 1.6), Breakup);\n'
                  '    c{k}.rgb = lerp(dot(c{k}.rgb, float3(0.3, 0.59, 0.11)).xxx, c{k}.rgb, Look{k}.a) * Look{k}.rgb;\n}}\n'
                  ).format(k=key, w=GROUND_WEIGHT[key], d=cg.tap_grad('Tex' + key, 'uv', 'dpx / Tile' + key, 'dpy / Tile' + key),
-                          n=cg.tap_grad('Tex%sN' % key, 'uv', 'dpx / Tile' + key, 'dpy / Tile' + key))
+                          b=cg.tap_grad('Tex' + key, 'uv * 0.19 + 0.37', 'dpx / Tile%s * 0.19' % key, 'dpy / Tile%s * 0.19' % key),
+                          n=cg.tap_grad('Tex%sN' % key, 'uv', 'dpx / Tile' + key, 'dpy / Tile' + key),
+                          d2=cg.tap_grad('Tex' + key, 'uw', 'wdx', 'wdy'), n2=cg.tap_grad('Tex%sN' % key, 'uw', 'wdx', 'wdy'))
     code += ('float3 col = lerp(cForest.rgb, cLitter.rgb, wLitter);\nfloat rough = lerp(%.2f, %.2f, wLitter);\n'
              'float2 g = lerp(gForest, gLitter, wLitter);\nfloat t;\n' % (rough['Forest'], rough['Litter']))
     for key in ('Moss', 'Grass', 'Gravel', 'Dirt', 'Asphalt'):
@@ -650,23 +666,47 @@ float3 rock = float3(0.1, 0.1, 0.1);
 BRANCH if (wRock > 0.004)
 {
     float3 pr = WP / TileRock;
+    // The scan's strata lie level and repeat every tile: here they dip (a different way on each face) and are bent by
+    // slow noise, so a slope shows folded beds instead of ruled lines.
+    pr.z += (n1 - 0.5) * 1.3 + (n2 - 0.5) * 2.5;   // long folds only: short ones turn the beds into marbling
     float3 qx = DDX(WP) / TileRock, qy = DDY(WP) / TileRock;
     float3 tw = pow(abs(n), 6.0);
     tw /= max(tw.x + tw.y + tw.z, 0.0001);
-    float2 ux = float2(pr.y, -pr.z), uy = float2(pr.x, -pr.z), uz = pr.xy;
-    float2 uxa = float2(qx.y, -qx.z), uxb = float2(qy.y, -qy.z), uya = float2(qx.x, -qx.z), uyb = float2(qy.x, -qy.z);
+    float2 ux = float2(pr.y, -pr.z - 0.24 * pr.y), uy = float2(pr.x, -pr.z + 0.18 * pr.x), uz = pr.xy;
+    float2 uxa = float2(qx.y, -qx.z - 0.24 * qx.y), uxb = float2(qy.y, -qy.z - 0.24 * qy.y);
+    float2 uya = float2(qx.x, -qx.z + 0.18 * qx.x), uyb = float2(qy.x, -qy.z + 0.18 * qy.x);
 ''' + ('    float3 rc = (%s * tw.x + %s * tw.y + %s * tw.z).rgb;\n' % (
         cg.tap_grad('TexRock', 'ux', 'uxa', 'uxb'), cg.tap_grad('TexRock', 'uy', 'uya', 'uyb'), cg.tap_grad('TexRock', 'uz', 'qx.xy', 'qy.xy'))) + \
         ('    float2 ax = (%s.rg * 2.0 - 1.0) * RockK;\n    float2 ay = (%s.rg * 2.0 - 1.0) * RockK;\n    float2 az = (%s.rg * 2.0 - 1.0) * RockK;\n' % (
             cg.tap_grad('TexRockN', 'ux', 'uxa', 'uxb'), cg.tap_grad('TexRockN', 'uy', 'uya', 'uyb'), cg.tap_grad('TexRockN', 'uz', 'qx.xy', 'qy.xy'))) + \
-        '''    rock = lerp(dot(rc, float3(0.3, 0.59, 0.11)).xxx, rc, LookRock.a) * LookRock.rgb * macro;
+        ('    float3 rb = (%s * tw.x + %s * tw.y + %s * tw.z).rgb;\n' % (
+            cg.tap_grad('TexRock', 'ux * 0.23', 'uxa * 0.23', 'uxb * 0.23'), cg.tap_grad('TexRock', 'uy * 0.23', 'uya * 0.23', 'uyb * 0.23'),
+            cg.tap_grad('TexRock', 'uz * 0.23', 'qx.xy * 0.23', 'qy.xy * 0.23'))) + \
+        ('    float2 vx = float2(pr.y, -pr.z + 0.3 * pr.y) * 0.61 + 0.4, vy = float2(pr.x, -pr.z - 0.26 * pr.x) * 0.61 + 0.7;\n'
+         '    float2 vxa = float2(qx.y, -qx.z + 0.3 * qx.y) * 0.61, vxb = float2(qy.y, -qy.z + 0.3 * qy.y) * 0.61;\n'
+         '    float2 vya = float2(qx.x, -qx.z - 0.26 * qx.x) * 0.61, vyb = float2(qy.x, -qy.z - 0.26 * qy.x) * 0.61;\n'
+         '    float3 r2 = (%s * tw.x + %s * tw.y + %s * tw.z).rgb;\n' % (
+             cg.tap_grad('TexRock', 'vx', 'vxa', 'vxb'), cg.tap_grad('TexRock', 'vy', 'vya', 'vyb'),
+             cg.tap_grad('TexRock', 'uz * 0.61 + 0.4', 'qx.xy * 0.61', 'qy.xy * 0.61'))) + \
+        '''    // A second laying of the scan, larger and dipping the other way, takes over in patches; and where a pixel covers
+    // more than a hand's width of rock the beds fade to the scan's mean, so far slopes carry tone, not lines.
+    rc = lerp(rc, r2, smoothstep(0.4, 0.6, wr));
+    float farRock = saturate((length(DDX(WP)) + length(DDY(WP)) - 12.0) / 60.0);
+    // The same scan four times larger shades the fine one, so a 200 m slope is not one 6 m tile in rows; moss and
+    // lichen take the ledges and the damp patches.
+    float rl = dot(float3(0.3, 0.59, 0.11), MeanRock.rgb);
+    rc = lerp(MeanRock.rgb, rc, 0.62 * (1.0 - 0.65 * farRock));   // the beds' contrast, eased, and more so far away
+    rc *= clamp(dot(rb, float3(0.3, 0.59, 0.11)) / max(rl, 0.004), 0.5, 1.6);
+    rock = lerp(dot(rc, float3(0.3, 0.59, 0.11)).xxx, rc, LookRock.a) * LookRock.rgb * macro;
+    float mossy = RockMoss * smoothstep(0.34, 0.64, 0.45 * n1 + 0.35 * n3 + 0.45 * n.z);   // turf and moss on all but the steepest rock
+    rock = lerp(rock, RockMossColour.rgb * clamp(dot(rc, float3(0.3, 0.59, 0.11)) / max(rl, 0.004), 0.5, 1.6), mossy);
     float3 bx = float3(n.x * sqrt(saturate(1.0 - dot(ax, ax))), n.y + ax.x, n.z - ax.y);
     float3 by = float3(n.x + ay.x, n.y * sqrt(saturate(1.0 - dot(ay, ay))), n.z - ay.y);
     float3 bz = float3(n.x + az.x, n.y + az.y, n.z * sqrt(saturate(1.0 - dot(az, az))));
     rn = normalize(bx * tw.x + by * tw.y + bz * tw.z);
 }
 col = lerp(col, rock, wRock);
-''' + ('rough = lerp(rough, %.2f, wRock);\n' % rough['Rock']) + cn.value_noise2('nv', 'p / 170.0 + float2(n1, n2) * 3.0') + '''float vein = pow(saturate(1.0 - abs(nv - 0.5) * 7.0), 3.0) * tb * keep;
+''' + ('rough = lerp(rough, %.2f, wRock);\n' % rough['Rock']) + cn.value_noise2('nv', 'p / 170.0 + float2(n1, n2) * 3.0') + '''float vein = pow(saturate(1.0 - abs(nv - 0.5) * 12.0), 3.0) * tb * keep;
 Glow = BlightGlow.rgb * (vein * GlowK * (0.65 + 0.35 * sin(T * 1.7 + n3 * 12.0)));
 Normal = normalize(lerp(top, rn, wRock));
 float peak = max(col.r, max(col.g, col.b));
@@ -678,7 +718,8 @@ return float4(col, saturate(rough));'''
 def material_ground():
     m = master('M_GRGround', tangent_space_normal=False)
     table = sets()
-    inputs = [('VC', node(m, unreal.MaterialExpressionVertexColor, -2000, -600)),
+    vc = node(m, unreal.MaterialExpressionVertexColor, -2000, -600)
+    inputs = [('VC', vc), ('VA', (vc, 'A')),
               ('UV', node(m, unreal.MaterialExpressionTextureCoordinate, -2000, -500, coordinate_index=0)),
               ('WP', node(m, unreal.MaterialExpressionWorldPosition, -2000, -400)),
               ('VN', node(m, unreal.MaterialExpressionVertexNormalWS, -2000, -300)),
@@ -690,13 +731,15 @@ def material_ground():
         cg.shared_sampler(normal)
         inputs += [('Tex' + key, colour), ('Tex%sN' % key, normal),
                    ('Tile' + key, scalar(m, key + 'Tile', table.get(set_name, {}).get('tile_m', 3.0) * CM, -2600, -1600 + i * 330)),
-                   ('Look' + key, param(m, key + 'Look', tuple(look), -2600, -1500 + i * 330))]
+                   ('Look' + key, (param(m, key + 'Look', tuple(look), -2600, -1500 + i * 330), 'RGBA')),
+                   ('Mean' + key, vector(m, key + 'Mean', tuple(table.get(set_name, {}).get('colour') or (.15, .12, .08)), -2600, -1400 + i * 330))]
     for i, (name, value) in enumerate((('Sharp', 2.0), ('RockLo', .75), ('RockHi', 1.15), ('MacroVar', .22), ('Water', plan.WATER * CM),
-                                       ('WetDark', .5), ('WetRough', .3), ('NormalK', 1.0), ('RockK', 1.0), ('GlowK', 1.5))):
+                                       ('WetDark', .5), ('WetRough', .3), ('NormalK', 1.0), ('RockK', 1.0), ('GlowK', .6), ('RockMoss', .85), ('Breakup', .8))):
         inputs.append((name, scalar(m, {'Sharp': 'BlendSharpness', 'MacroVar': 'MacroVariation', 'NormalK': 'NormalStrength',
                                         'RockK': 'RockNormalStrength', 'GlowK': 'BlightGlowStrength', 'RockLo': 'RockSlopeFrom',
                                         'RockHi': 'RockSlopeTo'}.get(name, name), value, -2000, 100 + i * 80)))
     inputs.append(('BlightGlow', vector(m, 'BlightGlow', (1.0, .1, .38), -2000, 950)))
+    inputs.append(('RockMossColour', vector(m, 'RockMossColour', (.036, .058, .016), -2000, 1150)))
     ground = cg.custom_outputs(custom(m, ground_code(), inputs, -1200, -300, FLOAT4), [('Normal', FLOAT3), ('Glow', FLOAT3)])
     lib.connect_material_property(cn.mask(m, ground, 'rgb', -700, -350), '', PROP.MP_BASE_COLOR)
     lib.connect_material_property(cn.mask(m, ground, 'a', -700, -230), '', PROP.MP_ROUGHNESS)
@@ -842,6 +885,14 @@ def instances():
              textures=[('Sheet', scan_texture('LBroadleaf', 'D')), ('SheetNormal', scan_texture('LBroadleaf', 'N')),
                        ('SheetMasks', scan_texture('LBroadleaf', 'ARM'))])
     return made + ['MI_GR_Ground', 'MI_GR_Falls', 'MI_GR_Backdrop', 'MI_GR_Leaf_Heart']
+
+
+def rim_grass_material():
+    """The grass of the rim's slopes: the meadow's sheet at about half its brightness. Seen from the valley floor,
+    hundreds of metres off and in full sun, the meadow's own material read as pale dots on the hillside."""
+    return instance('MI_GR_Leaf_LGrassRim', unreal.load_asset(MATS + '/M_GRLeaf'), [('Part', 0.0), ('WindAmount', 3.2), ('Flutter', .5), ('Gain', .6)],
+                    [('WarmTint', (.95, 1.0, .8))],
+                    [('Sheet', scan_texture('LGrass', 'D')), ('SheetNormal', scan_texture('LGrass', 'N')), ('SheetMasks', scan_texture('LGrass', 'ARM'))])
 
 
 def materials():
@@ -990,7 +1041,11 @@ ROCK_USES = ('rock', 'cliff')
 SCAN_LODS = {'rock': cn.LODS, 'cliff': ((1.0, 1.0), (.5, .5), (.25, .22), (.1, .08)), 'wood': cn.LODS, 'debris': ((1.0, 1.0), (.4, .1)),
              'prop': HARD_LODS, 'item': ((1.0, 1.0), (.45, .12), (.2, .04)), 'big': HARD_LODS, 'plant': (), 'cover': ()}
 # Scanned moss rocks and stumps already carry their moss; the bare boulder and the cliff faces grow some on top.
-ROCK_MOSS = {'GS_boulder_01': .5, 'GS_rock_face_01': .6, 'GS_rock_face_02': .25, 'GS_mountainside': .7, 'GS_rock_07': .35}
+ROCK_MOSS = {'GS_boulder_01': .6, 'GS_rock_face_01': .8, 'GS_rock_face_02': .65, 'GS_mountainside': .85, 'GS_rock_07': .35}
+# The cliff scans are a sunlit tan beside the terrain's own rock: graded down and cooler to sit in it, and each
+# instance a different tone, so a slope of them is not one rock repeated.
+ROCK_TINT = {'GS_rock_face_01': (.6, .63, .6), 'GS_rock_face_02': (.6, .63, .6), 'GS_mountainside': (.56, .6, .58), 'GS_boulder_01': (.7, .72, .68)}
+ROCK_VARIATION = {'GS_rock_face_01': .22, 'GS_rock_face_02': .22, 'GS_mountainside': .22, 'GS_boulder_01': .18}
 
 
 def scan_material(slot, row, uses, report):
@@ -1018,8 +1073,9 @@ def scan_material(slot, row, uses, report):
                         folder=SCAN_MATS)
     if any(u in ROCK_USES for u in uses):
         detail = sets().get('SRock', {})
-        return instance('MI_' + slot, unreal.load_asset(MATS + '/M_GRRock'), [('Moss', ROCK_MOSS.get(slot, 0.0))],
-                        [('DetailMean', tuple(detail.get('colour') or (.2, .14, .08)))],
+        return instance('MI_' + slot, unreal.load_asset(MATS + '/M_GRRock'),
+                        [('Moss', ROCK_MOSS.get(slot, 0.0)), ('MossFrom', .25), ('InstanceVariation', ROCK_VARIATION.get(slot, .07))],
+                        [('DetailMean', tuple(detail.get('colour') or (.2, .14, .08))), ('Tint', ROCK_TINT.get(slot, WHITE))],
                         maps + [('DetailColour', scan_texture('SRock', 'D')), ('DetailNormal', scan_texture('SRock', 'N'))], folder=SCAN_MATS)
     if 'E' in textures:
         return instance('MI_' + slot, unreal.load_asset(MATS + '/M_GRScan'), [('EmissiveStrength', 10.0)], textures=maps + [('Emissive', textures['E'])],
@@ -1047,8 +1103,16 @@ def import_scans(word=''):
         for slot in row['slots']:
             uses.setdefault(slot, set()).add(row['use'])
     materials_made = {}
+    # Resuming after a crash (the 5.9 preview's card builder can fall over mid-run): scans:+ skips the meshes listed as
+    # finished in Saved/Grove/run/scans_done.txt, which every finished mesh is added to.
+    ledger = ROOT / 'Saved/Grove/run/scans_done.txt'
+    resume = word == '+'
+    word = '' if resume else word
+    done = set(ledger.read_text().split()) if resume and ledger.exists() else set()
     for name, row in sorted(facts.get('meshes', {}).items()):
         if word and word.lower() not in name.lower():
+            continue
+        if name in done:
             continue
         for slot in row['slots']:
             if slot not in materials_made:
@@ -1072,6 +1136,9 @@ def import_scans(word=''):
             report['lods'].append('%s: %s' % (name, why))
         game.save(mesh)
         report['meshes'] += 1
+        if ledger.parent.exists():
+            with open(ledger, 'a') as out:
+                out.write(name + '\n')
     return report
 
 
@@ -1133,10 +1200,40 @@ def link_input():
     return {'IA_Link': mapped, 'shared_with': taken}
 
 
+def add_component(bp, cls, name):
+    """A component under the Blueprint's scene root, returned as its template. Unreal 5.9 dropped
+    editor_toolset.toolsets.actor (ActorTools.add_component), so this goes through the subobject subsystem."""
+    subobjects = unreal.get_engine_subsystem(unreal.SubobjectDataSubsystem)
+    data_of = unreal.SubobjectDataBlueprintFunctionLibrary
+    root = None
+    for handle in subobjects.k2_gather_subobject_data_for_blueprint(bp):
+        if isinstance(data_of.get_associated_object(data_of.get_data(handle)), unreal.SceneComponent):
+            root = handle
+            break
+    if root is None:
+        raise RuntimeError('%s has no scene root' % bp.get_name())
+    handle, why = subobjects.add_new_subobject(unreal.AddNewSubobjectParams(parent_handle=root, new_class=cls, blueprint_context=bp))
+    part = data_of.get_object_for_blueprint(data_of.get_data(handle), bp)
+    if part is None:
+        raise RuntimeError('%s: %s was not added (%s)' % (bp.get_name(), name, why))
+    subobjects.rename_subobject(handle, unreal.Text(name))
+    return part
+
+
+def shape(bp, mesh, shadow=True, name='Shape'):
+    """The Conclave's shape() (a movable StaticMeshComponent without collision) on add_component above."""
+    part = add_component(bp, unreal.StaticMeshComponent, name)
+    if mesh:
+        part.set_static_mesh(mesh)
+    part.set_mobility(unreal.ComponentMobility.MOVABLE)
+    part.set_collision_profile_name('NoCollision')
+    part.set_editor_property('cast_shadow', shadow)
+    return part
+
+
 def blueprints():
     """The grove's own Blueprints with their components (Tools/blueprint_logic/grove_logic.py writes their graphs
     and variables, so one that exists is never remade)."""
-    from editor_toolset.toolsets.actor import ActorTools
     beam = unreal.load_asset(MATS + '/M_GRBeam')
     if beam is None:
         raise RuntimeError('M_GRBeam is missing: run grove:materials first')
@@ -1147,9 +1244,8 @@ def blueprints():
             continue
         bp = cn.new_blueprint(name)
         if name == 'BP_LinkNode':
-            root = cn.blueprint_root(bp)
-            cn.shape(bp, unreal.load_asset(MESHES + '/SM_GN_LinkNode'), root=root)
-            glow = ActorTools.add_component(root, unreal.PointLightComponent.static_class(), 'Glow')
+            shape(bp, unreal.load_asset(MESHES + '/SM_GN_LinkNode'))
+            glow = add_component(bp, unreal.PointLightComponent, 'Glow')
             glow.set_editor_property('relative_location', unreal.Vector(0, 0, 100))
             glow.set_mobility(unreal.ComponentMobility.MOVABLE)
             glow.set_editor_property('intensity_units', unreal.LightUnits.CANDELAS)
@@ -1159,14 +1255,14 @@ def blueprints():
             glow.set_light_color(linear((.25, 1.0, .7)))
             glow.set_cast_shadows(False)
         elif name in ('BP_LinkBeam', 'BP_LinkTether'):
-            part = cn.shape(bp, unreal.load_asset(BEAM_MESH), shadow=False)
+            part = shape(bp, unreal.load_asset(BEAM_MESH), shadow=False)
             part.set_material(0, beam)
             part.set_default_custom_primitive_data_vector4(0, unreal.Vector4(.25, 1.0, .7, 1.0))
             part.set_default_custom_primitive_data_float(4, 1000.0)
         elif name == 'BP_GroveCurrent':
             if current is None:
                 raise RuntimeError('SM_CN_Current is missing: run conclave:import first')
-            cn.shape(bp, current)
+            shape(bp, current)
         unreal.BlueprintEditorLibrary.compile_blueprint(bp)
         game.save(bp)
         made.append(name)
@@ -1240,6 +1336,9 @@ def execute(operation):
         return json.dumps({'saved': LEVEL})
     if operation == 'scenario':
         return json.dumps(scenario_module().place(level_module().Ground()), default=str)
+    if operation.startswith('voss:'):
+        import physis_grove_people
+        return json.dumps(physis_grove_people.execute(operation.split(':', 1)[1]), default=str)
     if operation == 'portal':
         return json.dumps(scenario_module().portal(), default=str)
     raise ValueError('unknown grove operation ' + operation)

@@ -1182,6 +1182,301 @@ def pine(lod=0):
 
 # ---------------------------------------------------------------- the module's meshes and their contract
 
+# ---------------------------------------------------------------- ground cover, the shrub and thornroot
+
+def _ring(n, r, rng=None, jitter=0.0):
+    """n points on a circle of radius r in the xy plane (each r scaled by up to +-jitter)."""
+    ang = np.arange(n) / n * TAU
+    rr = r * (1 + (rng.uniform(-jitter, jitter, n) if rng is not None and jitter else 0))
+    return np.stack([np.cos(ang) * rr, np.sin(ang) * rr, np.zeros(n)], 1)
+
+
+def _fan(part, centre, rim, colour, rim_colour=None, slot=LEAF, smooth=True, down=False):
+    """A fan from centre over a closed rim (counter-clockwise seen from above; down turns its front downward)."""
+    n = len(rim)
+    faces = [[0, 1 + (j + 1) % n, 1 + j] if down else [0, 1 + j, 1 + (j + 1) % n] for j in range(n)]
+    cols = np.concatenate([[np.asarray(colour, np.float64)], np.tile(np.asarray(rim_colour if rim_colour is not None else colour, np.float64), (n, 1))])
+    return part.add(np.concatenate([[centre], rim]), faces, cols, slot, smooth)
+
+
+def _scatter(rng, count, radius, gap):
+    """count points in a disc of `radius`, no two closer than gap (as many as fit)."""
+    pts = []
+    for _ in range(count * 40):
+        r, a = radius * math.sqrt(rng.uniform()), rng.uniform(0, TAU)
+        q = np.array([r * math.cos(a), r * math.sin(a), 0.0])
+        if all(np.linalg.norm(q - o) >= gap for o in pts):
+            pts.append(q)
+            if len(pts) == count:
+                break
+    return np.array(pts)
+
+
+def _crossed(part, sheet, rng, at, height, tint, cells, n=2, lean=.12, bend=0.0, foot=.6):
+    """n crossed cards of one spray standing at each point of `at`: a tuft seen from every side."""
+    at = np.atleast_2d(at)
+    m = len(at)
+    height = np.broadcast_to(np.asarray(height, np.float64), (m,))
+    turn = rng.uniform(0, math.pi, m)
+    for k in range(n):
+        ang = turn + k * math.pi / n
+        facing = np.stack([np.cos(ang), np.sin(ang), np.zeros(m)], 1)
+        grow = unit(UP + rng.normal(0, lean, (m, 3)) * np.array([1, 1, 0]))
+        sprays(part, sheet, at, grow, facing, height * rng.uniform(.9, 1.1, m), tint, cells=cells, rng=rng, normal=unit(UP + facing * .25),
+               foot=foot, bend=bend)
+
+
+def grass():
+    """SM_GV_Grass, a 1.8 m patch of meadow grass: low tufts packed over the patch, taller clumps of long blades
+    among them and a few stems gone to seed, dry at the tips. Cards of the scanned 'LGrass' sheet only."""
+    rng = np.random.default_rng(4301)
+    p = Part('SM_GV_Grass', (LEAF,))
+    spots = _scatter(rng, 30, .78, .2)
+    tint = np.array([vary(rng, mix((.95, 1.0, .85, 1), (1.0, .93, .7, 1), rng.uniform()), .1) for _ in spots])
+    _crossed(p, 'LGrass', rng, spots, rng.uniform(.26, .4, len(spots)), tint, ('tuft_a', 'tuft_b', 'tuft_c', 'tuft_d', 'tuft_e'), n=3)
+    tall = _scatter(rng, 9, .68, .3)
+    _crossed(p, 'LGrass', rng, tall, rng.uniform(.5, .72, len(tall)), np.array([vary(rng, (.95, 1.0, .85, 1), .1) for _ in tall]), ('blades',), n=2,
+             bend=.08, foot=.5)
+    seed = _scatter(rng, 7, .7, .25)
+    _crossed(p, 'LGrass', rng, seed, rng.uniform(.62, .85, len(seed)), (1.0, .95, .8, 1), ('seed_a', 'seed_b'), n=1, lean=.2, bend=.12, foot=.75)
+    return finish(_fit(p, (1.8, 1.8, 0)), normals=True)
+
+
+def reeds():
+    """SM_GV_Reeds, 1.6 m: a stand of reeds at the water's edge: tall blades in clumps (the 'LGrass' sheet's long
+    blades at reed size), plumes above them, and a few stiff stalks carrying brown seed-clubs (solid, in the LEAF slot
+    so nothing collides)."""
+    rng = np.random.default_rng(4302)
+    p = Part('SM_GV_Reeds', (LEAF,))
+    spots = _scatter(rng, 14, .5, .14)
+    _crossed(p, 'LGrass', rng, spots, rng.uniform(1.0, 1.4, len(spots)), np.array([vary(rng, (.9, 1.0, .8, 1), .12) for _ in spots]), ('blades',),
+             n=2, lean=.1, bend=.07, foot=.45)
+    plumes = _scatter(rng, 6, .42, .15)
+    _crossed(p, 'LGrass', rng, plumes + UP * rng.uniform(.75, .95, (len(plumes), 1)), rng.uniform(.55, .7, len(plumes)), (1.0, .95, .82, 1),
+             ('seed_a', 'seed_b'), n=2, lean=.12, foot=.8)
+    stalks = _scatter(rng, 7, .45, .12)
+    green, club = tone(GRASS, .8), tone(BARK_BROWN, 1.25)
+    for q in stalks:
+        h = rng.uniform(1.15, 1.6)
+        lean = np.array([rng.normal(0, .06), rng.normal(0, .06), 0.0])
+        a, b = q, q + lean * h + UP * h
+        _strands(p, [a], [b], .009, .005, green, sides=4)
+        d = unit(b - a)
+        lo, hi = b - d * rng.uniform(.3, .36), b - d * .12
+        fl.limb(p, [lo - d * .015, lo, hi, hi + d * .015], [.006, .017, .017, .005], club, LEAF, 6, cap=False)
+    return finish(_fit(p, (0, 0, 1.6)), normals=True)
+
+
+def flowers():
+    """SM_GV_Flowers, a 1.2 m patch of wildflowers: lesser celandine from the 'LFlowers' sheet (round glossy leaves on
+    thin petioles, open yellow flowers held flat to the sky), with taller white stitchwort and violet bellflowers among
+    them, whose blossoms are small solid petals (the sheet has only the yellow). LEAF only."""
+    rng = np.random.default_rng(4303)
+    p = Part('SM_GV_Flowers', (LEAF,))
+    stem = tone(GRASS, .85)
+    leaves = ('leaf_a', 'leaf_b', 'leaf_c', 'leaf_d', 'leaf_e')
+    clumps = _scatter(rng, 9, .5, .22)
+    for c in clumps:
+        n = int(rng.integers(5, 9))
+        ang = rng.uniform(0, TAU, n)
+        out = np.stack([np.cos(ang), np.sin(ang), np.zeros(n)], 1)
+        reach, h = rng.uniform(.04, .13, n), rng.uniform(.05, .13, n)
+        tip = c + out * reach[:, None] + UP * h[:, None]
+        _strands(p, np.tile(c, (n, 1)), tip, .0035, .0025, stem, sides=3)
+        size = rng.uniform(.085, .13, n)
+        tint = np.array([vary(rng, (.95, 1.0, .9, 1), .12) for _ in range(n)])
+        sprays(p, 'LFlowers', tip, unit(out + UP * rng.uniform(.0, .35, (n, 1))), unit(UP + out * .3), size, tint, cells=leaves, rng=rng,
+               normal=unit(UP + out * .4), foot=.9)
+        for _ in range(int(rng.integers(1, 4))):                   # celandine flowers on their own stalks
+            a = rng.uniform(0, TAU)
+            top = c + np.array([math.cos(a), math.sin(a), 0]) * rng.uniform(.02, .1) + UP * rng.uniform(.12, .2)
+            _strands(p, [c], [top], .003, .0022, stem, sides=3)
+            d = rng.uniform(.045, .06)
+            g = unit(np.array([math.cos(a + 1.3), math.sin(a + 1.3), rng.normal(0, .15)]))
+            sprays(p, 'LFlowers', [top - g * d / 2], g, UP, d, (1.0, 1.0, 1.0, 1), cells=('bloom_a', 'bloom_b', 'bloom_c'), rng=rng, normal=UP, foot=1.0)
+    for q in _scatter(rng, 10, .52, .1):                           # white and violet: taller stems, solid five-petal blossoms
+        violet = rng.uniform() < .45
+        h = rng.uniform(.16, .26) if violet else rng.uniform(.11, .2)
+        top = q + np.array([rng.normal(0, .04), rng.normal(0, .04), h])
+        _strands(p, [q], [top], .004, .0025, stem, sides=3)
+        petal = vary(rng, tone(FLOWER_VIOLET, 1.05) if violet else tone(FLOWER_WHITE, .98), .08)
+        heart = tone(FLOWER_YELLOW, .9) if not violet else tone(FLOWER_WHITE, .7)
+        r = rng.uniform(.018, .026)
+        ang = rng.uniform(0, TAU) + np.arange(10) / 10 * TAU
+        rr = np.where(np.arange(10) % 2 == 0, r, r * .45)           # a five-pointed corolla
+        cup = -.35 if violet else .25                               # bellflowers hang cupped; stitchwort opens flat
+        rim = top + np.stack([np.cos(ang) * rr, np.sin(ang) * rr, np.full(10, r * cup)], 1)
+        _fan(p, top, rim, heart, petal, smooth=False)
+        _fan(p, top, rim, tone(petal, .8), tone(petal, .8), smooth=False, down=True)
+        for k in range(2):                                          # a pair of narrow stem leaves
+            t = rng.uniform(.3, .7)
+            at = q + (top - q) * t
+            a = rng.uniform(0, TAU)
+            o = np.array([math.cos(a), math.sin(a), .5])
+            side = unit(np.cross(o, UP)) * .006
+            p.add([at - side, at + side, at + o * .05], [[0, 1, 2], [0, 2, 1]], tone(GRASS, 1.0), LEAF, False)
+    return finish(_fit(p, (1.2, 1.2, 0)), normals=True)
+
+
+def lily():
+    """SM_GV_Lily, 1.0 x 1.0 x 0.12: water-lily pads lying on z 0, round with their notch, a rim turned up here and
+    there, and three flowers: cups of white-to-pink petals round a yellow heart. Solid leaves in the LEAF slot."""
+    rng = np.random.default_rng(4304)
+    p = Part('SM_GV_Lily', (LEAF,))
+    pads = _scatter(rng, 9, .4, .2)
+    for i, c in enumerate(pads):
+        r = rng.uniform(.085, .14)
+        n = 14
+        ang = rng.uniform(0, TAU) + (np.arange(n) + .5) / n * (TAU - .5) + .25    # the gap is the notch
+        rr = r * (1 + rng.uniform(-.06, .06, n))
+        lift = .004 + .012 * rng.uniform(0, 1, n) ** 3 * (rng.uniform() < .5)
+        rim = c + np.stack([np.cos(ang) * rr, np.sin(ang) * rr, lift + .003], 1)
+        green = vary(rng, mix(LEAF_GREEN, LEAF_LIGHT, rng.uniform(0, .45)), .12)
+        verts = np.concatenate([[c + UP * .006], rim])
+        faces = [[0, 1 + j, 2 + j] for j in range(n - 1)]
+        cols = np.concatenate([[tone(green, 1.12)], np.tile(tone(green, .86), (n, 1))])
+        p.add(verts, faces, cols, LEAF, True)
+        p.add(verts - UP * .003, [[0, 2 + j, 1 + j] for j in range(n - 1)], np.tile(tone(LEAF_RUSSET, .5), (n + 1, 1)), LEAF, True)
+    for c in pads[np.argsort(np.linalg.norm(pads, axis=1))[[1, 4, 7]]]:
+        c = c + np.array([rng.uniform(-.05, .05), rng.uniform(-.05, .05), 0])
+        pink = rng.uniform(0, .35)
+        for ring, (count, r0, r1, z1) in enumerate(((8, .012, .062, .035), (7, .010, .046, .07), (5, .006, .026, .095))):
+            ang = rng.uniform(0, TAU) + np.arange(count) / count * TAU
+            for a in ang:
+                o = np.array([math.cos(a), math.sin(a), 0.0])
+                s = np.array([-o[1], o[0], 0.0]) * r1 * .34
+                root_, mid, tip = c + o * r0 + UP * .012, c + o * (r0 + r1) * .55 + UP * z1 * .6, c + o * r1 + UP * z1
+                col = mix(FLOWER_WHITE, FLOWER_PINK, pink * (1 - ring * .3))
+                cols = [tone(col, .8), tone(col, .97), tone(col, .97), tone(col, 1.0)]
+                p.add([root_, mid - s, mid + s, tip], [[0, 2, 1], [1, 2, 3], [0, 1, 2], [1, 3, 2]], np.array(cols), LEAF, False)
+        _fan(p, c + UP * .045, c + _ring(6, .012) + UP * .03, tone(FLOWER_YELLOW, .95), tone(FLOWER_YELLOW, .75))
+    return finish(_fit(p, (1.0, 1.0, .12)), normals=False)
+
+
+def _lathe(part, base, axis, profile, sides, colours, slot, seed=0, wobble=.08):
+    """A turned shape: rings of radius r at height h along `axis` from base, for each (r, h) of profile, closed with
+    a point at each end. colours: one per profile row."""
+    base, d = np.asarray(base, np.float64), unit(axis)
+    a, b = frame(d)
+    ang = np.arange(sides) / sides * TAU
+    lump = 1 + wobble * noise2(np.cos(ang) * 1.7 + seed, np.sin(ang) * 1.7 - seed, seed + 5)
+    rings, cols = [], []
+    for (r, h), c in zip(profile, colours):
+        rings.append(base + d * h + (np.cos(ang)[:, None] * a + np.sin(ang)[:, None] * b) * (r * lump)[:, None])
+        cols.append(np.tile(np.asarray(c, np.float64), (sides, 1)))
+    v0, f0 = _skin(part, rings, cols, slot)
+    return v0
+
+
+def mushrooms():
+    """SM_GV_Mushrooms, 0.5 x 0.5 x 0.25: a troop of pale mushrooms on thin stems, their caps domed and a little
+    lopsided, the gills underneath lit with a faint resonance glow (MOSS for the flesh, GLOW for the gills)."""
+    rng = np.random.default_rng(4305)
+    p = Part('SM_GV_Mushrooms', (MOSS, GLOW))
+    flesh, pale = col(.50, .46, .36), col(.62, .58, .47)
+    gill = fl.glow(GLOW_LINK, .16)
+    spots = _scatter(rng, 10, .2, .055)
+    for i, q in enumerate(spots):
+        h = rng.uniform(.07, .22) * (1.15 if i < 3 else 1.0)
+        r = h * rng.uniform(.26, .42)
+        lean = unit(np.array([rng.normal(0, .14), rng.normal(0, .14), 1.0]))
+        sr = max(r * .2, .006)
+        fl.limb(p, [q - UP * .004, q + lean * h * .5, q + lean * h * .92], [sr * 1.25, sr, sr * .9], np.array([tone(flesh, .7), tone(pale, .9), tone(pale, 1.0)]),
+                MOSS, 6, cap=False)
+        top = q + lean * h * .9
+        tilt = unit(lean + np.array([rng.normal(0, .12), rng.normal(0, .12), 0]))
+        cap_h = r * rng.uniform(.5, .8)
+        shade = vary(rng, pale, .1)
+        prof = [(r * 1.0, 0.0), (r * .96, cap_h * .22), (r * .72, cap_h * .68), (r * .34, cap_h * .95), (r * .02, cap_h)]
+        tones = [tone(shade, .82), tone(shade, .95), tone(shade, 1.05), tone(mix(shade, flesh, .5), 1.0), tone(mix(shade, flesh, .7), .95)]
+        _lathe(p, top, tilt, prof, 10, tones, MOSS, seed=i)
+        a, b = frame(tilt)
+        ang = np.arange(10) / 10 * TAU
+        rim = top + (np.cos(ang)[:, None] * a + np.sin(ang)[:, None] * b) * r * .97
+        _fan(p, top - tilt * cap_h * .12, rim, fl.glow(GLOW_LINK, .05), gill, slot=GLOW, down=True)
+    return finish(_fit(p, (.5, .5, .25)), normals=False)
+
+
+def bush():
+    """SM_GV_Bush, 1.5 m: a dense shrub of the grove's own broadleaf. A dozen woody stems rise from one stool and arch
+    outward, forking twice; the twigs carry leafy sprays of the 'LBroadleaf' sheet all over a rounded crown, darker
+    inside it."""
+    rng = np.random.default_rng(4306)
+    p = Part('SM_GV_Bush', (BARK, LEAF))
+    wood = tone(BARK_GREY, .85)
+    tips = []
+    for k in range(12):
+        az = k / 12 * TAU + rng.uniform(-.2, .2)
+        out = np.array([math.cos(az), math.sin(az), 0.0])
+        reach, h = rng.uniform(.25, .62), rng.uniform(.75, 1.2)
+        base = out * rng.uniform(.02, .09)
+        pts = np.array([base, base + out * reach * .3 + UP * h * .4, base + out * reach * .7 + UP * h * .75, base + out * reach + UP * h])
+        P, R = _spline(pts, [.022, .016, .011, .005], 8)
+        _limb(p, P, R, 5, wood, 4306 + k, ground=.5)
+        tips += [(P[-1], unit(P[-1] - P[-2]))]
+        for t in (3, 4, 5, 6):                                      # side shoots, solid strands that sway with the leaves
+            for _ in range(2):
+                d = unit(out * rng.uniform(.2, 1.0) + np.array([rng.normal(0, .7), rng.normal(0, .7), rng.uniform(.1, .9)]))
+                end = P[t] + d * rng.uniform(.18, .4)
+                _strands(p, [P[t]], [end], R[t] * .5, .003, TWIG)
+                tips.append((end, d))
+    at = np.array([q for q, _ in tips])
+    grow = np.array([d for _, d in tips])
+    centre, radii = np.array([0, 0, .72]), np.array([.8, .8, .82])
+    n = len(at)
+    for layer in range(2):                                          # two sprays a tip, turned apart
+        g = unit(grow + rng.normal(0, .45, (n, 3)) + UP * .15)
+        depth = np.clip(np.linalg.norm((at - centre) / radii, axis=1), 0, 1)
+        tint = np.array([vary(rng, mix((.55, .6, .5, 1), (.95, 1.0, .85, 1), d ** 1.5), .1) for d in depth])
+        sprays(p, 'LBroadleaf', at - g * .06, g, unit(UP * .7 + (at - centre)), rng.uniform(.34, .5, n), tint, cells=('twig',), rng=rng,
+               crown=(centre, radii), foot=.8, bend=.1)
+    low = _ring(10, .42, rng, .25) + UP * rng.uniform(.18, .4, (10, 1))    # the skirt, so no stem shows bare from the side
+    o = unit(low * np.array([1, 1, 0]))
+    sprays(p, 'LBroadleaf', low - o * .1, unit(o + UP * .25), unit(UP + o * .5), rng.uniform(.36, .48, 10), (.7, .76, .64, 1), cells=('twig',), rng=rng,
+           crown=(centre, radii), foot=.75, bend=.12)
+    grime(p, 0, .15, .5, 4306)
+    return finish(_fit(p, (0, 0, 1.5)), normals=True)
+
+
+def thorn():
+    """SM_GV_Thorn, 3 x 3 x 2.6: thornroot erupting from the ground where Divinity was forced through the roots.
+    Black-violet arcs burst out of one torn place, rear up and hook back down, three of them standing as tall spines;
+    all are thorned, and magenta embers burn in the crown of the eruption and where the arcs leave the soil (BARK,
+    GLOW). The level tags it GroveBlight: it goes when the grove heals."""
+    import machines as mc                                           # thornroot is the Hedge module's (the barriers share it)
+    rng = np.random.default_rng(4307)
+    p = Part('SM_GV_Thorn', (BARK, GLOW))
+    for k in range(7):                                              # arcs that bow over and root again
+        az = k / 7 * TAU + rng.uniform(-.25, .25)
+        o = np.array([math.cos(az), math.sin(az), 0.0])
+        s = np.array([-o[1], o[0], 0.0])
+        reach, apex = rng.uniform(.95, 1.4), rng.uniform(.7, 1.5)
+        swing = rng.uniform(-.35, .35)
+        r0 = rng.uniform(.085, .13)
+        keys = [o * .16 - UP * .05, o * reach * .22 + s * swing * .3 + UP * apex * .75, o * reach * .58 + s * swing + UP * apex,
+                o * reach * .9 + s * swing * .6 + UP * apex * .45, o * reach + s * swing * .3 - UP * .05]
+        path, rad = mc.curve(keys, 13, [r0, r0 * .9, r0 * .7, r0 * .5, r0 * .22])
+        mc.thorn_root(p, rng, path, rad, 4307 + k, 8, .34, .24, o * .5 + UP * .5, ground=1.0, wet=.6)
+        mc.ember(p, rng, path[0] + o * .1 + UP * .06, rng.uniform(.035, .06))
+        if k % 2 == 0:
+            mc.ember(p, rng, path[-1] - o * .08 + UP * .05, rng.uniform(.025, .04))
+    for k in range(3):                                              # the spines
+        az = k / 3 * TAU + rng.uniform(.3, .9)
+        o = np.array([math.cos(az), math.sin(az), 0.0])
+        tall = (2.6, 2.05, 1.7)[k]
+        r0 = (.17, .14, .12)[k]
+        keys = [o * .1 - UP * .05, o * .22 + UP * tall * .3, o * .12 + UP * tall * .62, o * .34 + UP * tall * .88, o * .62 + UP * tall]
+        path, rad = mc.curve(keys, 15, [r0, r0 * .85, r0 * .6, r0 * .32, r0 * .05])
+        mc.thorn_root(p, rng, path, rad, 4320 + k, 9, .3, .3, o * .6 + UP * .2, ground=1.0, wet=.6)
+    for _ in range(6):                                              # the torn heart
+        a, r = rng.uniform(0, TAU), rng.uniform(.05, .3)
+        mc.ember(p, rng, (r * math.cos(a), r * math.sin(a), rng.uniform(.04, .12)), rng.uniform(.03, .07))
+    v = np.asarray(p.v, np.float64)
+    v[:, 2] = np.maximum(v[:, 2], 0.0)                              # what dives into the soil stops at it
+    p.v = v.tolist()
+    return finish(_fit(p, (3.0, 3.0, 2.6)), normals=False)
+
+
 def _versions(builder, levels):
     """A builder and its far versions as builders of their own (builder(lod)), named so check.py and lookdev.py can
     pick them."""
@@ -1195,7 +1490,8 @@ def _versions(builder, levels):
 
 
 MESHES = [*_versions(heartwood, (1, 2)), *_versions(giant_tree, (1, 2, 3)), *_versions(oak, (1, 2, 3)), *_versions(beech, (1, 2, 3)),
-          *_versions(birch, (1, 2, 3)), *_versions(pine, (1, 2, 3)), *_versions(sapling, (1, 2)), snag]
+          *_versions(birch, (1, 2, 3)), *_versions(pine, (1, 2, 3)), *_versions(sapling, (1, 2)), snag, bush, grass, flowers, reeds, lily,
+          mushrooms, thorn]
 
 
 def _tree(height):
@@ -1211,4 +1507,11 @@ CONTRACT = {
     'SM_GV_Pine': _tree(20.0),
     'SM_GV_Sapling': _tree(3.0),
     'SM_GV_Snag': _tree(9.0),
+    'SM_GV_Bush': {'size': (0, 0, 1.5), 'tol': .05},
+    'SM_GV_Grass': {'size': (1.8, 1.8, 0), 'tol': .05},
+    'SM_GV_Flowers': {'size': (1.2, 1.2, 0), 'tol': .05},
+    'SM_GV_Reeds': {'size': (0, 0, 1.6), 'tol': .05},
+    'SM_GV_Lily': {'size': (1.0, 1.0, .12), 'tol': .05},
+    'SM_GV_Mushrooms': {'size': (.5, .5, .25), 'tol': .05},
+    'SM_GV_Thorn': {'size': (3.0, 3.0, 2.6), 'tol': .05},
 }

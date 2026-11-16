@@ -56,9 +56,7 @@ swimmable water. Unreal placement is in centimetres. The pause-menu map shares t
 | `Content/Python/physis_grove_lore.py` | All text: scans, people, enemies, tutorials, messages |
 | `Content/Python/physis_grove_tools.py` | `grove:` operations: materials, import, audio, blueprints, level, map art |
 | `Content/Python/physis_grove_scenario.py` | Gameplay placement, and the Center's current to Earth |
-| `Tools/blueprint_logic/grove_logic.py` | Blueprint logic: Resonance Link, link nodes, beams and tethers, the director, travel |
-| `Tools/blueprint_logic/grove_hud.py` | The one BP_PhysisHUD batch of a launch (the map page) |
-| `Tools/blueprint_logic/center_overrides.py` | Grove branches in the shared graphs (music, saves, fidelity, augmentations, map) |
+| `Tools/blueprint_logic/grove_logic.py` | Blueprint logic in the 5.9 dialect: Resonance Link, link nodes, beams and tethers, the director, travel; its parts `shared`, `hud` and `relic` edit the graphs other levels own (music, saves, fidelity, augmentations, the map page, the relics' scan tags) |
 
 ## Meshes
 

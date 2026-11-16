@@ -46,6 +46,8 @@ MESH_LOOKS = (
     ('SM_GV_Grass', 'CN_Leaf', ('LGrass', 'leaf', None, .7, 0.0)),
     ('SM_GV_Reeds', 'CN_Leaf', ('LGrass', 'leaf', None, .7, 0.0)),
     ('SM_GV_Fern', 'CN_Leaf', ('LFine', 'leaf', None, .6, 0.0)),
+    ('SM_GV_Flowers', 'CN_Leaf', ('LFlowers', 'leaf', None, .6, 0.0)),
+    ('SM_GV_Mushrooms', 'CN_Plaster', ('', 'plain', None, .6, 0.0)),   # pale caps and stems: no moss scan
     ('SM_GV_Sapling', 'CN_Leaf', ('LBroadleaf', 'leaf', None, .6, 0.0)),
     ('SM_GV_Rock', 'CN_Black', ('SRock', 'tint', (.21, .205, .195), .85, 0.0)),
     # Living root-wood and thornroot (the link props, the bridge, the barriers).

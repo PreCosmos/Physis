@@ -458,7 +458,7 @@ def backdrop():
         z = z - 700.0 * sstep(.82, 1.0, t[k])
         verts.append(np.column_stack([x, y, z]))
         rocky = sstep(330.0, 520.0, z) * (.5 + .5 * noise2(x / 160.0, y / 160.0, SEED + 3))
-        base = np.array([.030, .055, .026]) * (1 - rocky[:, None]) + np.array([.20, .20, .19]) * rocky[:, None]
+        base = np.array([.030, .055, .026]) * (1 - rocky[:, None]) + np.array([.085, .085, .078]) * rocky[:, None]   # .2 grey read as chalk in full sun at the forest's exposure
         cols.append(np.column_stack([base * (.8 + .4 * noise2(x / 90.0, y / 90.0, SEED + 8))[:, None], np.ones(segs)]))
     v = np.concatenate(verts)
     faces = [[k * segs + j, k * segs + (j + 1) % segs, (k + 1) * segs + (j + 1) % segs, (k + 1) * segs + j]

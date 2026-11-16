@@ -2959,11 +2959,439 @@ def burr():
     return p
 
 
+# ---------------------------------------------------------------- Wick, the intercom post, and the things carried
+
+def _item(part, size):
+    """Finishes a thing that is picked up: scaled so that its largest dimension is `size` (the contract's number), its
+    bounds centred on the origin. Marks move with it."""
+    v = np.asarray(part.v, np.float64)
+    lo, hi = v.min(0), v.max(0)
+    return _moved(part, -(lo + hi) / 2, size / float((hi - lo).max()))
+
+
+def _polished(rng, k=1.0):
+    """Brass that is handled: warm, only a breath of verdigris in it."""
+    return tone(mix(tone(BRASS_WARM, .85), VERDIGRIS, rng.uniform(0, .1)), k)
+
+
+def _lay(part, centre, axis, r, h, colour, bright=1.0, sides=10):
+    """A resonance seed (_seed) lying with its point along axis."""
+    start = _seed(part, (0, 0, 0), r, h, colour, bright, sides)
+    place(part, start, along(axis), centre)
+    return start
+
+
+@built(.012)
+def wick():
+    """SM_GP_Wick (1.5 m): Wick, the Just's little courier, a hovering lantern. His body floats at z 0.9 to 1.5 over
+    his dock plate, a thin disc lying on z 0. From the ground up: the plate (a dim amber field ring in it); a hover
+    field unit under a round plated body with one amber eye at +x under an enamel brow, two dark cheek sensors and a
+    trim thruster at his back; a lantern on top of it, a glass chimney in a cage of six bars round a warm amber
+    flame, under an enamel roof whose eave is the unit's orange stripe; a bail handle over the roof (its grip is his
+    highest point), a whip aerial; a canvas satchel hung from a hook on his left (+y), a rack of two seed tubes on
+    his right. Marks: lens (the eye's front), core (the flame), head, head_top, hover (the field's face)."""
+    rng = np.random.default_rng(603)
+    p = Part('SM_GP_Wick', (PAINT, STEEL, GLASS, GLOW, CLOTH, BRASS))
+    upright = basis((0, 0, 1), (1, 0, 0))      # local x up; phi 90 degrees faces +x, 0 is -y, 180 is +y, 270 the back
+    brass = tone(BRASS_WARM, .75)
+    t = .007
+
+    def worn(w=.12):
+        return tone(mix(JUST_BONE, CONCRETE_STAIN, rng.uniform(.04, .22)), rng.uniform(1 - w, 1.0))
+    # ---- the body: plates over a dark core, the face plate one piece
+    body = Hull((0, 0, 1.05), (.115, .16, .16), .8, 1.0, upright)
+    body.core(p, GRAPHITE, STEEL, t * 1.5, (16, 36))
+    plate(p, body, (.72, 2.4), _deg(48, 132), worn(.05), PAINT, t, .006, n=(6, 5), seed=1)
+    for k, ph in enumerate(((132, 228), (228, 312), (312, 408))):
+        for i, th in enumerate(((.72, 1.52), (1.52, 2.4))):
+            bx = plate(p, body, th, _deg(*ph), worn(), PAINT, t, .006, n=(4, 5), seed=2 + 2 * k + i)
+            if i == 0:
+                body.rivet_row(p, (bx[1] - .08,) * 2, (bx[2] + .14, bx[3] - .14), 4, .003, BARE, STEEL)
+    eye(p, body.point(1.5, math.pi / 2, -.004), (1, 0, -.04), .044, bright=.8, bezel=worn(.05), hood=1.05, fasteners=6)
+    for ph in (58, 122):
+        a = math.radians(ph)
+        sensor(p, body.point(2.02, a, -.001), body.normal(2.02, a), .009)
+    back = math.radians(270)
+    thruster(p, body.point(1.64, back, -.004), (-1, 0, -.3), .032, .05)
+    tag(p, body.point(1.12, back, -t * .2), body.normal(1.12, back), (0, 0, 1), .04, .022)
+    # ---- the hover field under him
+    pipe(p, [(0, 0, .925), (0, 0, .975)], .082, GRAPHITE, STEEL, S(.082))
+    field(p, (0, 0, .92), (0, 0, -1), .09, EMIT, shell=worn())
+    mark(p, 'hover', (0, 0, .9))
+    # ---- the lantern: collar, burner and flame, glass, cage, roof
+    sweep(p, [(.05, 1.118), (.136, 1.118), (.142, 1.13), (.142, 1.166), (.128, 1.18), (.05, 1.18)], GRAPHITE, STEEL)
+    disc(p, (0, 0, 1.181), (0, 0, 1), .1, tone(JUST_GRAPHITE, .7), STEEL, S(.1))
+    ang = (np.arange(8) + .5) / 8 * TAU
+    studs(p, np.stack([.142 * np.cos(ang), .142 * np.sin(ang), np.full(8, 1.148)], 1), np.stack([np.cos(ang), np.sin(ang), np.zeros(8)], 1), .0045)
+    sweep(p, [(.01, 1.18), (.034, 1.18), (.034, 1.19), (.022, 1.2), (.022, 1.216), (.01, 1.216)], brass, BRASS)
+    _seed(p, (0, 0, 1.264), .036, .052, GLOW_AMBER, .9, S(.036, 12, 24))
+    mark(p, 'core', (0, 0, 1.264))
+    sweep(p, [(.095, 1.18), (.101, 1.18), (.101, 1.336), (.095, 1.336)], tone(mix(GLASS_GREEN, CANVAS, .4), 1.25), GLASS)
+    for k in range(6):
+        a = (k + .5) / 6 * TAU
+        u = V(math.cos(a), math.sin(a), 0)
+        pipe(p, [u * .13 + (0, 0, 1.17), u * .122 + (0, 0, 1.2), u * .118 + (0, 0, 1.26), u * .122 + (0, 0, 1.318), u * .13 + (0, 0, 1.34)],
+             .0055, FRAME, STEEL, 6)
+    hoop(p, (0, 0, 1.26), (0, 0, 1), .118, .0045, FRAME, STEEL, S(.118), 5)
+    sweep(p, [(.06, 1.332), (.154, 1.332), (.16, 1.34), (.16, 1.352), (.15, 1.358), (.06, 1.358)], ORANGE, PAINT)
+    disc(p, (0, 0, 1.3325), (0, 0, -1), .064, tone(JUST_GRAPHITE, .7), STEEL, S(.064))
+    roof = worn(.05)
+    turn(p, [(.151, 1.355), (.147, 1.362), (.112, 1.39), (.072, 1.411), (.04, 1.423), (.03, 1.425)],
+         np.array([tone(roof, q) for q in (.8, 1.0, 1.0, .97, .92, .8)]), PAINT, caps=(False, False))
+    pipe(p, [(0, 0, 1.42), (0, 0, 1.448)], .03, GRAPHITE, STEEL, S(.03))
+    for z in (1.43, 1.44):
+        hoop(p, (0, 0, z), (0, 0, 1), .031, .003, BARE, STEEL, S(.031), 5)
+    turn(p, [(.044, 1.447), (.044, 1.452), (.03, 1.462), (.012, 1.467), (0, 1.468)], worn(.05), PAINT)
+    # ---- the bail handle, on a pin either side of the eave, its grip rubbed dark
+    for s_ in (-1, 1):
+        pivot(p, (0, s_ * .164, 1.346), (0, 1, 0), .011, .014)
+    a = np.linspace(0, math.pi, 25)
+    pipe(p, np.stack([np.zeros(25), .166 * np.cos(a), 1.346 + .143 * np.sin(a)], 1), .0055, BRIGHT, STEEL, 8)
+    pipe(p, [(0, -.042, 1.489), (0, .042, 1.489)], .011, RUBBER, PAINT, 12)
+    for s_ in (-1, 1):
+        hoop(p, (0, s_ * .042, 1.4885), (0, 1, 0), .0105, .003, brass, BRASS, 12, 5)
+    whip = curve([V(-.1, .045, 1.392), V(-.105, .047, 1.43), V(-.118, .05, 1.465), V(-.135, .054, 1.488)], 8)
+    pipe(p, whip, np.linspace(.003, .0015, 8), GRAPHITE, STEEL, 5)
+    ball(p, whip[0], .008, GRAPHITE, STEEL, 8)
+    ball(p, whip[-1], .0045, BRIGHT, STEEL, 6)
+    # ---- the satchel on its hook (+y)
+    canvas = tone(CANVAS, .82)
+    sat = V(0, .21, 1.02)
+    obox(p, (0, .172, 1.03), (.03, .012, .03), FRAME, STEEL, .005)
+    obox(p, sat, (.052, .03, .056), canvas, CLOTH, .014)
+    obox(p, sat + V(0, .019, .03), (.054, .016, .03), tone(mix(CANVAS, JUST_OLIVE, .55), .9), CLOTH, .008)
+    obox(p, sat + V(0, .0355, .026), (.007, .002, .034), tone(ROPE, .8), CLOTH, .0008)
+    obox(p, sat + V(0, .038, .008), (.011, .003, .012), brass, BRASS, .002)
+    hook = curve([V(0, .136, 1.166), V(0, .16, 1.169), V(0, .182, 1.16), V(0, .188, 1.14), V(0, .178, 1.125), V(0, .166, 1.131), V(0, .162, 1.143)], 14)
+    pipe(p, hook, .0048, BRIGHT, STEEL, 6)
+    hoop(p, (0, .178, 1.119), (0, 1, 0), .014, .003, brass, BRASS, 14, 5)
+    for s_ in (-1, 1):
+        band(p, curve([V(s_ * .004, .178, 1.106), V(s_ * .02, .186, 1.09), V(s_ * .036, .198, 1.074)], 5), .012, .003, (0, 1, .3), tone(ROPE, .85))
+    # ---- the rack of seed tubes (-y)
+    obox(p, (0, -.172, 1.03), (.05, .012, .03), FRAME, STEEL, .005)
+    obox(p, (0, -.205, .976), (.05, .024, .004), FRAME, STEEL, .002)
+    obox(p, (0, -.205, 1.032), (.053, .0265, .006), BARE, STEEL, .002)
+    bolts(p, [(0, -.2318, 1.032)], (0, -1, 0), .006)
+    for s_ in (-1, 1):
+        c = V(s_ * .027, -.207, 1.03)
+        pipe(p, [c - (0, 0, .05), c + (0, 0, .04)], .021, tone(JUST_OLIVE, rng.uniform(.95, 1.25)), PAINT, 14)
+        pipe(p, [c + (0, 0, .04), c + (0, 0, .052)], .0225, brass, BRASS, 14)
+        pipe(p, [c + (0, 0, .052), c + (0, 0, .06)], .01, brass, BRASS, 8)
+    weather(p, 603, .6, under=.22, dirt=.12, streak=.16, moss=.12, dust=.1)
+    # ---- the dock plate on the ground
+    d0 = len(p.v)
+    sweep(p, [(.03, 0), (.2, 0), (.208, .006), (.208, .017), (.196, .024), (.03, .027)], FRAME, STEEL)
+    disc(p, (0, 0, .0268), (0, 0, 1), .032, GRAPHITE, STEEL, 12)
+    sweep(p, [(.135, .024), (.185, .023), (.187, .03), (.133, .031)], worn(), PAINT)
+    sweep(p, [(.07, .025), (.11, .0245), (.11, .0305), (.07, .031)], glow(GLOW_AMBER, EMIT), GLOW)
+    ang = (np.arange(4) + .5) / 4 * TAU
+    bolts(p, np.stack([.16 * np.cos(ang), .16 * np.sin(ang), np.full(4, .0305)], 1), (0, 0, 1), .008)
+    weather(p, 604, .4, under=0.0, dirt=.22, streak=0.0, moss=.4, dust=.25, start=d0)
+    v = np.asarray(p.v, np.float64)
+    _moved(p, (0, 0, -v[:, 2].min()), 1.5 / float(v[:, 2].max() - v[:, 2].min()))
+    mark(p, 'head', (0, 0, 1.2))
+    mark(p, 'head_top', (0, 0, 1.5))
+    return p
+
+
+@built(.012)
+def intercom():
+    """SM_GP_Intercom (0.5 x 0.5 x 2.3 m), the post Maren Voss speaks from, front +x. A concrete footing; a steel post
+    on a rusted base plate with gussets and anchor bolts; at head height the enamel panel under its own rain visor: a
+    call button, a louvred speaker grille, a camera eye under a brow, the unit's orange stripe; a gooseneck over the
+    top carrying the amber call light in a wire guard under its rain hood (the hood's finial is the top, z 2.3); at the
+    back a conduit up from the footing into a junction box and a cable on to the lamp. Forty years weathered: rust
+    streaks, rust at the foot, moss on the footing. Marks: call_light, camera, speaker, button."""
+    rng = np.random.default_rng(605)
+    p = Part('SM_GP_Intercom', (STEEL, PAINT, CONCRETE, RUST, MOSS, GLOW))
+    X = V(1.0, 0, 0)
+    px = -.03                                   # the post's axis
+
+    def worn(w=.16):
+        return tone(mix(JUST_BONE, CONCRETE_STAIN, rng.uniform(.2, .45)), rng.uniform(1 - w, 1.0))
+
+    def rusty():
+        return tone(mix(RUST_ORANGE, RUST_DARK, rng.uniform(.45, .9)))
+    # ---- footing, base plate, anchor bolts, gussets, post
+    obox(p, (0, 0, .06), (.25, .25, .06), tone(CONCRETE_PALE, .9), CONCRETE, .018)
+    obox(p, (px, 0, .127), (.1, .1, .007), rusty(), RUST, .003)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            q = V(px + sx * .075, sy * .075, .134)
+            sweep(p, [(.007, 0), (.02, 0), (.02, .004), (.007, .004)], rusty(), RUST, sides=10, origin=q)
+            bolts(p, [q + (0, 0, .005)], (0, 0, 1), .013, rusty(), RUST)
+            pipe(p, [q + (0, 0, .01), q + (0, 0, .026)], .006, rusty(), RUST, 6)
+    for d in (V(1, 0, 0), V(-1, 0, 0), V(0, 1, 0), V(0, -1, 0)):
+        c = V(px, 0, 0)
+        fin(p, [c + d * .045 + (0, 0, .134), c + d * .096 + (0, 0, .134), c + d * .049 + (0, 0, .25), c + d * .045 + (0, 0, .25)], .008, rusty(), RUST,
+            taper=0.0)
+    strut(p, (px, 0, .134), (px, 0, 2.0), .09, .09, FRAME, STEEL, up=(1, 0, 0), bevel=.012)
+    obox(p, (px, 0, 2.004), (.05, .05, .006), FRAME, STEEL, .003)
+    # ---- the panel
+    obox(p, (.08, 0, 1.5), (.062, .13, .26), worn(.08), PAINT, .014)
+    for z in (1.3, 1.7):
+        obox(p, (px, 0, z), (.052, .062, .022), FRAME, STEEL, .006)
+        bolts(p, [(px, sy * .062, z) for sy in (-1, 1)], [(0, sy, 0) for sy in (-1, 1)], .009)
+    obox(p, (.1425, 0, 1.275), (.0025, .118, .018), tone(mix(JUST_ORANGE, JUST_BONE, .1), .95), PAINT, .001)
+    obox(p, (.145, 0, 1.53), (.003, .116, .215), worn(.08), PAINT, .002)          # the door, on two hinges, a lock opposite
+    fx = .148
+    for z in (1.4, 1.66):
+        pivot(p, (.146, -.123, z), (0, 0, 1), .007, .05)
+    sweep(p, [(.004, 0), (.013, 0), (.013, .004), (.004, .004)], BARE, STEEL, sides=10, rot=along(X), origin=(fx, .096, 1.6))
+    bolts(p, [(fx + .003, .096, 1.6)], X, .006, BRIGHT)
+    rx = along(X)
+    button = V(fx, 0, 1.35)
+    sweep(p, [(.016, 0), (.03, 0), (.03, .008), (.024, .012), (.016, .012)], BARE, STEEL, rot=rx, origin=button)
+    turn(p, [(.016, .004), (.014, .014), (.008, .018), (0, .019)], RUBBER, PAINT, rot=rx, origin=button, caps=(False, False))
+    mark(p, 'button', button + X * .019)
+    louvre(p, (fx, 0, 1.5), X, (0, 0, 1), .18, .15, 7)
+    mark(p, 'speaker', (fx + .02, 0, 1.5))
+    cam, r = V(fx + .001, 0, 1.68), .03
+    sensor(p, cam, X, r)
+    brow = basis((1, 0, -.3))
+    obox(p, cam + V(.024, 0, r * 1.62), (.03, .05, .004), worn(), PAINT, .002, brow)
+    for sy in (-1, 1):
+        obox(p, cam + V(.024, 0, r * 1.62) + brow @ V(-.008, sy * .047, -.012), (.022, .003, .012), worn(), PAINT, .0015, brow)
+    mark(p, 'camera', cam + X * r * .42)
+    studs(p, [(fx, sy * .104, 1.53 + sz * .203) for sy in (-1, 1) for sz in (-1, 1)], X, .005)
+    tag(p, (.08, .13, 1.3), (0, 1, 0), (0, 0, 1), .06, .035)
+    visor = basis((1, 0, -.32))
+    obox(p, (.093, 0, 1.787), (.1, .15, .005), worn(), PAINT, .003, visor)
+    for sy in (-1, 1):
+        obox(p, V(.093, 0, 1.787) + visor @ V(.0, sy * .146, -.016), (.1, .004, .016), worn(), PAINT, .002, visor)
+    obox(p, (.02, 0, 1.79), (.012, .05, .03), FRAME, STEEL, .004)
+    # ---- the call light on its gooseneck, under the rain hood
+    L = V(.075, 0, 0)
+    sweep(p, [(.02, 0), (.033, 0), (.033, .03), (.02, .03)], BARE, STEEL, origin=(px, 0, 2.008))
+    neck = curve([V(px, 0, 1.99), V(px, 0, 2.1), V(px + .012, 0, 2.19), V(.02, 0, 2.235), V(L[0], 0, 2.235)], 14)
+    pipe(p, neck, .02, FRAME, STEEL, S(.02, 8, 16))
+    turn(p, [(.046, 2.212), (.046, 2.25), (.032, 2.274), (.012, 2.286), (.008, 2.3), (0, 2.3)], FRAME, STEEL, origin=L)
+    sweep(p, [(.035, 2.21), (.097, 2.19), (.162, 2.142), (.168, 2.142), (.166, 2.152), (.1, 2.202), (.035, 2.224)], worn(), PAINT, origin=L)
+    hoop(p, L + (0, 0, 2.142), (0, 0, 1), .165, .005, rusty(), RUST, S(.165), 6)
+    pipe(p, [L + (0, 0, 2.215), L + (0, 0, 2.165)], .03, GRAPHITE, STEEL, S(.03))
+    lamp = L + (0, 0, 2.118)
+    ball(p, lamp, .042, glow(GLOW_AMBER, .9), GLOW, 16, (1, 1, 1.25))
+    mark(p, 'call_light', lamp)
+    hoop(p, lamp, (0, 0, 1), .053, .003, BARE, STEEL, 20, 5)
+    for k in range(4):
+        a = (k + .5) / 4 * TAU
+        u = V(math.cos(a), math.sin(a), 0)
+        pipe(p, [L + u * .03 + (0, 0, 2.168), L + u * .05 + (0, 0, 2.15), L + u * .053 + (0, 0, 2.118), L + u * .042 + (0, 0, 2.074),
+                 L + u * .004 + (0, 0, 2.058)], .003, BARE, STEEL, 4, cap=False)
+    # ---- the back: conduit, junction box, the cable up to the lamp
+    pipe(p, [(-.09, .03, .11), (-.09, .03, 1.42)], .014, BARE, STEEL, 10)
+    for z in (.42, .82, 1.2):
+        obox(p, (-.09, .03, z), (.019, .024, .012), rusty(), RUST, .003)
+        bolts(p, [(-.09, .054, z)], (0, 1, 0), .007)
+    obox(p, (-.105, 0, 1.5), (.03, .06, .09), worn(), PAINT, .008)
+    studs(p, [(-.135, sy * .048, 1.5 + sz * .078) for sy in (-1, 1) for sz in (-1, 1)], (-1, 0, 0), .005)
+    tag(p, (-.135, 0, 1.5), (-1, 0, 0), (0, 0, 1), .06, .035)
+    loom(p, curve([V(-.1, -.02, 1.585), V(-.086, -.02, 1.68), V(-.083, -.015, 1.88), V(-.07, -.005, 2.03), V(-.046, 0, 2.11)], 12), .006, 1, 2)
+    # ---- moss on the footing, thickest behind the post
+    m0 = len(p.v)
+    for k in range(22):
+        if k < 12:                                                 # a mat creeping in from the back corner
+            q = V(-.21, .2, .118) + V(abs(rng.normal(0, .11)), -abs(rng.normal(0, .12)), 0)
+        else:
+            q = V(rng.uniform(-.23, .23), rng.uniform(-.23, .23), .118)
+        q[:2] = np.clip(q[:2], -.23, .23)
+        if abs(q[0] - px) < .11 and abs(q[1]) < .11:
+            q[0] = px - rng.uniform(.115, .19)
+        moss_clump(p, rng, q, rng.uniform(.02, .048), .32)
+    for a in (2.2, 3.0, 3.9):                                      # and up into the corner of the base plate
+        moss_clump(p, rng, V(px + .062 * math.cos(a), .062 * math.sin(a), .138), rng.uniform(.018, .026), .6)
+    v = np.asarray(p.v[m0:], np.float64)
+    v[:, :2] = np.clip(v[:, :2], -.25, .25)
+    v[:, 2] = np.maximum(v[:, 2], .02)
+    p.v[m0:] = v.tolist()
+    weather(p, 605, 1.0, under=.3, dirt=.2, streak=.35, rust=.45, moss=.45, dust=.15)
+    return p
+
+
+@built(.03)
+def seed_cache():
+    """SM_GN_SeedCache (0.9 m across, centred): a basket the grove wove of its own roots, twelve stakes rising from a
+    spiral foot and eight weavers through them, a twisted rim, a handle of two roots twisted together bound to the rim
+    at both ends; inside, on a bed of moss, a heap of resonance seeds (GLOW_LINK), the one standing at the middle the
+    brightest. Mark: seeds (that seed's centre)."""
+    rng = np.random.default_rng(611)
+    p = Part('SM_GN_SeedCache', (BARK, MOSS, GLOW))
+    count = 12
+    wall = np.array([(.04, .034), (.12, .026), (.2, .032), (.28, .075), (.332, .15), (.362, .24), (.382, .32), (.395, .385)])
+    dense = spline(wall, 200)
+    seg = np.r_[0.0, np.cumsum(norm(np.diff(dense, axis=0), axis=1))]
+    kw = {'ground': .4, 'wet': .62}
+
+    def at(q):
+        """The wall's (radius, z) at fraction q of its length from the foot's middle to the rim."""
+        return float(np.interp(q * seg[-1], seg, dense[:, 0])), float(np.interp(q * seg[-1], seg, dense[:, 1]))
+    for k in range(count):
+        lean = rng.uniform(-.008, .008)
+        path = even(cyl(np.stack([dense[:, 0], np.linspace(0, lean, 200), dense[:, 1]], 1), k / count * TAU), 11)
+        root(p, path, np.linspace(.019, .013, 11) * rng.uniform(.92, 1.08), seed=k, sides=8, ridges=2, twist=1.0, ridge=.18, **kw)
+    for i, q in enumerate(np.linspace(.34, .93, 8)):
+        rho, z = at(q)
+        th = rng.uniform(0, TAU) + np.linspace(0, TAU * 1.03, 44)
+        wave = np.cos(count / 2 * th + (math.pi if i % 2 else 0.0))
+        rr = rho + .03 * wave
+        loop = np.stack([rr * np.cos(th), rr * np.sin(th), z + .005 * np.sin(th * 2 + i)], 1)
+        root(p, loop, np.r_[.008, np.full(42, .02 * rng.uniform(.92, 1.06)), .008], seed=20 + i, sides=5, ridges=0,
+             colour=tone(BARK_RUB, rng.uniform(.95, 1.4)), **kw)
+    turns = np.linspace(0, 3.2, 44)
+    root(p, cyl(np.stack([.035 + .05 * turns, turns, np.full(44, .004)], 1), .4), np.r_[.008, np.full(42, .015), .008], seed=31, sides=5,
+         ridges=0, **kw)
+    th = np.linspace(0, TAU * 1.02, 54)
+    rope(p, np.stack([.398 * np.cos(th), .398 * np.sin(th), np.full(54, .392)], 1), 2, .013, 7, np.r_[.01, np.full(52, .017), .01], 40, 5, 0, **kw)
+    a = np.linspace(0, math.pi, 30)
+    rope(p, np.stack([.012 * np.sin(a * 2), .398 * np.cos(a), .392 + .27 * np.sin(a)], 1), 2, .0125, 5, np.r_[.012, np.full(28, .016), .012], 44, 6, 0,
+         .7, **kw)
+    for sg in (-1, 1):                                             # the handle bound to the rim
+        u = np.linspace(0, 1, 20)
+        wrap = np.stack([(u - .5) * .08, sg * .398 + .036 * np.cos(3 * TAU * u), .392 + .036 * np.sin(3 * TAU * u)], 1)
+        root(p, wrap, np.r_[.004, np.full(18, .008), .004], seed=50 + sg, sides=5, ridges=0, colour=tone(BARK_RUB, 1.35), **kw)
+    starts, dirs = [], []
+    for _ in range(6):
+        rho, z = at(rng.uniform(.4, .95))
+        a0 = rng.uniform(0, TAU)
+        d = V(math.cos(a0), math.sin(a0), 0)
+        starts.append(d * (rho + .02) + (0, 0, z))
+        dirs.append(unit(d + (0, 0, -.5)))
+    rootlets(p, rng, starts, dirs, .09, .006, .8, 5, .3)
+    # ---- the moss bed and the seeds on it
+    bed = V(0, 0, .17)
+    blob(p, bed, .3, mix(MOSS_GREEN, MOSS_DEEP, .35), MOSS, 2, .08, 7, (1, 1, .5), shade=lambda q: .5 + .5 * np.clip((q[:, 2] - .12) / .18, 0, 1))
+    spots = [(0.0, 0.0)] + [(rng.uniform(.09, .13), (k + rng.uniform(-.2, .2)) / 5 * TAU) for k in range(5)]
+    spots += [(rng.uniform(.19, .225), (k + rng.uniform(-.25, .25)) / 7 * TAU) for k in range(7)]
+    for i, (rho, a0) in enumerate(spots):
+        zb = bed[2] + .15 * math.sqrt(max(1 - (rho / .3) ** 2, 0.0))
+        r = .04 * rng.uniform(.85, 1.1)
+        if i == 0:
+            c, axis, bright = V(0, 0, zb + r), V(.15, .1, 1), 1.0
+            mark(p, 'seeds', c)
+        else:
+            yaw = rng.uniform(0, TAU)
+            c, axis = V(rho * math.cos(a0), rho * math.sin(a0), zb + r * .55), V(math.cos(yaw), math.sin(yaw), rng.uniform(-.25, .45))
+            bright = rng.uniform(.3, .6)
+        _lay(p, c, axis, r, r * 1.65, GLOW_LINK, bright, 8)
+    return _item(p, .9)
+
+
+@built(.012)
+def canister():
+    """SM_GN_Canister (0.7 m tall, centred): one of the Just's seed canisters. A glass cylinder between a knurled brass
+    foot and a brass cap, the two drawn together by three tie rods with nuts and a hoop round the glass; a filler
+    neck and knob on the cap, a latch at the front (+x), a bail handle over the top. Six resonance seeds lie in it
+    (GLOW_LINK, dimmer than the grove's own). Mark: seeds."""
+    rng = np.random.default_rng(612)
+    p = Part('SM_GN_Canister', (BRASS, GLASS, GLOW))
+    X = V(1.0, 0, 0)
+    s = 40
+
+    def b(k=1.0):
+        return _polished(rng, k)
+    # ---- the foot
+    sweep(p, [(.02, 0), (.118, 0), (.134, .008), (.134, .032), (.126, .038), (.02, .038)], b(), BRASS, sides=s)
+    disc(p, (0, 0, .0), (0, 0, -1), .022, b(.6), BRASS, 12)
+    sweep(p, [(.02, .036), (.126, .036), (.126, .052), (.02, .052)], b(.7), BRASS, sides=s)
+    sweep(p, [(.02, .05), (.142, .05), (.142, .066), (.136, .072), (.122, .08), (.02, .08)], b(), BRASS, sides=s)
+    disc(p, (0, 0, .081), (0, 0, 1), .11, b(.5), BRASS, s, .006, b(.7))
+    for k in range(24):
+        a = k / 24 * TAU
+        if min(a, TAU - a) < .4:
+            continue
+        u = V(math.cos(a), math.sin(a), 0)
+        obox(p, u * .1345 + (0, 0, .02), (.003, .0055, .0105), b(1.15), BRASS, .0015, basis(u))
+    obox(p, (.1355, 0, .02), (.003, .04, .0095), b(1.2), BRASS, .0015)
+    studs(p, [(.139, sy * .031, .02) for sy in (-1, 1)], X, .004, b(1.2), BRASS)
+    # ---- the glass, and the seeds in it
+    sweep(p, [(.108, .076), (.115, .076), (.115, .474), (.108, .474)], tone(GLASS_GREEN, 1.25), GLASS, sides=s)
+    lying = [((.045, .02, .119), (1, .3, .12), .4), ((-.04, .042, .119), (-.4, 1, .05), .3), ((-.005, -.055, .119), (1, -.2, -.05), .34),
+             ((.0, .006, .172), (.5, .8, .3), .5), ((-.052, -.02, .2), (-.35, -.15, 1), .3), ((.056, -.03, .198), (.4, -.1, 1), .36)]
+    for c, axis, bright in lying:
+        _lay(p, c, axis, .034, .054, GLOW_LINK, bright, 12)
+    mark(p, 'seeds', (0, 0, .16))
+    # ---- the cap: flange, shoulder, filler neck and knob
+    sweep(p, [(.02, .47), (.124, .47), (.142, .478), (.142, .494), (.128, .5), (.02, .5)], b(), BRASS, sides=s)
+    disc(p, (0, 0, .4695), (0, 0, -1), .022, b(.5), BRASS, 12)
+    cap = b()
+    turn(p, [(.128, .498), (.126, .512), (.112, .53), (.08, .545), (.054, .552), (.05, .553)], np.array([tone(cap, q) for q in (.75, 1, 1.1, 1.05, .95, .75)]),
+         BRASS, s, caps=(False, False))
+    sweep(p, [(.02, .55), (.052, .55), (.057, .556), (.057, .574), (.05, .58), (.02, .58)], b(1.1), BRASS, sides=24)
+    for k in range(16):
+        a = k / 16 * TAU
+        u = V(math.cos(a), math.sin(a), 0)
+        obox(p, u * .0572 + (0, 0, .565), (.002, .0045, .008), b(1.2), BRASS, .001, basis(u))
+    turn(p, [(.05, .578), (.04, .592), (.02, .6), (0, .602)], b(1.2), BRASS, 24, caps=(False, False))
+    # ---- tie rods, the hoop, the latch, the bail handle
+    for k in range(3):
+        a = math.radians(60 + 120 * k)
+        u = V(math.cos(a), math.sin(a), 0)
+        pipe(p, [u * .134 + (0, 0, .066), u * .134 + (0, 0, .496)], .0055, b(1.1), BRASS, 8)
+        bolts(p, [u * .134 + (0, 0, .497), u * .134 + (0, 0, .05)], [(0, 0, 1), (0, 0, -1)], .011, b(1.25), BRASS)
+        obox(p, u * .127 + (0, 0, .275), (.008, .007, .009), b(1.1), BRASS, .002, basis(u))
+    hoop(p, (0, 0, .275), (0, 0, 1), .1195, .0045, b(), BRASS, s, 6)
+    obox(p, (.146, 0, .486), (.005, .018, .02), b(1.1), BRASS, .002)
+    bolts(p, [(.151, 0, .486)], X, .009, b(1.3), BRASS)
+    pipe(p, curve([V(.15, 0, .468), V(.158, 0, .452), V(.15, 0, .437), V(.136, 0, .432)], 7), .004, b(1.2), BRASS, 6)
+    for sg in (-1, 1):
+        obox(p, (0, sg * .146, .486), (.012, .008, .014), b(), BRASS, .003)
+        pipe(p, [(0, sg * .14, .486), (0, sg * .163, .486)], .006, b(1.3), BRASS, 8)
+    a = np.linspace(0, math.pi, 25)
+    pipe(p, np.stack([np.zeros(25), .158 * np.cos(a), .486 + .196 * np.sin(a)], 1), .0065, b(1.1), BRASS, 8)
+    pipe(p, [(0, -.045, .682), (0, .045, .682)], .012, b(.85), BRASS, 12)
+    weather(p, 612, .7, under=.18, dirt=.2, streak=.12)
+    return _item(p, .7)
+
+
+@built(.012)
+def coupling_pin():
+    """SM_GN_Pin (0.8 m long, centred, standing on its nose): Burr's coupling pin. A heavy turned steel shank with a
+    chamfered nose rubbed bright, two grease grooves, a linch pin through it with its spring ring, a band of the
+    Just's orange; a brass collar with set screws under a forged head, whose eye carries a brass pull ring, fallen to
+    +x. Rust on the steel. Marks: ring (the pull ring's centre), nose."""
+    rng = np.random.default_rng(613)
+    p = Part('SM_GN_Pin', (STEEL, BRASS, PAINT))
+    dark, rub, groove = tone(STEEL_GREY, .32), tone(STEEL_GREY, 1.3), tone(STEEL_DARK, .8)
+    steel = tone(STEEL_GREY, .48)                  # forged and oiled: darker than the scan's plate
+    R = .05
+    s = S(R, 16, 32)
+    faded = tone(JUST_ORANGE, .95)
+    # the shank, listed counter-clockwise from the nose: (point, the colour and slot of the band that starts there)
+    rows = [((.006, -.4), rub), ((.024, -.4), rub), ((.04, -.374), rub), ((R, -.33), tone(STEEL_GREY, .8)), ((R, -.25), steel),
+            ((R, -.2), groove), ((R - .005, -.197), groove), ((R - .005, -.189), groove), ((R, -.186), tone(STEEL_GREY, .62)),
+            ((R, -.07), groove), ((R - .005, -.067), groove), ((R - .005, -.059), groove), ((R, -.056), steel),
+            ((R, .02), faded), ((R, .078), steel), ((R, .1), dark), ((.006, .1), dark)]
+    sweep(p, [q for q, _ in rows], BARE, STEEL, sides=s, bands={i: (c, PAINT if c is faded else STEEL) for i, (_, c) in enumerate(rows)})
+    disc(p, (0, 0, -.4), (0, 0, -1), .007, rub, STEEL, 8)
+    mark(p, 'nose', (0, 0, -.4))
+    # the linch pin and its spring ring
+    pipe(p, [(0, -.068, -.29), (0, .068, -.29)], .0085, BRIGHT, STEEL, 10)
+    ball(p, (0, -.07, -.29), .014, BRIGHT, STEEL, 10)
+    hoop(p, (0, 0, -.29), (.3, 0, 1), .0585, .0042, BRIGHT, STEEL, 28, 6)
+    # the brass collar
+    sweep(p, [(.03, .1), (.078, .1), (.087, .109), (.087, .152), (.078, .161), (.06, .172), (.03, .172)], _polished(rng), BRASS, sides=s)
+    for z in (.113, .148):
+        hoop(p, (0, 0, z), (0, 0, 1), .0868, .004, _polished(rng, 1.1), BRASS, s, 6)
+    ang = np.radians([40.0, 160.0, 280.0])
+    dirs = np.stack([np.cos(ang), np.sin(ang), np.zeros(3)], 1)
+    bolts(p, dirs * .087 + (0, 0, .1305), dirs, .011, BRIGHT)
+    # the forged head, its eye, and the pull ring through it
+    sweep(p, [(.006, .17), (.07, .17), (.078, .18), (.078, .204), (.066, .216), (.03, .224), (.006, .224)], dark, STEEL, sides=s)
+    obox(p, (0, 0, .232), (.034, .0175, .016), steel, STEEL, .005)
+    hole = V(0, 0, .268)
+    hoop(p, hole, (0, 1, 0), .034, .0175, steel, STEEL, S(.034, 16, 28), 10)
+    d = unit(V(.62, 0, -.78))
+    hoop(p, hole + d * .085, np.cross(V(0, 1.0, 0), d), .085, .011, _polished(rng, 1.05), BRASS, S(.085, 24, 40), 8)
+    mark(p, 'ring', hole + d * .085)
+    weather(p, 613, .72, under=.15, dirt=.22, streak=.14, rust=.2)
+    return _item(p, .8)
+
+
 # ---------------------------------------------------------------- the module's meshes and their contract
 
 MESHES = [link_node, link_source, link_receiver, link_relay, root_bridge, thorn_wall, thorn_cage, thorn_knot,
           wasp, lancet, burl, palisade, thresher, emitter, warden, harrow,
-          thessaly, burr]
+          thessaly, burr, wick, intercom, seed_cache, canister, coupling_pin]
 VARIANTS = {link_source: 3, link_receiver: 3, link_relay: 3}
 
 
@@ -2989,6 +3417,8 @@ CONTRACT = {
     'SM_GE_Harrow': _hedge(y=5.0),
     'SM_GP_Thessaly': {'size': (0, 0, 1.78), 'tol': .01, 'pivot': 'base'},
     'SM_GP_Burr': {'size': (0, 0, 3.3), 'tol': .005, 'pivot': 'base', 'top': 3.3},
+    'SM_GP_Wick': {'size': (0, 0, 1.5), 'tol': .01, 'pivot': 'base', 'top': 1.5},
+    'SM_GP_Intercom': {'size': (.5, .5, 2.3), 'tol': .02, 'pivot': 'base', 'top': 2.3},
     'SM_GN_LinkNode': {'size': (1.0, 1.0, 1.3), 'pivot': 'base'},
     **_flows('SM_GN_LinkSource', {'size': (1.6, 1.6, 1.8), 'pivot': 'base'}),
     **_flows('SM_GN_LinkReceiver', {'size': (1.4, 1.4, 1.6), 'pivot': 'base'}),
@@ -2997,6 +3427,9 @@ CONTRACT = {
     'SM_GN_ThornWall': {'size': (1.2, 8.0, 4.2), 'pivot': 'base'},
     'SM_GN_ThornCage': {'size': (1.5, 10.0, 7.0), 'pivot': 'base'},
     'SM_GN_ThornKnot': {'size': (1.0, 0, 0), 'pivot': 'centre'},       # 1.0 m across its largest dimension
+    'SM_GN_SeedCache': {'size': (.9, .9, 0), 'tol': .06, 'pivot': 'centre'},   # 0.9 m across the rim
+    'SM_GN_Canister': {'size': (0, 0, .7), 'tol': .02, 'pivot': 'centre'},     # 0.7 m tall
+    'SM_GN_Pin': {'size': (0, 0, .8), 'tol': .02, 'pivot': 'centre'},          # 0.8 m long, standing on its nose
 }
 
 

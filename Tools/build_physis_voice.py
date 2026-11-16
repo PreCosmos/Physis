@@ -1,6 +1,6 @@
 """Generates Divinity's narration with Kokoro, then gives it her reverb.
 
-Run with the Kokoro venv: python build_physis_voice.py MODELS_DIR OUTPUT_DIR [--samples] [--center] [--conclave] [--grove]
+Run with the Kokoro venv: python build_physis_voice.py MODELS_DIR OUTPUT_DIR [--samples] [--center] [--conclave] [--grove] [--arche]
 Text comes from Content/Python/physis_lore.py. Output is 44.1 kHz stereo wav.
 --conclave voices level 3 from Content/Python/physis_conclave_lore.py into OUTPUT_DIR (Art/Audio/Conclave/Voice):
 Divinity's scans and arrival line, then every page of every person in that person's own voice, set in a
@@ -75,6 +75,17 @@ KINDS['radio'] = (SPEED, 'aresample=44100,highpass=f=380,lowpass=f=3200,acompres
                          'asoftclip=type=tanh,equalizer=f=1800:t=q:w=1.2:g=4,highpass=f=300',
                   dict(rt60=.22, drr=14, damp=.5, share=.5, seed=16, early=((1.4, 1), (2.6, .7), (4.1, .5))))
 GROVE_SPOKEN = (('Thessaly-4', 'Thessaly Four'), ('Verdance', 'Verdanss')) + SPOKEN
+# Level 5's First Ones: unhurried, a tone and a half down with the tempo kept, a faint doubled voice a fifth of a
+# second of shimmer behind the first (they speak as if from inside stone), in a tall stone hall. A speaking stone
+# carries a voice the same way through rock: the band narrowed, a comb for the stone's ring, a small hard space.
+KINDS['firstone'] = (.84, 'asetrate=24000*0.9,aresample=44100,atempo=1.111,highpass=f=60,'
+                          'chorus=0.8:0.85:46|63:0.22|0.16:0.18|0.26:1.1|1.6,lowshelf=f=180:g=2,highshelf=f=7000:g=-1',
+                     dict(rt60=1.9, drr=5, damp=.2, share=.2, seed=17, predelay=.012, early=((7, 1), (13, .8), (22, .65), (35, .5), (52, .35))))
+KINDS['stone'] = (.84, 'asetrate=24000*0.9,aresample=44100,atempo=1.111,highpass=f=160,lowpass=f=4200,'
+                       'flanger=delay=4.6:depth=0:regen=40:width=30:speed=0.1,equalizer=f=520:t=q:w=1.2:g=3',
+                  dict(rt60=.6, drr=8, damp=.15, share=.45, seed=18, early=((2.4, 1), (4.3, .8), (6.9, .6), (10.2, .4))))
+ARCHE_SPOKEN = (('Arche', 'Ar-kee'), ('Kathodos', 'Kathodoss'), ('Aeon', 'Ee-on'), ('Maruth', 'Maruth'), ('Oreth', 'Oreth'), ('Sael', 'Sah-el'),
+                ('Ilun', 'Iloon')) + SPOKEN
 # Kokoro's speech peaks sit 15-19 dB over its loudness, but -12 LUFS under -1 dBTP leaves room for 11, so
 # loudnorm alone limits the peakiest kinds (the robot) to -14. Levelling every take to -20 LUFS first
 # gives a voice-over compressor the same input everywhere; it eases the syllable peaks, and loudnorm then
@@ -210,6 +221,39 @@ def grove(engine, out):
             print(name, flush=True)
 
 
+def arche(engine, out):
+    """Level 5: grove()'s method with Arche's lore and spellings (the AL respelt as in the Conclave)."""
+    import physis_arche_lore as lore
+    jobs = [(voice_name(title), text, VOICE, None) for _, title, text in lore.arche_entries() + [('Story',) + lore.ARRIVAL_LINE]]
+    for person in lore.PEOPLE:
+        if person[3]:
+            jobs += [(voice_name(lore.person_key(person[0], k)), page, person[3], person[4]) for k, page in enumerate(lore.conversation_pages(person))]
+    only = [re.sub(r'\.wav$', '', p) for p in sys.argv[sys.argv.index('--only') + 1].split(',')] if '--only' in sys.argv else None
+    limit = int(sys.argv[sys.argv.index('--limit') + 1]) if '--limit' in sys.argv else len(jobs)
+    with tempfile.TemporaryDirectory() as scratch:
+        scratch = pathlib.Path(scratch)
+        spaces = {}
+        for name, text, voice, kind in jobs:
+            target = out / (name + '.wav')
+            if target.exists() or (only and not any(fnmatch.fnmatch(name, pattern) for pattern in only)):
+                continue
+            if limit <= 0:
+                break
+            limit -= 1
+            text = re.sub(r'\bAL\b', 'Eigh-ell', text)
+            if kind is None:
+                speak(engine, text, VOICE, target, spoken=ARCHE_SPOKEN, scratch=scratch)
+            else:
+                speed, chain, space = KINDS[kind]
+                if kind not in spaces:
+                    path = scratch / ('Room_%s.wav' % kind)
+                    spaces[kind] = (path, room(path, **space))
+                path, seconds = spaces[kind]
+                effect = '[0:a]%s,apad=pad_dur=%.2f,pan=stereo|c0=c0|c1=c0[v];[v][1:a]afir=irnorm=-1,%s' % (chain, seconds, LOUDNESS)
+                speak(engine, text, voice, target, effect, ARCHE_SPOKEN, speed, path, scratch)
+            print(name, flush=True)
+
+
 def main():
     models, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
@@ -227,6 +271,9 @@ def main():
         return
     if '--grove' in sys.argv:
         grove(engine, out)
+        return
+    if '--arche' in sys.argv:
+        arche(engine, out)
         return
     rows = all_entries()
     if '--center' in sys.argv:
