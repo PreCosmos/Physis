@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 ENGINE="$HOME/UnrealEngine/Linux_Unreal_Engine_5.9.0_preview-1"
 "$ENGINE/Engine/Build/BatchFiles/RunUAT.sh" BuildCookRun \
     -project="$PWD/Physis.uproject" -platform=Linux -clientconfig=Shipping \
-    -cook -map=/Game/Levels/L_MainMenu+/Game/Levels/L_BattleStation+/Game/Levels/L_CenterOfTheUniverse+/Game/Levels/L_Conclave -build -stage -pak -iostore -package -archive -archivedirectory="$PWD/Build" \
+    -cook -map=/Game/Levels/L_MainMenu+/Game/Levels/L_BattleStation+/Game/Levels/L_CenterOfTheUniverse+/Game/Levels/L_Conclave+/Game/Levels/L_Grove -build -stage -pak -iostore -package -archive -archivedirectory="$PWD/Build" \
     -ubtargs="-NoUBA" -IgnoreCookErrors -nop4 -utf8output
 # Lets the packaged build find Steam when launched outside the Steam client.
 echo 4673680 > "$PWD/Build/Linux/steam_appid.txt"
