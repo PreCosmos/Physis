@@ -78,6 +78,7 @@ class Place(base.Place):
     def __init__(self, ground):
         super().__init__(ground)
         self.sights = []    # (label, where she stands cm, weave actor): each mark must be in plain sight from there
+        self.unrigged = []  # animals placed without a skinned mesh (arche:import_rigs not run)
 
     def ok(self, x, y, clear, still):
         mx, my = x / M, y / M
@@ -104,10 +105,34 @@ class Place(base.Place):
             number, reach = ANIMALS[level]
             for name, value in (('Organic', True), ('Animal', number), ('Reach', reach)):
                 actor.set_editor_property(name, value)
-        self.reskin(actor, mesh)
+        shape = self.reskin(actor, mesh)
+        if level in ANIMALS:
+            self.rig(actor, shape, mesh)
         self.tag(actor, entry, place, label)
         self.enemies += 1
         return actor
+
+    def rig(self, actor, shape, mesh):
+        """The animal's skinned mesh in the actor's Body, with its two animations; the static mesh stays in Shape,
+        unseen, for bounds and collision. Without an imported rig (arche:import_rigs) the static mesh is shown."""
+        folder = '/Game/Arche/Rigged/'
+        stem = mesh[3:]   # SM_AE_Mote -> AE_Mote
+        skinned, swim, strike = (unreal.load_asset(folder + name) if unreal.EditorAssetLibrary.does_asset_exist(folder + name) else None
+                                 for name in ('SK_' + stem, 'A_%s_Swim' % stem, 'A_%s_Strike' % stem))
+        body = next((part for part in actor.get_components_by_class(unreal.SkeletalMeshComponent) if part.get_name().split('_GEN')[0] == 'Body'), None)
+        if not (skinned and swim and strike and body):
+            self.unrigged.append(stem)
+            return
+        body.set_skeletal_mesh_asset(skinned)
+        play = unreal.SingleAnimationPlayData()
+        play.set_editor_property('anim_to_play', swim)
+        play.set_editor_property('saved_looping', True)
+        play.set_editor_property('saved_playing', True)
+        body.set_editor_property('animation_mode', unreal.AnimationMode.ANIMATION_SINGLE_NODE)
+        body.set_editor_property('animation_data', play)
+        actor.set_editor_property('Swim', swim)
+        actor.set_editor_property('Strike', strike)
+        shape.set_editor_property('visible', False)   # in the editor; in play DroneAnimal hides it when Swim starts
 
     def weave(self, label, mesh, place, yaw=0.0, give='', done='', hold=0.0, loom='', limit=1, need='', hide='', mark=(0.0, 0.0, 200.0), range_m=45.0,
               scale=1.0, drift=260.0, stand=None, folder='Weaves'):
@@ -740,7 +765,7 @@ def place(ground, save=True):
         base.save_level(LEVEL)
     return {'level': LEVEL, 'removed': removed, 'placed': p.count, 'enemies': p.enemies, 'rays': rays, 'sounds': sounds, 'people': p.people, 'unset': p.unset,
             'unvoiced': len(p.unvoiced), 'hops': hops, 'raised': raised, 'blocked': blocked, 'weaves': seen, 'hidden': hidden, 'missing_assets': sorted(base.MISSING)[:60],
-            'missing_count': len(base.MISSING), 'climb': getattr(p, 'climb', None), 'marks': {name: [round(v) for v in spot] for name, spot in p.marks.items()}}
+            'missing_count': len(base.MISSING), 'climb': getattr(p, 'climb', None), 'unrigged': sorted(set(p.unrigged)), 'marks': {name: [round(v) for v in spot] for name, spot in p.marks.items()}}
 
 
 # ---------------------------------------------------------------- the Center's temple current

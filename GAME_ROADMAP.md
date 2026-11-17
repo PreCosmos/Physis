@@ -893,7 +893,8 @@ the Ward guards: **Drift Mote** 4 (shoals, a darting bite), **Bell Medusa** 9 (t
 **Shellback** 18 (its shell turns light blows; it rams shell first), **Sky Ray** 20 (fast; a tail whip), **Crest
 Stalker** 28 (keeps a territory: three of the caches; rears and bites), and the **Leviathan**, 70, circling the
 Ossuary (avoidable; a body slam). They fight only with their bodies, never with fire: each closes, calls and draws
-back before it strikes, and the blow lands only if she is still in reach. None of them is destroyed: struck enough, one scatters like breath
+back before it strikes, and the blow lands only if she is still in reach. Each is rigged: fins, tendrils, necks, jaws
+and tails swim on their own and take part in the strike. None of them is destroyed: struck enough, one scatters like breath
 on glass and gathers again somewhere quieter. They are the game's first organic enemies; the same kind of animal is
 wanted on the earlier worlds too (Proposed: grove and basin fauna for levels 1 and 4).
 

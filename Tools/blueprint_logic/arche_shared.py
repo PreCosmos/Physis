@@ -239,9 +239,14 @@ def animals():
     """Arche's animals fight with their bodies. A BP_TrainingDrone with Organic set never fires a bolt: it closes to
     its Reach, calls and draws back (the warning), throws itself at her and lands the blow only if she is still in
     reach. DroneAnimal moves its mesh (Shape) each tick: it swims at rest, and coils, strikes and recovers around
-    StrikeAt. Machines (Organic false) are untouched."""
+    StrikeAt; an animal with a skinned mesh in Body (arche:animal_body, arche:import_rigs; the scenario sets Swim and
+    Strike) plays Swim in a loop and Strike once from StrikeAt, 1.3 s, both starting from the same pose, and its static
+    mesh (Shape) is hidden from then on, kept for bounds and collision. Machines
+    (Organic false) are untouched."""
     D = 'BP_TrainingDrone'
-    for name, kind, shown in (('Organic', 'bool', True), ('Animal', 'int', True), ('Reach', 'float', True), ('StrikeAt', 'float', False)):
+    for name, kind, shown in (('Organic', 'bool', True), ('Animal', 'int', True), ('Reach', 'float', True), ('StrikeAt', 'float', False),
+                              ('Swim', 'object:/Script/Engine.AnimSequence', True), ('Strike', 'object:/Script/Engine.AnimSequence', True),
+                              ('AnimState', 'int', False)):
         gl.var(D, name, kind, shown)
     gl.shell(D, 'DroneAnimal')
     organic = '(`self.Organic`)'
@@ -272,14 +277,24 @@ def animals():
   (bind long (- (+ 1.0 (* 0.2 thrust)) (* 0.12 draw)))
   (bind wide (- (+ 1.0 (* 0.08 draw)) (* 0.07 thrust)))
   (`SceneComponent.K2_SetRelativeLocationAndRotation` (`self.Shape`) %s (`KismetMathLibrary.MakeRotator` %s %s %s) false true)
-  (`SceneComponent.SetRelativeScale3D` (`self.Shape`) %s))""" % (
+  (`SceneComponent.SetRelativeScale3D` (`self.Shape`) %s)
+  (if (`KismetSystemLibrary.IsValid` (`self.Swim`))
+    (if (and %s (!= (`self.AnimState`) 2))
+      (set `self.AnimState` 2)
+      (`SkeletalMeshComponent.PlayAnimation` (`self.Body`) (`self.Strike`) false)
+      (elif (and (not %s) (!= (`self.AnimState`) 1))
+        (`SkeletalMeshComponent.PlayAnimation` (`self.Body`) (`self.Swim`) true)
+        (if (== (`self.AnimState`) 0)
+          (`SceneComponent.SetVisibility` (`self.Shape`) false false)
+          (`SkeletalMeshComponent.SetPosition` (`self.Body`) (`KismetMathLibrary.RandomFloatInRange` 0.0 2.0) false))
+        (set `self.AnimState` 1)))))""" % (
         draw, go, turn, table('pulse'), sin('(* (`self.Phase`) 2.6)'),
         gl.vec('(- (* %s thrust) (* %s draw))' % (table('reach'), table('draw')), '0.0', '(* -0.25 (* %s draw))' % table('draw')),
         '(* %s %s)' % (table('roll'), sin('(* (`self.Phase`) %s)' % table('roll_rate'))),
         '(+ (+ (* %s %s) (+ (* %s draw) (* %s thrust))) (* %s turn))' % (table('nod'), sin('(* (`self.Phase`) %s)' % table('nod_rate')), table('coil'), table('bite'),
                                                                     table('tumble')),
         '(* %s turn)' % table('whip'),
-        gl.vec('(* long (- 1.0 (* 0.5 swell)))', '(* wide (- 1.0 (* 0.5 swell)))', '(* wide (+ 1.0 swell))')))
+        gl.vec('(* long (- 1.0 (* 0.5 swell)))', '(* wide (- 1.0 (* 0.5 swell)))', '(* wide (+ 1.0 swell))'), on, on))
 
     cry, strike = al.AA + 'S_AnimalCry', al.AA + 'S_AnimalStrike'
     for path in (cry, strike):

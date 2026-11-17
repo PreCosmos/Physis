@@ -264,6 +264,13 @@ def membrane(part, G, thick, ctop, cbot, slot, up=None, rim=None):
     return n
 
 
+def membrane_start(part, *args, **kw):
+    """membrane(), returning its first vertex instead of its normals."""
+    start = len(part.v)
+    membrane(part, *args, **kw)
+    return start
+
+
 class Surf:
     """A point grid as a surface: s(a, b) -> (point, unit normal) for a, b in 0..1 (b wraps when wrap is set)."""
 
@@ -329,6 +336,14 @@ class Body:
     def at(self, t, th):
         return self.surf(t, (th + PI) / TAU)
 
+    def cp(self, t):
+        """The spine's point at fraction t."""
+        return np.array([np.interp(t * (self.n - 1), np.arange(self.n), self.c[:, k]) for k in range(3)])
+
+    def vt(self):
+        """The spine fraction of each vertex add() made (the rings, then the two poles)."""
+        return np.r_[np.repeat(self.t, self.m), 0.0, 1.0]
+
     def ab(self, a, b):
         """The same surface with both parameters 0..1 (for fracture())."""
         return self.surf(a, b)
@@ -363,7 +378,9 @@ def orb(part, c, r, colour, slot, n=None, flat=1.0, level=2):
     local = v * np.array([r, r, r * flat])
     if n is not None:
         local = local @ fl.along(unit(n)).T
-    return part.add(local + np.asarray(c, np.float64), f, colour, slot, True)
+    start = part.add(local + np.asarray(c, np.float64), f, colour, slot, True)
+    _ride(part, start, c)
+    return start
 
 
 def spot(part, P, N, r, colour, level=1):
@@ -378,7 +395,7 @@ def eye(part, P, N, r, iris, lid, pupil=True, slot=GLOW):
     if pupil:
         a, b = frame(N)
         local = toolkit.ICO[1][0] * np.array([r * .2, r * .55, r * .3])
-        part.add(local @ np.stack([a, b, unit(N)], 1).T + P + N * r * .95, toolkit.ICO[1][1], lit(ROCK_DEEP, .6), SKIN, True)
+        _ride(part, part.add(local @ np.stack([a, b, unit(N)], 1).T + P + N * r * .95, toolkit.ICO[1][1], lit(ROCK_DEEP, .6), SKIN, True), P)
 
 
 def spike(part, base, tip, r, c0, c1, slot=CRYSTAL, sides=5, tip_len=.4):
@@ -386,6 +403,7 @@ def spike(part, base, tip, r, c0, c1, slot=CRYSTAL, sides=5, tip_len=.4):
     start = prism(part, base, tip, r, c0, slot, sides, tip_len, False)
     cols = np.concatenate([np.tile(rgba(c0), (sides, 1)), np.tile(rgba(mx(c0, c1, .55)), (sides, 1)), rgba(c1)[None, :]])
     part.c[start:start + 2 * sides + 1] = cols.tolist()
+    _ride(part, start, base)
     return start
 
 
@@ -426,14 +444,20 @@ def trail(rng, start, d0, length, n=26, drift=(-.5, 0, -.8), stiff=1.2, curl=0.0
     return np.array(pts)
 
 
-def tendril(part, rng, start, d0, length, r0, c0, c1, n=26, sides=5, tip=None, tip_r=None, beads=0.0, **kw):
-    """A trailing tendril (hide), thinning from r0, coloured c0 to c1; tip: the colour of a light at its end."""
+def tendril(part, rng, start, d0, length, r0, c0, c1, n=26, sides=5, tip=None, tip_r=None, beads=0.0, bones=None, **kw):
+    """A trailing tendril (hide), thinning from r0, coloured c0 to c1; tip: the colour of a light at its end.
+    bones = (prefix, count, parent) gives it its own chain, rooted in the weights of what it grows from; the
+    chain's bone names are left in part.rg.last."""
     pts = trail(rng, start, d0, length, n, **kw)
     t = np.linspace(0, 1, n)
     r = r0 * (1 - .82 * t ** .8)
     if beads:
         r = r * (1 + beads * np.maximum(np.sin(t * TAU * length / .11 + rng.uniform(0, 6)), 0) ** 4 * (t > .15))
-    pipe(part, pts, r, lit(mx(c0, c1, t), 1.0), SKIN, sides)
+    st = pipe(part, pts, r, lit(mx(c0, c1, t), 1.0), SKIN, sides)
+    if bones is not None:
+        rg = part.rg
+        rg.last = rg.chain(bones[0], bones[2], pts[np.linspace(0, n - 1, bones[1] + 1).round().astype(int)])
+        rg.bind_pipe(st, n, sides, rg.last, rg.rows(pts[:1])[0])
     if tip is not None:
         orb(part, pts[-1], tip_r or r0 * 1.5, light(tip, 1.0), GLOW, None, 1.0, 1)
     return pts
@@ -451,7 +475,9 @@ def ridge(part, P, N, width, colour_mid, colour_edge, slot=GLOW, height=.3):
     verts = np.concatenate([P - S * w / 2 - N * w * .12, P + N * w * height, P + S * w / 2 - N * w * .12])
     faces = [[i, k + i, k + i + 1, i + 1] for i in range(k - 1)] + [[k + i, 2 * k + i, 2 * k + i + 1, k + i + 1] for i in range(k - 1)]
     cm, ce = np.broadcast_to(rgba(colour_mid), (k, 4)), np.broadcast_to(rgba(colour_edge), (k, 4))
-    return part.add(verts, _oriented(verts, faces, np.concatenate([N, N, N])), np.concatenate([ce, cm, ce]), slot, True)
+    start = part.add(verts, _oriented(verts, faces, np.concatenate([N, N, N])), np.concatenate([ce, cm, ce]), slot, True)
+    _ride(part, start)
+    return start
 
 
 def fracture(part, surf, a, b, psi, length, width, rng, branches=2, jag=.75, colour=None):
@@ -508,11 +534,14 @@ def shards(part, rng, P, N, count, size, violet=1.0):
 
 def fit(part, axis, size):
     """Centres the part on its bounds and scales it so its extent on `axis` is `size` metres."""
+    before = np.asarray(part.v[0], np.float64)
     centre(part)
     v = np.asarray(part.v, np.float64)
-    v *= size / (v[:, axis].max() - v[:, axis].min())
-    part.v = v.tolist()
-    return centre(part)
+    k = size / (v[:, axis].max() - v[:, axis].min())
+    part.v = (v * k).tolist()
+    centre(part)
+    part.xf = (k, np.asarray(part.v[0], np.float64) - before * k)      # finished = built * k + shift (for the bones)
+    return part
 
 
 def turn_y(points, deg):
@@ -533,6 +562,217 @@ def fan(root, outer, nv, arch=None, power=1.0):
     return G
 
 
+# ---------------------------------------------------------------- skeletons, skin weights and animation
+#
+# Every builder also leaves part.rig, the data of a skeletal mesh (the exporter turns it into an armature):
+#   'bones'   [(name, parent or None, head, tail), ...] in the finished mesh's space, parents first, 'Root' first
+#   'index'   (n_vertices, 4) bone indices      'weight'  (n_vertices, 4) weights, each row summing to 1
+#   'anims'   {'Swim': {'seconds', 'loop': True, 'pose'}, 'Strike': {'seconds': 1.3, 'loop': False, 'pose'}}
+# pose(t) -> {bone: (rx, ry, rz)}: a rotation vector (axis times angle, radians, plain Rodrigues in mesh axes) that
+# turns the bone about its own head, relative to its rest pose, in the frame carried by its already-posed parent.
+# With these axes +ry about a bone that points forward tips it down (a jaw opens, a nose dips) and lifts one that
+# points back (a tail rises); +rx lifts whatever lies to +y; +rz swings a forward-pointing bone toward +y.
+#
+# Weights come from the builder's own knowledge. A piece is bound as it is added: a body along its spine (by its
+# rings' t), a tendril or limb along its own chain (by ring), a fin by projection onto its chain, each blending
+# smoothly from bone to bone and into whatever it grows from at its root. Small things that ride on a surface
+# (eyes, light organs, crystals, teeth, barnacles) register themselves in orb(), spike() and ridge() and, when the
+# animal is finished, take the weights of the nearest bound vertex: rigid things as one piece from their foot,
+# seams of light vertex by vertex.
+
+class Rig:
+    MAXB = 80
+
+    def __init__(self, part):
+        self.p, part.rg = part, self
+        self.bones, self.ix, self.riders = [], {}, []
+        self.W, self.bound = np.zeros((0, self.MAXB)), np.zeros(0, bool)
+        self.last = []
+        self.bone('Root', None, (0, 0, 0), (.2, 0, 0))
+
+    def bone(self, name, parent, head, tail):
+        assert name not in self.ix and (parent is None or parent in self.ix), name
+        head, tail = np.asarray(head, np.float64), np.asarray(tail, np.float64)
+        assert norm(tail - head) > 1e-6, name
+        self.ix[name] = len(self.bones)
+        self.bones.append([name, parent if self.bones else None, head, tail])
+        if self.bones[-1][1] is None and len(self.bones) > 1:
+            self.bones[-1][1] = 'Root'
+        return name
+
+    def chain(self, prefix, parent, joints):
+        """Bones prefix1, prefix2 ... through the joints, each the child of the one before."""
+        names = []
+        for i in range(len(joints) - 1):
+            names.append(self.bone('%s%d' % (prefix, i + 1), parent, joints[i], joints[i + 1]))
+            parent = names[-1]
+        return names
+
+    def _grow(self):
+        n = len(self.p.v)
+        if n > len(self.W):
+            self.W = np.concatenate([self.W, np.zeros((n - len(self.W), self.MAXB))])
+            self.bound = np.concatenate([self.bound, np.zeros(n - len(self.bound), bool)])
+
+    def row(self, weights):
+        """{bone: weight} (or a row already) as one row."""
+        if isinstance(weights, dict):
+            r = np.zeros(self.MAXB)
+            for name, w in weights.items():
+                r[self.ix[name]] = w
+            return r
+        return np.asarray(weights, np.float64)
+
+    def bind(self, idx, rows):
+        """Gives vertices idx ((start, end) or indices) their weights: one {bone: w}, or one row each."""
+        self._grow()
+        idx = np.arange(idx[0], idx[1]) if isinstance(idx, tuple) else np.asarray(idx)
+        rows = self.row(rows)
+        rows = np.broadcast_to(rows, (len(idx), self.MAXB)).copy()
+        self.W[idx] = rows / rows.sum(1, keepdims=True)
+        self.bound[idx] = True
+
+    def rows(self, pts, host=None):
+        """The weights of the nearest bound vertex (within host = (start, end) when given) to each point."""
+        self._grow()
+        cand = np.flatnonzero(self.bound)
+        if host is not None:
+            cand = cand[(cand >= host[0]) & (cand < host[1])]
+        V = np.asarray(self.p.v, np.float64)[cand]
+        pts = np.asarray(pts, np.float64).reshape(-1, 3)
+        near = np.concatenate([np.argmin(((pts[i:i + 256, None, :] - V[None, :, :]) ** 2).sum(-1), 1) for i in range(0, len(pts), 256)])
+        return self.W[cand[near]]
+
+    def stick(self, start, end=None, host=None):
+        """Vertices start..end each take the weights of the bound vertex nearest them."""
+        end = len(self.p.v) if end is None else end
+        self.bind((start, end), self.rows(self.p.v[start:end], host))
+
+    def chain_rows(self, s, names, root, pts=None, blend=.5, lead=.6):
+        """Rows for vertices at chain coordinate s (0 at the chain's root, i at its i-th joint, len(names) at its
+        tip): whole bones in the middle of each, smooth blends across the joints, and over the first `lead` of
+        the first bone a blend out of `root` ({bone: w}, a row, or 'stick' / ('stick', host): the nearest bound
+        vertex to each of pts)."""
+        s = np.asarray(s, np.float64)
+        k = len(names)
+        u = [smooth(0, lead, s)] + [smooth(i - blend, i + blend, s) for i in range(1, k)] + [np.zeros_like(s)]
+        if isinstance(root, str) or (isinstance(root, tuple) and root[0] == 'stick'):
+            base = self.rows(pts, None if isinstance(root, str) else root[1])
+        else:
+            base = self.row(root)[None, :]
+        rows = (1 - u[0])[:, None] * base
+        for i, name in enumerate(names):
+            rows[:, self.ix[name]] += u[i] - u[i + 1]
+        return rows
+
+    def spine_rows(self, t, ts, names, root):
+        """Rows for a body's vertices at spine fractions t, for a chain whose joints lie at fractions ts (running
+        either way along the spine from ts[0])."""
+        order = np.argsort(ts)
+        return self.chain_rows(np.interp(t, np.asarray(ts, np.float64)[order], np.arange(len(ts), dtype=np.float64)[order]), names, root)
+
+    def bind_pipe(self, start, n, sides, names, root, at=None, caps=2):
+        """Binds a pipe() of n rings to a chain; at: the ring index of each joint (evenly spread by default)."""
+        k = len(names)
+        at = np.linspace(0, n - 1, k + 1) if at is None else np.asarray(at, np.float64)
+        ring = np.r_[np.repeat(np.arange(n), sides), [0, n - 1][:caps]]
+        end = start + len(ring)
+        self.bind((start, end), self.chain_rows(np.interp(ring, at, np.arange(k + 1.0)), names, root, self.p.v[start:end]))
+
+    def bind_proj(self, start, end, joints, names, root, lead=.6):
+        """Binds vertices start..end to a chain by where each projects onto the chain's joints."""
+        J = np.asarray(joints, np.float64)
+        v = np.asarray(self.p.v[start:end], np.float64)
+        best, s = np.full(len(v), 1e18), np.zeros(len(v))
+        for i in range(len(J) - 1):
+            d = J[i + 1] - J[i]
+            f = np.clip((v - J[i]) @ d / np.dot(d, d), -1.0 if i == 0 else 0.0, 1.0)
+            dist = ((v - (J[i] + np.clip(f, 0, 1)[:, None] * d)) ** 2).sum(1)
+            better = dist < best
+            best, s = np.where(better, dist, best), np.where(better, i + f, s)
+        self.bind((start, end), self.chain_rows(s, names, root, v, lead=lead))
+
+    def ride(self, start, anchor=None, end=None):
+        self.riders.append((start, len(self.p.v) if end is None else end, None if anchor is None else np.asarray(anchor, np.float64)))
+
+    def finish(self, anims):
+        """Resolves the riders, checks every vertex is bound, moves the bones into the finished mesh's space
+        (fit() has recorded the scale and shift) and writes part.rig."""
+        self._grow()
+        riders = [r for r in self.riders if not self.bound[r[0]:r[1]].all()]
+        rigid = [r for r in riders if r[2] is not None]
+        got = {}
+        k, off = self.p.xf                                         # anchors were recorded before fit() moved the mesh
+        if rigid:
+            rows = self.rows(np.array([r[2] for r in rigid]) * k + off)
+            got.update({id(r): rows[i] for i, r in enumerate(rigid)})
+        for r in riders:
+            if r[2] is None:
+                got[id(r)] = self.rows(self.p.v[r[0]:r[1]])
+        for r in riders:
+            self.bind((r[0], r[1]), got[id(r)])
+        if not self.bound.all():
+            raise ValueError('%s: %d vertices without weights, the first at %d' % (self.p.name, int((~self.bound).sum()), int(np.argmin(self.bound))))
+        bones = [(name, parent, tuple((head * k + off).tolist()), tuple((tail * k + off).tolist())) for name, parent, head, tail in self.bones]
+        bones[0] = ('Root', None, (0.0, 0.0, 0.0), (.2, 0.0, 0.0))
+        W = self.W[:, :len(bones)]
+        index = np.argsort(-W, 1)[:, :4]
+        weight = np.take_along_axis(W, index, 1)
+        weight = weight / weight.sum(1, keepdims=True)
+        index = np.where(weight > 0, index, 0)
+        self.p.rig = {'bones': bones, 'index': index.astype(np.int32), 'weight': weight, 'anims': anims}
+        del self.p.rg
+        return self.p
+
+
+def _ride(part, start, anchor=None):
+    if hasattr(part, 'rg'):
+        part.rg.ride(start, anchor)
+
+
+class Pose(dict):
+    """Rotation vectors by bone, added up: turn(names, axis, angle) with one axis or one per bone, one angle or
+    one per bone."""
+
+    def turn(self, names, axis, ang):
+        names = [names] if isinstance(names, str) else names
+        axis = np.asarray(axis, np.float64)
+        ang = np.broadcast_to(np.asarray(ang, np.float64), (len(names),))
+        for i, name in enumerate(names):
+            self[name] = self.get(name, np.zeros(3)) + (axis[i] if axis.ndim == 2 else axis) * ang[i]
+        return self
+
+    def done(self):
+        return {k: (float(v[0]), float(v[1]), float(v[2])) for k, v in self.items() if np.any(v != 0)}     # a bone left out is at rest
+
+
+def key(t, keys):
+    """A track through (time, value) keys, eased between them."""
+    if t <= keys[0][0]:
+        return float(keys[0][1])
+    for (t0, v0), (t1, v1) in zip(keys, keys[1:]):
+        if t <= t1:
+            f = (t - t0) / (t1 - t0)
+            f = f * f * (3 - 2 * f)
+            return float(v0 + (v1 - v0) * f)
+    return float(keys[-1][1])
+
+
+def wave(k, amp, phase, lag, grow=0.0):
+    """Angles of a wave travelling down a chain of k bones."""
+    return np.array([amp * (1 + grow * i) * math.sin(phase - lag * i) for i in range(k)])
+
+
+def animations(seconds, swim, strike):
+    """The two animations from swim(t) -> Pose (t already wrapped into the loop) and strike(t, pose) -> Pose, which
+    adds to Swim's first pose and must add nothing at 0 and at 1.3 s."""
+    return {'Swim': {'seconds': seconds, 'loop': True, 'pose': lambda t: swim(t % seconds).done()},
+            'Strike': {'seconds': 1.3, 'loop': False, 'pose': lambda t: strike(min(max(t, 0.0), 1.3), swim(0.0)).done()}}
+
+
+XA, YA, ZA = V(1, 0, 0), V(0, 1, 0), V(0, 0, 1)             # the mesh axes, for poses
+
+
 # ================================================================ SM_AE_Mote
 
 def mote():
@@ -542,12 +782,17 @@ def mote():
     eye-spots, and one small violet fracture on its flank."""
     rng = np.random.default_rng(5101)
     p = Part('SM_AE_Mote', (SKIN, CRYSTAL, GLOW))
+    rg = Rig(p)
     b = Body([V(.25, 0, .0), V(.12, 0, .03), V(-.04, .0, .03), V(-.18, .03, -.01), V(-.30, .08, -.07)], 34, 20,
              ry=[(0, .045), (.1, .078), (.3, .088), (.6, .058), (.85, .032), (1, .014)],
              up_r=[(0, .045), (.1, .08), (.3, .092), (.6, .06), (.85, .034), (1, .014)],
              dn_r=[(0, .04), (.1, .066), (.3, .074), (.6, .05), (.85, .028), (1, .012)])
     b.push(.004 * np.sin(b.TT * 70) * smooth(.45, .7, b.TT))                    # soft rings on the tail
     b.add(p, hide(b.G, b.N, SLATE_MID, PEARL, 3, .08, .16), caps=(.7, .8))
+    rg.bone('Body', 'Root', b.cp(.45), b.cp(0))
+    tail_ts = (.45, .64, .82, 1.0)
+    tails = rg.chain('Tail', 'Body', [b.cp(t) for t in tail_ts])
+    rg.bind((b.start, b.end), rg.spine_rows(b.vt(), tail_ts, tails, {'Body': 1}))
     # the glass back: a dome of crystal over the spine, and the light organs under it
     t = np.linspace(.1, .74, 20)
     idx = t * (b.n - 1)
@@ -559,16 +804,18 @@ def mote():
     rings = (cc + V(0, 0, 1) * ru[:, None] * .42)[:, None, :] + (V(0, 1, 0)[None, None, :] * (ry * .8 * s)[:, None, None] * np.cos(ang)[None, :, None] +
                                                                   V(0, 0, 1)[None, None, :] * (ru * .92 * s)[:, None, None] * np.sin(ang)[None, :, None])
     tt = np.linspace(0, 1, 20)
-    loft(p, rings, lit(mx(CRYSTAL_ICE, CRYSTAL_CLEAR, tt), 1.0), CRYSTAL, caps=(.3, .3))
+    rg.stick(loft(p, rings, lit(mx(CRYSTAL_ICE, CRYSTAL_CLEAR, tt), 1.0), CRYSTAL, caps=(.3, .3)), None, (b.start, b.end))
     for k, tk in enumerate(np.linspace(.16, .68, 6)):
         P, N = b.at(tk, PI / 2)
         orb(p, P + N * .012, .013 - .001 * k, light(GLOW_SERENE, 1.0), GLOW, None, 1.0, 1)
     # wing-fins (clear membrane on three soft rays): right raised, left sweeping down
+    wings, feelers, tends = [], [], []
     for side, lift, sweep in ((1, .24, -.02), (-1, -.10, -.10)):
         th = .45 if side > 0 else PI - .45
         root = np.array([b.at(tk, th)[0] - b.at(tk, th)[1] * .01 for tk in np.linspace(.2, .5, 9)])
         mid = root[4]
         tipv = V(sweep, side * .36, lift)
+        st = len(p.v)
         outer = curve([root[0] + V(.07, side * .16, lift * .5), mid + tipv + V(.07, 0, 0), mid + tipv, mid + tipv * .8 + V(-.12, 0, -.03 * side),
                        root[-1] + V(-.10, side * .12, lift * .2)], 9)
         G = fan(root, outer, 8, V(0, 0, .035 if side > 0 else -.03))
@@ -577,15 +824,22 @@ def mote():
         membrane(p, G, .007 - .004 * vv, c, c, CRYSTAL, V(0, 0, 1))
         for u in (1, 4, 7):
             pipe(p, G[u, :7], np.linspace(.008, .003, 7), lit(mx(SLATE_MID, PEARL, np.linspace(.1, .8, 7)), 1.0), SKIN, 5)
+        names = rg.chain('WingR' if side > 0 else 'WingL', 'Body', [G[4, 0], G[4, 4], G[4, 7]])
+        rg.bind_proj(st, len(p.v), [G[4, 0], G[4, 4], G[4, 7]], names, ('stick', (b.start, b.end)), lead=.5)
+        wings.append((side, names, unit(root[0] - root[-1])))
     # feelers on the head, tendrils from the tail
     for side in (1, -1):
         P, N = b.at(.03, PI / 2 - side * .7)
-        tendril(p, rng, P - N * .01, unit(V(.7, side * .5, .6)), .12, .011, SLATE_MID, PEARL, 10, 5, drift=(1, side * .3, .1), stiff=.5, wobble=.1)
+        tendril(p, rng, P - N * .01, unit(V(.7, side * .5, .6)), .12, .011, SLATE_MID, PEARL, 10, 5, bones=('FeelR' if side > 0 else 'FeelL', 1, 'Body'),
+                drift=(1, side * .3, .1), stiff=.5, wobble=.1)
+        feelers.append((side, rg.last))
     for k in range(5):
         th = -PI / 2 + (k - 2) * 1.1 + rng.uniform(-.2, .2)
         P, N = b.at(.86 + .02 * (k % 2), th)
         tendril(p, rng, P - N * .008, unit(N * .5 + V(-1, .25, -.2)), rng.uniform(.17, .30), .010, PEARL, mx(PEARL, CRYSTAL_ICE, .6), 16, 5,
-                tip=GLOW_SERENE if k % 2 == 0 else None, tip_r=.011, drift=(-1, .35, -.25), stiff=.8, curl=(.45 if k == 3 else 0), wobble=.3)
+                tip=GLOW_SERENE if k % 2 == 0 else None, tip_r=.011, bones=('Tend%d_' % k, 2, 'Tail3'),
+                drift=(-1, .35, -.25), stiff=.8, curl=(.45 if k == 3 else 0), wobble=.3)
+        tends.append(rg.last)
     # eye-spots
     for side in (1, -1):
         P, N = b.at(.085, PI / 2 - side * 1.05)
@@ -596,7 +850,44 @@ def mote():
     P, N = wound(p, b.ab, .42, .57, .25, .14, .012, rng, 1)
     scorch(p, b.start, b.end, P, .035)
     shards(p, rng, P, N, 2, .05)
-    return fit(p, 1, .8)
+
+    def swim(t):
+        """2 s: the wing-fins flutter four beats (the outer half lagging), the tail flicks twice from side to
+        side, tendrils stream and waver, the feelers twitch."""
+        w = TAU * t / 2.0
+        P = Pose()
+        for side, names, ax in wings:
+            P.turn(names, ax, [side * .62 * math.sin(4 * w), side * .5 * math.sin(4 * w - 1.1)])
+        P.turn('Body', ZA, -.07 * math.sin(2 * w))
+        P.turn(tails, ZA, wave(3, .2, 2 * w, .9, .6))
+        P.turn(tails, YA, wave(3, .06, 4 * w, .9))
+        for k, names in enumerate(tends):
+            P.turn(names, ZA, wave(2, .3, 2 * w - 1.5 + k * .7, 1.1))
+            P.turn(names, YA, wave(2, .25, 4 * w + k * 1.9, 1.0))
+        for side, names in feelers:
+            P.turn(names, YA, .22 * math.sin(2 * w + side))
+            P.turn(names, ZA, side * .15 * math.sin(4 * w))
+        return P
+
+    def strike(t, P):
+        """Gathers with both fins swept up and back and the tail cocked to one side; then the fins snap down and
+        forward together, the tail whips across and the tendrils fling wide; eases back."""
+        cock = key(t, [(0, 0), (.55, 1), (.6, 1), (.68, -1), (.82, -.6), (1.3, 0)])
+        hit = key(t, [(0, 0), (.6, 0), (.68, 1), (.85, .6), (1.3, 0)])
+        for side, names, ax in wings:
+            P.turn(names, ax, [side * .85 * cock, side * .45 * cock])
+            P.turn(names[0], ZA, side * (.35 * max(cock, 0) - .75 * hit))
+        P.turn(tails, ZA, np.array([.3, .4, .5]) * cock)
+        P.turn(tails, YA, np.array([-.15, -.2, -.2]) * max(cock, 0))
+        for k, names in enumerate(tends):
+            P.turn(names, ZA, (k - 2) * .35 * hit)
+            P.turn(names, YA, np.array([.2, .3]) * cock)
+        for side, names in feelers:
+            P.turn(names, YA, -.5 * max(cock, 0) + .5 * hit)
+        return P
+
+    fit(p, 1, .8)
+    return rg.finish(animations(2.0, swim, strike))
 
 
 # ================================================================ SM_AE_Medusa
@@ -609,6 +900,7 @@ def medusa():
     the bell."""
     rng = np.random.default_rng(5202)
     p = Part('SM_AE_Medusa', (SKIN, CRYSTAL, GLOW, LICHEN))
+    rg = Rig(p)
     Rb, H, tilt = .80, .62, 14.0
 
     def outer(q, a):
@@ -638,6 +930,25 @@ def medusa():
     bell_start = len(p.v)
     loft(p, rings, lit(c, 1.0), CRYSTAL, out=out, caps=(.12, .3))
     bell_end = len(p.v)
+    # the bell's bones: the crown, and eight radial bones that swing the margin in and out (the pulse)
+    rg.bone('Bell', 'Root', turn_y(V(0, 0, .05), tilt), turn_y(V(0, 0, H), tilt))
+    rims, rim_tan, rim_rad = [], [], []
+    for k in range(8):
+        a = (k + .5) * TAU / 8
+        rims.append(rg.bone('Rim%d' % k, 'Bell', turn_y(outer(.3, a) * V(.9, .9, .9), tilt), turn_y(outer(1.0, a), tilt)))
+        rim_tan.append(turn_y(V(-math.sin(a), math.cos(a), 0), tilt))
+        rim_rad.append(turn_y(V(math.cos(a), math.sin(a), 0), tilt))
+    rows = np.zeros((bell_end - bell_start, Rig.MAXB))
+    nring = (nq_o + nq_i - 1) * m
+    x = np.tile(A, nq_o + nq_i - 1) / TAU * 8 - .5
+    f = smooth(0, 1, x - np.floor(x))
+    share = smooth(.2, .58, qq.ravel())
+    k0 = np.floor(x).astype(int) % 8
+    rows[np.arange(nring), [rg.ix[rims[k]] for k in k0]] += share * (1 - f)
+    rows[np.arange(nring), [rg.ix[rims[(k + 1) % 8]] for k in k0]] += share * f
+    rows[:nring, rg.ix['Bell']] += 1 - share
+    rows[nring:, rg.ix['Bell']] = 1
+    rg.bind((bell_start, bell_end), rows)
 
     def bell(a, b):
         """The bell's outer surface: a 0..1 from crown to margin, b 0..1 round."""
@@ -664,14 +975,19 @@ def medusa():
     core.push(.03 * np.cos(4 * core.TH) * np.sin(PI * core.TT) + .012 * np.sin(core.TT * 40) * smooth(.5, .8, core.TT))
     cc = mx(mx(SLATE_MID, CLOTH_VIOLET, .12), PEARL, smooth(.1, .8, core.TT)) * (1 + .15 * mottle(core.G, .12, 9))[..., None]
     core.add(p, lit(cc, 1.0), caps=(.4, -.5))
+    rg.bone('Core', 'Bell', core.cp(0), core.cp(.5))
+    rg.bone('Mouth', 'Core', core.cp(.5), core.cp(1))
+    rg.bind((core.start, core.end), rg.spine_rows(core.vt(), (0, .5, 1.0), ['Core', 'Mouth'], {'Bell': 1}))
     for k in range(4):                                             # four ring organs of light round the crown of the core
         a = (k + .5) * TAU / 4
         st = len(p.v)
         torus(p, (0, 0, 0), .105, .022, light(GLOW_SERENE, .9), GLOW, sides=18, ring=6, arc=TAU * .8, start=a + PI + TAU * .1)
         fl.place(p, st, None, V(.33 * math.cos(a), .33 * math.sin(a), .285))
         p.v[st:] = turn_y(np.asarray(p.v[st:]), tilt).tolist()
+        rg.bind((st, len(p.v)), {'Bell': 1})
     # four frilled mouth-arms
     mouth = turn_y(V(0, 0, -.5), tilt)
+    arms, tends = [], []
     for k in range(4):
         a = k * TAU / 4 + .4
         d0 = turn_y(V(.5 * math.cos(a), .5 * math.sin(a), -1), tilt)
@@ -685,7 +1001,12 @@ def medusa():
         ruf = np.sin(u * 30 + k) * np.abs(v) ** 1.5 * w * .8 + np.cos(u * 17 + v * 2) * w * .25
         G = path[:, None, :] + S[:, None, :] * (w * v)[..., None] + U[:, None, :] * ruf[..., None]
         c = lit(mx(mx(PEARL, LICHEN_FROST, .35), mx(CLOTH_PEARL, CRYSTAL_ICE, .5), np.abs(v) * np.ones_like(u)), 1.3 - .2 * u * np.ones_like(v))
+        st = len(p.v)
         membrane(p, G, .014, c, c, LICHEN)
+        joints = path[[0, 8, 16, 24, 33]]
+        names = rg.chain('Arm%d_' % k, 'Mouth', joints)
+        rg.bind_proj(st, len(p.v), joints, names, {'Mouth': 1})
+        arms.append((names, turn_y(V(-math.sin(a), math.cos(a), 0), tilt), turn_y(V(math.cos(a), math.sin(a), 0), tilt)))
     # the wound: a fracture down one side of the bell (toward +x, +y), violet crystal breaking through it
     P, N = wound(p, bell, .30, .085, .12, .75, .05, rng, 2)
     scorch(p, bell_start, bell_end, P, .2, mx(CRYSTAL_VIOLET, CLOTH_VIOLET, .6), .8)
@@ -702,9 +1023,53 @@ def medusa():
             length *= .8
         tendril(p, rng, P + N * .005 - V(0, 0, .02), unit(V(0, 0, -1) + N * .25), length, .02, mx(PEARL, CRYSTAL_ICE, .3),
                 mx(PEARL, CRYSTAL_VIOLET if hurt else CRYSTAL_ICE, .7), 36, 5, tip=GLOW_VIGIL if hurt else GLOW_SERENE, tip_r=.038,
-                beads=.9, drift=(-.38, 0, -1), stiff=1.0, curl=curl, wobble=.3, waves=rng.uniform(1.5, 3))
+                beads=.9, bones=('T%d_' % k, 3, rims[int(a * 8) % 8]), drift=(-.38, 0, -1), stiff=1.0, curl=curl, wobble=.3,
+                waves=rng.uniform(1.5, 3))
+        tends.append((rg.last, turn_y(V(-math.sin(a * TAU), math.cos(a * TAU), 0), tilt), turn_y(V(math.cos(a * TAU), math.sin(a * TAU), 0), tilt), a))
+
+    def squeeze(ph):
+        """The pulse, 0 (open) to 1 (contracted): a quick squeeze, a slow opening."""
+        return .5 - .5 * math.cos(ph + .7 * math.sin(ph))
+
+    def swim(t):
+        """3 s, two pulses: the bell's margin contracts quickly and opens slowly (a ripple running round it), the
+        whole animal rocks, the core sways; every tendril trails a travelling wave, swinging in with the squeeze
+        and streaming out behind it, and the mouth-arms billow."""
+        w = TAU * t / 3.0
+        P = Pose()
+        P.turn('Bell', YA, .06 * math.sin(w)).turn('Bell', XA, .04 * math.sin(w + 1.3))
+        for k, name in enumerate(rims):
+            P.turn(name, rim_tan[k], -.12 + .40 * squeeze(2 * w - .25 * math.sin(k * TAU / 8)))
+        P.turn('Core', YA, .09 * math.sin(2 * w - 1.0)).turn('Mouth', YA, .12 * math.sin(2 * w - 1.8)).turn('Mouth', XA, .08 * math.sin(w))
+        for k, (names, tan, rad) in enumerate(arms):
+            P.turn(names, tan, wave(4, .24, 2 * w - 1.6 + k * .6, 1.1, .3) - np.array([.12, .05, 0, 0]) * squeeze(2 * w - .8))
+            P.turn(names, rad, wave(4, .16, w + k * 1.7, .9, .3))
+        for k, (names, tan, rad, a) in enumerate(tends):
+            sq = squeeze(2 * w - .25 * math.sin(a * TAU))
+            late = squeeze(2 * w - .25 * math.sin(a * TAU) - 1.0)
+            P.turn(names, tan, wave(3, .26, 2 * w - 1.2 - a * TAU, 1.4, .4) + np.array([-.30 * sq - .15 * late, .28 * late, .22 * late]))
+            P.turn(names, rad, wave(3, .18, w + k * 2.4, 1.2, .4))
+        return P
+
+    def strike(t, P):
+        """Gathers with the bell thrown wide open and the tendrils and mouth-arms drawn in beneath it; then the
+        bell clenches hard and every tendril flares out and up and whips, its tip cracking a beat later; eases
+        back."""
+        gather = key(t, [(0, 0), (.5, 1), (.6, .9), (.67, 0), (1.3, 0)])
+        hit = key(t, [(0, 0), (.58, 0), (.68, 1), (.82, .8), (1.3, 0)])
+        crack = key(t, [(0, 0), (.64, 0), (.74, 1), (.92, .3), (1.3, 0)])
+        for k, name in enumerate(rims):
+            P.turn(name, rim_tan[k], -.30 * gather + .42 * hit)
+        P.turn('Bell', YA, -.12 * gather + .15 * hit)
+        for names, tan, rad in arms:
+            P.turn(names, tan, np.array([.25, .25, .2, .2]) * gather + np.array([-.75, -.3, .15, .5]) * hit + np.array([0, -.2, -.4, -.7]) * crack)
+        for k, (names, tan, rad, a) in enumerate(tends):
+            P.turn(names, tan, np.array([.35, .4, .45]) * gather + np.array([-1.25, -.25, .55]) * hit + np.array([0, -.3, -1.1]) * crack)
+            P.turn(names, rad, np.array([.1, .3, .5]) * (1 if k % 2 else -1) * crack)
+        return P
+
     fit(p, 1, 1.6)
-    return p
+    return rg.finish(animations(3.0, swim, strike))
 
 
 # ================================================================ SM_AE_Shellback
@@ -716,6 +1081,8 @@ def shellback():
     curling. One violet fracture runs across the plates of its right flank."""
     rng = np.random.default_rng(5303)
     p = Part('SM_AE_Shellback', (SKIN, ROCK, CRYSTAL, GLOW))
+    rg = Rig(p)
+    rg.bone('Shell', 'Root', V(0, 0, 0), V(0, 0, .4))
     phi1 = math.radians(-78)
     bgrow = math.log(2.9) / TAU
     r1, plates_per_turn, turns = .47, 15, 1.32
@@ -769,6 +1136,7 @@ def shellback():
     out[-2:] = t_end * .35 - unit(out[-2:])                        # the rim behind the lip faces forward and in
     loft(p, rings, lit(cols, 1.0), ROCK, out=out, caps=(.4, -.3))
     shell_end = len(p.v)
+    rg.bind((shell_start, shell_end), {'Shell': 1})
 
     def shell(a, b):
         """The shell's surface for fracture(): a 0..1 along the last turn toward the mouth, b 0..1 round."""
@@ -804,6 +1172,11 @@ def shellback():
              dn_r=[(0, .36), (.3, .33), (.5, .24), (.7, .21), (.86, .21), (1, .15)])
     b.push(.014 * np.sin(b.TT * 75) * smooth(.3, .45, b.TT) * (1 - smooth(.62, .74, b.TT)) + .012 * mottle(b.G, .09, 2))
     b.add(p, hide(b.G, b.N, mx(SLATE_MID, DUSK, .4), PALE, 6, .14, .22), caps=(.2, .55))
+    neck_ts = (.30, .52, .75, 1.0)
+    for name, parent, t0, t1 in (('Neck1', 'Shell', .30, .52), ('Neck2', 'Neck1', .52, .75), ('Head', 'Neck2', .75, 1.0)):
+        rg.bone(name, parent, b.cp(t0), b.cp(t1))
+    neck = ['Neck1', 'Neck2', 'Head']
+    rg.bind((b.start, b.end), rg.spine_rows(b.vt(), neck_ts, neck, {'Shell': 1}))
     # the hood: a leathery shield over the head
     tu, tv = np.meshgrid(np.linspace(.36, .9, 16), np.linspace(.5, PI - .5, 15), indexing='ij')
     Gh = np.zeros(tu.shape + (3,))
@@ -813,7 +1186,14 @@ def shellback():
             edge = min(math.sin(PI * i / (tu.shape[0] - 1)), math.sin(PI * j / (tu.shape[1] - 1))) ** .5
             Gh[i, j] = P + N * (.012 + .03 * edge)
     hc = lit(mx(DUSK, SLATE_MID, .5 + .5 * mottle(Gh, .06, 12)), 1.0)
+    st = len(p.v)
     membrane(p, Gh, .035, hc, lit(DUSK, .6), SKIN, V(0, 0, 1))
+    # the hood follows the neck beneath it at its rear and its own bone (hinged mid-way, on the head) at its lip
+    rg.bone('Hood', 'Head', Gh[6, 7], Gh[-1, 7])
+    hv = np.asarray(p.v[st:], np.float64)
+    along_ = (hv - Gh[0, 7]) @ (Gh[-1, 7] - Gh[0, 7]) / np.dot(Gh[-1, 7] - Gh[0, 7], Gh[-1, 7] - Gh[0, 7])
+    lipw = (.9 * smooth(.3, .85, along_))[:, None]
+    rg.bind((st, len(p.v)), (1 - lipw) * rg.rows(hv, (b.start, b.end)) + lipw * rg.row({'Hood': 1})[None, :])
     # eyes
     for side in (1, -1):
         P, N = b.at(.80, .12 if side > 0 else PI - .12)
@@ -825,9 +1205,14 @@ def shellback():
                ry=[(0, .12), (.4, .10), (.8, .045), (1, .008)], up_r=[(0, .10), (.4, .09), (.8, .045), (1, .008)],
                dn_r=[(0, .03), (.5, .025), (1, .006)])
     upb.add(p, lit(mx(ROCK_BLUE, BONE, smooth(.2, 1, upb.TT) * .8 + .15 * (upb.TH > 0)), 1.0), ROCK, caps=(.2, .5))
+    rg.bone('BeakU', 'Head', upb.c[0], upb.c[-1])
+    rg.bind((upb.start, upb.end), {'BeakU': 1})
     lob = Body([tip - fwd * .08 + V(0, 0, -.07), tip + fwd * .07 + V(0, 0, -.10), tip + fwd * .17 + V(0, 0, -.10), tip + fwd * .22 + V(0, 0, -.06)], 12, 12,
                ry=[(0, .085), (.5, .06), (1, .008)], up_r=[(0, .025), (.5, .02), (1, .006)], dn_r=[(0, .06), (.5, .05), (1, .008)])
     lob.add(p, lit(mx(ROCK_BLUE, BONE, smooth(.2, 1, lob.TT) * .7), 1.0), ROCK, caps=(.2, .5))
+    rg.bone('BeakL', 'Head', lob.c[0], lob.c[-1])
+    rg.bind((lob.start, lob.end), {'BeakL': 1})
+    arms = []
     # eight short arms round the beak, reaching and curling; light organs along them
     for k in range(8):
         a = (k + .5) * TAU / 8 + rng.uniform(-.12, .12)
@@ -838,12 +1223,44 @@ def shellback():
         pts = trail(rng, P - N * .04, unit(fwd + N * .55), length, 22, drift=fwd + V(0, 0, -.25 if math.sin(a) < 0 else .1) + N * .2,
                     stiff=.5, curl=rng.uniform(.25, .6) * (1 if k % 3 else -.6), wobble=.2, waves=1.0)
         t = np.linspace(0, 1, 22)
-        pipe(p, pts, .052 * (1 - .78 * t ** .9), lit(mx(mx(SLATE_MID, DUSK, .3), PALE, t * .8), 1 + .1 * np.sin(t * 40)), SKIN, 8)
+        st = pipe(p, pts, .052 * (1 - .78 * t ** .9), lit(mx(mx(SLATE_MID, DUSK, .3), PALE, t * .8), 1 + .1 * np.sin(t * 40)), SKIN, 8)
+        names = rg.chain('Arm%d_' % k, 'Head', pts[[0, 5, 10, 15, 21]])
+        rg.bind_pipe(st, 22, 8, names, {'Head': 1})
+        arms.append((names, unit(np.cross(fwd, N)), unit(N)))
         for q in (5, 9, 13, 16):
             d = unit(pts[q + 1] - pts[q - 1])
             n = unit(np.cross(d, np.cross(V(0, 0, -1) + fwd * .3, d)))
             spot(p, pts[q] + n * .052 * (1 - .78 * t[q] ** .9) * .9, n, .016 * (1 - .4 * t[q]), light(GLOW_SERENE, .9))
-    return fit(p, 0, 2.2)
+
+    def swim(t):
+        """3 s: the neck and head nod and look from side to side, the hood's lip lifts and settles, the beak works,
+        and the eight arms curl and reach in turn, a wave running out each one."""
+        w = TAU * t / 3.0
+        P = Pose()
+        P.turn(neck, YA, [.10 * math.sin(w), .09 * math.sin(w - .8), .10 * math.sin(w - 1.6)])
+        P.turn(neck, ZA, [.06 * math.sin(w + 1.0), .08 * math.sin(w + .4), .12 * math.sin(w - .3)])
+        P.turn('Hood', YA, -.14 * (.5 + .5 * math.sin(w - 2.2)))
+        P.turn('BeakL', YA, .16 * (.5 + .5 * math.sin(2 * w)))
+        for k, (names, ax, out) in enumerate(arms):
+            P.turn(names, ax, wave(4, .30, w - k * 2.4, 1.0, .3) + .08)
+            P.turn(names, out, wave(4, .16, 2 * w + k * 1.3, .8, .3))
+        return P
+
+    def strike(t, P):
+        """Gathers with the head lifted, the beak gaping and the arms thrown wide; then, for the ram, the arms curl
+        in tight round the beak, the beak shuts, and the head is drawn down under the dropped hood; eases back."""
+        gather = key(t, [(0, 0), (.5, 1), (.6, .9), (.67, 0), (1.3, 0)])
+        tuck = key(t, [(0, 0), (.58, 0), (.68, 1), (.86, .9), (1.3, 0)])
+        P.turn(neck, YA, np.array([-.16, -.16, -.12]) * gather + np.array([.38, .30, .22]) * tuck)
+        P.turn('Hood', YA, -.22 * gather + .34 * tuck)
+        P.turn('BeakL', YA, .40 * gather - .12 * tuck)
+        P.turn('BeakU', YA, -.18 * gather)
+        for names, ax, out in arms:
+            P.turn(names, ax, np.array([.45, .3, .2, .1]) * gather - np.array([.55, .75, .85, .85]) * tuck)
+        return P
+
+    fit(p, 0, 2.2)
+    return rg.finish(animations(3.0, swim, strike))
 
 
 # ================================================================ SM_AE_Ray
@@ -855,6 +1272,7 @@ def ray():
     wing, a whip tail with a small fin at its root and a crystal sting. A violet fracture crosses the right wing."""
     rng = np.random.default_rng(5404)
     p = Part('SM_AE_Ray', (SKIN, CRYSTAL, GLOW))
+    rg = Rig(p)
     nu, nv = 36, 105
     s = np.linspace(-1, 1, nv)
     u = .5 - .5 * np.cos(np.linspace(0, PI, nu))                    # chord fraction, finer at both edges
@@ -897,6 +1315,28 @@ def ray():
     def sb(sf):
         return (sf + 1) / 2
 
+    # bones: the body, the head, and five down each wing (joints along the 40 % chord line)
+    mid = (top + bot) / 2
+
+    def mid_at(uf, sf):
+        return (upper(ua(uf), sb(sf))[0] + under(ua(uf), sb(sf))[0]) / 2
+    rg.bone('Body', 'Root', mid_at(.6, 0), mid_at(.25, 0))
+    rg.bone('Head', 'Body', mid_at(.2, 0), mid_at(0, 0))
+    span = (.1, .28, .46, .64, .82, 1.0)
+    wingR = rg.chain('WingR', 'Body', [mid_at(.4, q) for q in span])
+    wingL = rg.chain('WingL', 'Body', [mid_at(.4, -q) for q in span])
+    sc = np.interp(a, span, np.arange(6.0))
+    rows = np.where((s > 0)[:, None], rg.chain_rows(sc, wingR, {'Body': 1}, lead=.7), rg.chain_rows(sc, wingL, {'Body': 1}, lead=.7))
+    headw = ((1 - smooth(.07, .17, a))[None, :] * (1 - smooth(.12, .28, u))[:, None])[..., None]
+    rows = (1 - headw) * rows[None, :, :] + headw * rg.row({'Head': 1})
+    rows = rows.reshape(nu * nv, -1)
+    rg.bind((body_start, body_start + nu * nv), rows)
+    rg.bind((body_start + nu * nv, body_start + 2 * nu * nv), rows)
+    rg.stick(body_start + 2 * nu * nv, body_end, (body_start, body_start + 2 * nu * nv))
+    slope_r = np.diff(np.r_[0.0, [.82 * q ** 1.25 for q in (.19, .37, .55, .73, .91)]])          # how the rest pose bends each wing
+    slope_l = np.diff(np.r_[0.0, [.5 * q ** 1.1 + .3 * q ** 3 for q in (.19, .37, .55, .73, .91)]])
+    headfins = []
+
     # eyes at the sides of the head, on stalked folds
     for side in (1, -1):
         P, N = upper(ua(.13), sb(side * .085))
@@ -912,7 +1352,11 @@ def ray():
         G = path[:, None, :] + (V(0, 0, 1)[None, None, :] * (w * v * np.cos(scroll * v * .9))[..., None] +
                                 V(0, -side, 0)[None, None, :] * (w * (1 - np.cos(scroll * v)) * .8)[..., None])
         c = lit(mx(SLATE, PEARL, .5 + .5 * np.sin(scroll * v) * np.ones_like(t)), 1.0)
+        st = len(p.v)
         membrane(p, G, .022 - .012 * t * np.ones_like(v), lit(mx(SLATE, DUSK, .3), 1.0), lit(PALE, .85), SKIN, V(0, side, 0))
+        names = rg.chain('HeadFinR' if side > 0 else 'HeadFinL', 'Head', path[[0, 6, 11]])
+        rg.bind_proj(st, len(p.v), path[[0, 6, 11]], names, {'Head': 1})
+        headfins.append((side, names))
     # gill slits of light: five pairs beneath, three above behind the eyes
     for side in (1, -1):
         for k in range(5):
@@ -936,20 +1380,58 @@ def ray():
     Pr = Pr - V(0, 0, .05)
     tail = curve([Pr, Pr + V(-.38, .0, -.01), Pr + V(-.75, .10, .05), Pr + V(-1.0, .24, .0), Pr + V(-1.22, .22, -.14), Pr + V(-1.36, .08, -.20)], 44)
     tt = np.linspace(0, 1, 44)
-    pipe(p, tail, .062 * (1 - tt) ** 1.3 + .006, lit(mx(SLATE, DUSK, tt), 1 + .1 * np.sin(tt * 90)), SKIN, 8, caps=(.3, .8))
+    tail_start = pipe(p, tail, .062 * (1 - tt) ** 1.3 + .006, lit(mx(SLATE, DUSK, tt), 1 + .1 * np.sin(tt * 90)), SKIN, 8, caps=(.3, .8))
+    tail_at = (6, 12, 19, 26, 32, 38, 43)
+    tails = rg.chain('Tail', 'Body', tail[list(tail_at)])
+    rg.bind_pipe(tail_start, 44, 8, tails, {'Body': 1}, tail_at)
+    tail_end = len(p.v)
     d = unit(tail[-1] - tail[-3])
     spike(p, tail[-1] - d * .02, tail[-1] + d * .16, .016, lit(mx(CRYSTAL_ICE, TILE_TEAL, .3), .9), lit(CRYSTAL_CLEAR, 1.0), CRYSTAL, 5, .7)
     orb(p, tail[-1], .02, light(GLOW_SERENE, 1.0), GLOW, None, 1.0, 1)
     root = tail[10:19]
     outer = root + V(-.06, 0, 0) + V(0, 0, 1)[None, :] * (.13 * np.sin(np.linspace(.15, PI, 9)) ** .8)[:, None] + V(-1, 0, 0)[None, :] * np.linspace(0, .09, 9)[:, None]
     G = fan(root, outer, 5)
-    membrane(p, G, .012, lit(mx(SLATE, DUSK, .5), 1.0), lit(mx(SLATE, DUSK, .5), 1.0), SKIN)
+    rg.stick(membrane_start(p, G, .012, lit(mx(SLATE, DUSK, .5), 1.0), lit(mx(SLATE, DUSK, .5), 1.0), SKIN), None, (tail_start, tail_end))
     # the fracture across the right wing, and a lesser one under the left
     P, N = wound(p, upper, ua(.28), sb(.3), 1.25, .85, .045, rng, 2)
     P2, N2 = wound(p, under, ua(.45), sb(-.45), -1.9, .45, .03, rng, 1)
     scorch(p, body_start, body_end, np.concatenate([P, P2]), .13)
     shards(p, rng, P, N, 6, .17)
-    return fit(p, 1, 3.2)
+
+    def swim(t):
+        """2.4 s, two wingbeats: each beat runs out the wing from root to tip, the trailing edge lagging the stroke;
+        the wings are eased toward level from their modelled mid-stroke so the two beat alike; the head dips against
+        the beat, the head-fins furl and open, and the tail follows in a slow vertical wave."""
+        w = TAU * t / 2.4
+        P = Pose()
+        beat = wave(5, 1.0, 2 * w, .75) * np.array([.24, .24, .27, .30, .34])
+        twist = -.11 * np.array([math.cos(2 * w - .75 * i) for i in range(5)])
+        P.turn(wingR, XA, -.7 * slope_r + beat).turn(wingR, YA, twist)
+        P.turn(wingL, XA, -.7 * slope_l - beat).turn(wingL, YA, twist)
+        P.turn('Body', YA, .05 * math.sin(2 * w + 1.2))
+        P.turn('Head', YA, .08 * math.sin(2 * w + 2.6))
+        for side, names in headfins:
+            P.turn(names, YA, wave(2, .22, 2 * w - .6, .9)).turn(names, ZA, side * .18 * (.5 + .5 * math.sin(w + side)))
+        P.turn(tails, YA, wave(6, .09, 2 * w - 1.8, .8, .25)).turn(tails, ZA, wave(6, .06, w, .7, .25))
+        return P
+
+    def strike(t, P):
+        """Gathers with both wings drawn high and the tail cocked out to its right; then the wings clap down hard,
+        the head-fins fling open and the tail lashes across to the left; eases back."""
+        wing = key(t, [(0, 0), (.5, 1), (.6, .95), (.68, -1), (.82, -.75), (1.3, 0)])
+        lash = key(t, [(0, 0), (.5, .8), (.6, 1), (.69, -1.3), (.84, -.7), (1.3, 0)])
+        hit = key(t, [(0, 0), (.6, 0), (.68, 1), (.85, .6), (1.3, 0)])
+        up = np.array([.34, .4, .44, .46, .48]) * max(wing, 0) + np.array([.2, .24, .26, .28, .3]) * min(wing, 0)
+        P.turn(wingR, XA, up).turn(wingL, XA, -up)
+        P.turn('Head', YA, -.18 * max(wing, 0) + .12 * hit)
+        P.turn(tails, ZA, np.array([.16, .2, .24, .28, .3, .3]) * lash)
+        P.turn(tails, YA, np.array([.05, .06, .08, .08, .08, .08]) * max(lash, 0))
+        for side, names in headfins:
+            P.turn(names[0], ZA, side * .6 * hit).turn(names, YA, np.array([-.3, -.4]) * hit)
+        return P
+
+    fit(p, 1, 3.2)
+    return rg.finish(animations(2.4, swim, strike))
 
 
 # ================================================================ SM_AE_Stalker
@@ -962,6 +1444,7 @@ def stalker():
     lights; and the most violet fracturing of all the animals: neck, both flanks, back and tail."""
     rng = np.random.default_rng(5505)
     p = Part('SM_AE_Stalker', (SKIN, ROCK, CRYSTAL, GLOW))
+    rg = Rig(p)
     b = Body([V(1.02, 0, .66), V(.84, .02, .74), V(.60, .05, .60), V(.46, .06, .30), V(.26, .02, .04), V(-.12, -.09, -.02),
               V(-.52, -.04, .10), V(-.92, .12, .06), V(-1.28, .24, -.10), V(-1.58, .18, -.30)], 110, 30,
              ry=[(0, .095), (.07, .088), (.17, .07), (.27, .085), (.36, .165), (.5, .16), (.64, .12), (.78, .08), (.9, .045), (1, .014)],
@@ -972,6 +1455,21 @@ def stalker():
     bars = .5 + .5 * np.sin(b.TT * 75 + 2.5 * np.sin(b.TH * 2))
     c = rgb(hide(b.G, b.N, mx(SLATE, DUSK, .5), PALE, 4, .16, .2)) * (1 - .22 * bars * smooth(-.2, .6, b.N[..., 2]))[..., None]
     b.add(p, lit(c, 1.0), caps=(.6, .8))
+    # bones: the chest; the neck and head forward of it; the back and tail behind it
+    rg.bone('Chest', 'Root', b.cp(.46), b.cp(.30))
+    neck_ts = (.30, .24, .18, .12, .06, 0.0)
+    neck = rg.chain('Neck', 'Chest', [b.cp(t) for t in neck_ts[:5]]) + [rg.bone('Head', 'Neck4', b.cp(.06), b.cp(0) + V(.1, 0, 0))]
+    tail_ts = (.46, .56, .66, .76, .86, 1.0)
+    tails = []
+    for i, name in enumerate(('Back1', 'Back2', 'Tail1', 'Tail2', 'Tail3')):
+        tails.append(rg.bone(name, tails[-1] if tails else 'Chest', b.cp(tail_ts[i]), b.cp(tail_ts[i + 1])))
+    vt = b.vt()
+    rg.bind((b.start, b.end), np.where((vt < .38)[:, None], rg.spine_rows(vt, neck_ts, neck, {'Chest': 1}), rg.spine_rows(vt, tail_ts, tails, {'Chest': 1})))
+
+    def spine_bone(t):
+        """The spine bone that holds most of the skin at t."""
+        row = rg.spine_rows(np.array([t]), neck_ts, neck, {'Chest': 1})[0] if t < .38 else rg.spine_rows(np.array([t]), tail_ts, tails, {'Chest': 1})[0]
+        return rg.bones[int(np.argmax(row))][0]
     # ---- the head: wide jaws agape from the skull's front, the throat lit
     hinge = b.c[0] + V(-.07, 0, -.01)
     d_up, d_lo = unit(V(1, 0, .16)), unit(V(1, .02, -.52))
@@ -986,7 +1484,10 @@ def stalker():
         jc = rgb(hide(jaw.G, jaw.N, mx(SLATE, DUSK, .5), PALE, 4, .16, .2))
         jc = np.where(inside[..., None], mx(MAW, CLOTH_VIOLET, .5 * (1 - jaw.TT))[...], jc)
         jaw.add(p, lit(jc, 1.0), caps=(.3, .6))
-    orb(p, hinge + V(.05, 0, -.035), .075, light(WHITE_VIOLET, 1.0), GLOW, None, 1.0, 2)             # the throat
+    rg.bone('Jaw', 'Head', hinge + V(0, 0, -.03), lower.c[-1])
+    rg.bind((upper.start, upper.end), {'Head': 1})
+    rg.bind((lower.start, lower.end), {'Jaw': 1})
+    rg.bind((orb(p, hinge + V(.05, 0, -.035), .075, light(WHITE_VIOLET, 1.0), GLOW, None, 1.0, 2), len(p.v)), {'Head': 1})      # the throat
     pts = [lower.at(t, PI / 2) for t in np.linspace(.12, .7, 9)]
     ridge(p, [q[0] for q in pts], [q[1] for q in pts], np.linspace(.07, .02, 9), light(WHITE_VIOLET, .9), light(GLOW_VIGIL, .5), height=.25)
     pts = [upper.at(t, -PI / 2) for t in np.linspace(.12, .6, 8)]
@@ -1005,6 +1506,7 @@ def stalker():
         P, N = b.at(.03, .62 if side > 0 else PI - .62)
         eye(p, P, unit(N + V(.4, 0, .1)), .03, light(GLOW_VIGIL if side > 0 else GLOW_SERENE, 1.0), lit(DUSK, .8))
     # ---- the crest: crystal spines from the crown down the back, leaning to the tail
+    crest = {}
     for k, t in enumerate(np.linspace(.015, .86, 46)):
         t = t + rng.uniform(-.004, .004)
         P, N = b.at(t, PI / 2 + rng.uniform(-.12, .12))
@@ -1015,7 +1517,14 @@ def stalker():
         vio = rng.random() < (.55 if .3 < t < .62 or t < .08 else .2)
         c0 = mx(CRYSTAL_VIOLET, CLOTH_VIOLET, .4) if vio else mx(CRYSTAL_ICE, TILE_TEAL, .4)
         c1 = mx(CRYSTAL_VIOLET, CRYSTAL_CLEAR, .4) if vio else mx(CRYSTAL_ICE, CRYSTAL_CLEAR, .6)
-        spike(p, P - d * ln * .12, P + d * ln, ln * rng.uniform(.085, .12) + .004, lit(c0, .8), lit(c1, 1.0), CRYSTAL, 5, .55)
+        st = spike(p, P - d * ln * .12, P + d * ln, ln * rng.uniform(.085, .12) + .004, lit(c0, .8), lit(c1, 1.0), CRYSTAL, 5, .55)
+        ci = min(int(t / .875 * 16), 15)                            # sixteen crest bones down the back lift the spines
+        if ci not in crest:
+            tc = (ci + .5) * .875 / 16
+            Pc, Nc = b.at(tc, PI / 2)
+            crest[ci] = (rg.bone('Crest%d' % ci, spine_bone(tc), Pc - Nc * .03, Pc + Nc * .15), b.S[int(tc * (b.n - 1))].copy())
+        rg.bind((st, len(p.v)), {crest[ci][0]: 1})
+    crest = [crest[k] for k in sorted(crest)]
     # ---- the tail's fin: an eel's fringe above and below
     for sgn, th0, hmax in ((1, PI / 2, .17), (-1, -PI / 2, .12)):
         ts = np.linspace(.66, .995, 26)
@@ -1029,14 +1538,16 @@ def stalker():
         vv = np.linspace(0, 1, 6)[None, :] * np.ones((26, 1))
         G = G + b.S[-1][None, None, :] * (.03 * np.sin(q * 14 + sgn)[:, None] * vv)[..., None]
         c = lit(mx(mx(CRYSTAL_ICE, SLATE_MID, .3), mx(CRYSTAL_ICE, CRYSTAL_VIOLET, .5), vv), .9 + .1 * np.cos(q * 60)[:, None])
-        membrane(p, G, .012 - .008 * vv, c, c, CRYSTAL)
+        rg.stick(membrane_start(p, G, .012 - .008 * vv, c, c, CRYSTAL), None, (b.start, b.end))
     # ---- four fin-limbs: a long clawed ray and its web, trailing beneath
     limbs = ((.40, 1, [V(.02, .30, -.22), V(-.16, .38, -.62), V(-.40, .30, -.98), V(-.62, .20, -1.24)], .30),
              (.40, -1, [V(.10, -.26, -.28), V(.06, -.40, -.66), V(-.10, -.36, -1.02), V(-.20, -.22, -1.32)], .28),
              (.60, 1, [V(-.06, .24, -.20), V(-.26, .30, -.50), V(-.50, .22, -.74), V(-.74, .16, -.86)], .22),
              (.61, -1, [V(-.04, -.22, -.24), V(-.16, -.32, -.56), V(-.36, -.30, -.84), V(-.50, -.16, -1.04)], .22))
-    for t0, side, offs, web in limbs:
+    legs = []
+    for li, (t0, side, offs, web) in enumerate(limbs):
         P0, N0 = b.at(t0, -.5 if side > 0 else PI + .5)
+        st = len(p.v)
         n = 32
         path = curve([P0 - N0 * .04] + [P0 + o for o in offs], n)
         t = np.linspace(0, 1, n)
@@ -1062,6 +1573,10 @@ def stalker():
             i = int(f * (n - k0 - 1))
             pipe(p, np.linspace(A[i], B[i] * .95 + A[i] * .05, 6) + V(0, side, 0) * .03 * (4 * np.linspace(0, .95, 6) * (1 - np.linspace(0, .95, 6)))[:, None],
                  np.linspace(.011, .004, 6), lit(mx(SLATE_MID, PALE, .4), 1.0), SKIN, 5)
+        joints = path[[0, 10, 20, 31]]
+        names = rg.chain(('LimbFR', 'LimbFL', 'LimbRR', 'LimbRL')[li], 'Chest' if li < 2 else 'Back1', joints)
+        rg.bind_proj(st, len(p.v), joints, names, ('stick', (b.start, b.end)), lead=.5)
+        legs.append((side, names))
     # ---- the lateral line of lights
     for side in (1, -1):
         for k, t in enumerate(np.linspace(.09, .9, 22)):
@@ -1078,8 +1593,47 @@ def stalker():
     P, N = wound(p, upper.ab, .25, .68, .1, .26, .022, rng, 1)
     scorch(p, upper.start, upper.end, P, .05)
     shards(p, rng, P, N, 2, .08)
+
+    def swim(t):
+        """3 s: the neck sways from side to side in a slow wave while the head counters to keep its aim; the jaw
+        hangs half shut and works; a ripple of lifting spines runs down the crest; the four fin-limbs paddle in
+        turn (front right, rear left, front left, rear right); the back and tail undulate like an eel's, twice."""
+        w = TAU * t / 3.0
+        P = Pose()
+        P.turn(neck[:4], ZA, wave(4, .13, w, .7)).turn(neck[:4], YA, wave(4, .07, 2 * w + .5, .6))
+        P.turn('Head', ZA, -.2 * math.sin(w - 1.6)).turn('Head', YA, .07 * math.sin(2 * w - 1.5))
+        P.turn('Jaw', YA, -.2 + .1 * math.sin(2 * w))
+        P.turn('Chest', ZA, .04 * math.sin(2 * w + 1.2))
+        P.turn(tails, ZA, wave(5, .15, 2 * w, 1.0, .35)).turn(tails, YA, wave(5, .04, w + 1.0, .8))
+        for i, (name, ax) in enumerate(crest):
+            P.turn(name, ax, .10 + .2 * math.sin(w - .4 * i))
+        for i, (side, names) in enumerate(legs):
+            ph = 2 * w + (0, PI, PI / 2, 3 * PI / 2)[i]
+            P.turn(names, YA, wave(3, .26, ph, .9, .3)).turn(names, XA, side * wave(3, .10, ph + 1.2, .9))
+        return P
+
+    def strike(t, P):
+        """Gathers by rearing: the chest lifts, the neck draws up and back, the crest bristles, the limbs reach
+        forward and the tail coils; then the neck snaps forward and down with the jaw wide, the limbs are thrown
+        back, and the jaw slams shut just after the reach; eases back."""
+        rear = key(t, [(0, 0), (.5, 1), (.6, 1.05), (.69, -1), (.82, -.8), (1.3, 0)])
+        up = max(rear, 0)
+        jaw = key(t, [(0, 0), (.35, -.25), (.58, .3), (.69, .32), (.76, -.45), (.95, -.4), (1.3, 0)])
+        P.turn('Chest', YA, -.14 * up + .06 * min(rear, 0))
+        P.turn(neck[:4], YA, np.array([-.24, -.26, -.2, -.1]) * up + np.array([-.26, -.28, -.26, -.2]) * min(rear, 0))
+        P.turn('Head', YA, .5 * up - .25 * min(rear, 0) * 0 + .15 * min(rear, 0))
+        P.turn('Jaw', YA, jaw)
+        for i, (name, ax) in enumerate(crest):
+            P.turn(name, ax, .45 * up + .2 * min(rear, 0))
+        for i, (side, names) in enumerate(legs):
+            P.turn(names, YA, np.array([-.4, -.3, -.2]) * up - np.array([.5, .4, .3]) * min(rear, 0))
+            P.turn(names[0], XA, side * .25 * up)
+        P.turn(tails, ZA, np.array([.12, .2, .26, .3, .34]) * up + np.array([.1, .14, .16, .16, .16]) * min(rear, 0))
+        P.turn(tails, YA, np.array([.05, .08, .1, .1, .1]) * rear)
+        return P
+
     fit(p, 0, 2.8)
-    return p
+    return rg.finish(animations(3.0, swim, strike))
 
 
 # ================================================================ SM_AE_Leviathan
@@ -1093,6 +1647,7 @@ def leviathan():
     wound: a torn hollow lit from within, cracks running out of it, violet crystal breaking through."""
     rng = np.random.default_rng(5606)
     p = Part('SM_AE_Leviathan', (SKIN, ROCK, CRYSTAL, GLOW))
+    rg = Rig(p)
     n, m = 106, 120
     b = Body([V(4.25, 0, -.30), V(3.0, 0, -.08), V(1.5, 0, .12), V(0, 0, .12), V(-1.5, .10, .02), V(-2.8, .26, .10), V(-3.7, .40, .42),
               V(-4.35, .48, .86)], n, m,
@@ -1123,6 +1678,25 @@ def leviathan():
 
     def flank(side, t, th):
         return b.at(t, th if side > 0 else PI - th)
+
+    # bones: the chest; neck and head forward of it; back and tail behind; and the lower jaw, hinged at the corners of
+    # the mouth, which takes the skin under the mouth line and, fading back to the chest, the pleated throat (so the
+    # throat stretches when the jaw drops)
+    rg.bone('Chest', 'Root', b.cp(.5), b.cp(.3))
+    rg.bone('Neck', 'Chest', b.cp(.30), b.cp(.18))
+    rg.bone('Head', 'Neck', b.cp(.18), b.cp(0))
+    head_ts, heads = (.30, .18, 0.0), ['Neck', 'Head']
+    tail_ts, tails = (.5, .62, .74, .86, 1.0), []
+    for i, name in enumerate(('Back1', 'Back2', 'Tail1', 'Tail2')):
+        tails.append(rg.bone(name, tails[-1] if tails else 'Chest', b.cp(tail_ts[i]), b.cp(tail_ts[i + 1])))
+    hinge = (flank(1, .2, .05)[0] + flank(-1, .2, .05)[0]) / 2
+    rg.bone('Jaw', 'Head', hinge, b.cp(0) + V(0, 0, -.45))
+    vt = b.vt()
+    rows = np.where((vt < .4)[:, None], rg.spine_rows(vt, head_ts, heads, {'Chest': 1}), rg.spine_rows(vt, tail_ts, tails, {'Chest': 1}))
+    line = np.where(TT < .2, np.minimum(mouth_th, .05), .05 - (TT - .2) * 7)
+    jaw_w = smooth(-.03, .03, line - side_th) * (1 - smooth(.17, .42, TT))
+    jaw_w = np.r_[jaw_w.ravel(), 0.0, 0.0][:, None]
+    rg.bind((b.start, b.end), (1 - jaw_w) * rows + jaw_w * rg.row({'Jaw': 1})[None, :])
 
     # eyes, small, behind the corners of the mouth; knobs on the brow
     for side in (1, -1):
@@ -1158,13 +1732,18 @@ def leviathan():
 
     back_c, belly_c = mx(SLATE, ROCK_BLUE, .45), mx(PEARL, STONE_PALE, .3) * .9
     # pectoral fins: the right swept down and back, the left spread wide and a little raised
+    pecs, flukes = [], []
     for side, offs in ((1, [V(-.25, .7, -.55), V(-.85, 1.25, -1.25), V(-1.6, 1.55, -1.8), V(-2.3, 1.6, -2.05)]),
                        (-1, [V(-.2, -1.0, -.30), V(-.7, -1.8, -.38), V(-1.4, -2.4, -.25), V(-2.0, -2.65, .0)])):
         P0, N0 = flank(side, .27, -.62)
         path = curve([P0 - N0 * .35] + [P0 + o for o in offs], 30)
         v = np.linspace(0, 1, 30)
         width = .78 * (1 - v ** 2.4) ** .7 * (.7 + .3 * smooth(0, .25, v)) + .05
+        st = len(p.v)
         topg, nrm = blade(path, V(-1, 0, .12 * side), width, .2 * (1 - v) ** .8 + .03, back_c, belly_c, V(0, 0, 1), knobs=.05)
+        names = rg.chain('PecR' if side > 0 else 'PecL', 'Chest', path[[0, 10, 20, 29]])
+        rg.bind_proj(st, len(p.v), path[[0, 10, 20, 29]], names, ('stick', (b.start, b.end)), lead=.5)
+        pecs.append((side, names))
         for k in range(5):                                          # lights along the fin
             i = 6 + 5 * k
             spot(p, topg[4, i], nrm[4, i] * np.sign(np.dot(nrm[4, i], topg[4, i] - (topg[4, i] - nrm[4, i]))), .05 - .005 * k, light(GLOW_SERENE, .85))
@@ -1174,14 +1753,20 @@ def leviathan():
         v = np.linspace(0, 1, 24)
         path = (E - Tt * .25)[None, :] + Ss[None, :] * (side * 1.75 * v)[:, None] + Tt[None, :] * (.2 * v + .8 * v ** 2.2)[:, None] + Uu[None, :] * (curl * v ** 1.8)[:, None]
         width = .95 * (1 - v) ** .75 + .07
+        st = len(p.v)
         blade(path, -Tt, width, .14 * (1 - v) + .025, back_c, mx(belly_c, back_c, .35), Uu, nu=9, lead=.25)
+        names = rg.chain('FlukeR' if side > 0 else 'FlukeL', 'Tail2', path[[0, 12, 23]])
+        rg.bind_proj(st, len(p.v), path[[0, 12, 23]], names, ('stick', (b.start, b.end)), lead=.5)
+        flukes.append((side, names))
     # the dorsal fin, low and hooked
     ts = np.linspace(.6, .7, 12)
     root = np.array([b.at(t, PI / 2)[0] - b.at(t, PI / 2)[1] * .05 for t in ts])
     q = np.linspace(0, 1, 12)
     path = np.array([root.mean(0) + b.at(.65, PI / 2)[1] * h + b.T[int(.65 * (n - 1))] * (.1 + .55 * (max(h, 0) / .5) ** 1.6) for h in np.linspace(-.05, .5, 10)])
+    st = len(p.v)
     blade(path, -b.T[int(.65 * (n - 1))], .62 * (1 - np.linspace(0, 1, 10) ** 1.5) ** .8 + .05, .1 * (1 - np.linspace(0, 1, 10)) + .03, back_c, back_c,
           V(0, 1, 0), nu=7, lead=.4)
+    rg.bind((st, len(p.v)), rg.rows(b.at(.65, PI / 2)[0][None, :], (b.start, b.end))[0])      # the dorsal fin rides the back as one piece
     # barnacle cones of horn on the back, crystal growing out of them
     for k in range(13):
         t, th = rng.uniform(.1, .6), PI / 2 + rng.uniform(-.85, .85)
@@ -1204,7 +1789,7 @@ def leviathan():
             oo = unit(rr - rr.mean(1)[:, None, :])
             oo[3] = oo[3] + N
             oo[4:] = N * 1.2 - oo[4:]                               # the crater's wall faces in and up
-            loft(p, rr, cc, ROCK, out=oo, caps=(None, -.3))
+            _ride(p, loft(p, rr, cc, ROCK, out=oo, caps=(None, -.3)), P)
             if rng.random() < .75:
                 crystals(p, rng, P + N * h * .45, N, r * rng.uniform(2.2, 4.2), int(rng.integers(1, 4)), .8 if near else .05, .35)
     # bioluminescent spots along both flanks: a main line and a scatter
@@ -1233,8 +1818,45 @@ def leviathan():
     nodes, norms = np.concatenate(nodes), np.concatenate(norms)
     scorch(p, b.start, b.end, nodes, .3, SCORCH, .8)
     shards(p, rng, nodes, norms, 22, .5)
+    fluke_span = unit(b.S[-1])
+
+    def swim(t):
+        """4 s, one slow stroke: a vertical wave travels from the chest down the back and tail and out through the
+        flukes (which pitch and curl after it); the head nods against it; the long fins sweep down and up, their
+        tips trailing; the jaw eases open a little and closes."""
+        w = TAU * t / 4.0
+        P = Pose()
+        P.turn(tails, YA, wave(4, .11, w, .85, .45)).turn(tails, ZA, wave(4, .03, w + 1.0, .8))
+        P.turn(heads, YA, [.045 * math.sin(w + 2.4), .06 * math.sin(w + 1.8)])
+        P.turn('Jaw', YA, .07 + .06 * math.sin(w - .6))
+        for side, names in flukes:
+            P.turn(names, YA, [.22 * math.sin(w - 3.2), .18 * math.sin(w - 4.0)])
+            P.turn(names, XA, [side * .08 * math.sin(w - 3.4), side * .14 * math.sin(w - 4.2)])
+        for side, names in pecs:
+            P.turn(names, XA, side * wave(3, .27, w + .6 + (0 if side > 0 else .9), .8, .25))
+            P.turn(names, ZA, -side * wave(3, .09, w - .5, .8))
+            P.turn(names, YA, wave(3, .07, w + 2.0, .8))
+        return P
+
+    def strike(t, P):
+        """Gathers with the head lifting, the jaw starting to drop, the tail raised and the fins drawn up; then the
+        jaw gapes wide (the throat stretching with it) as the upper head lifts away, the tail and flukes drive
+        down, and the fins flare out and forward; eases back."""
+        gather = key(t, [(0, 0), (.5, 1), (.6, 1), (.68, 0), (1.3, 0)])
+        hit = key(t, [(0, 0), (.58, 0), (.69, 1), (.85, .85), (1.3, 0)])
+        P.turn('Jaw', YA, .28 * gather + .72 * hit)
+        P.turn(heads, YA, np.array([-.05, -.07]) * gather + np.array([-.08, -.14]) * hit)
+        P.turn(tails, YA, np.array([.06, .09, .12, .14]) * gather - np.array([.09, .13, .17, .2]) * hit)
+        for side, names in flukes:
+            P.turn(names, YA, np.array([.25, .2]) * gather - np.array([.4, .35]) * hit)
+            P.turn(names[1], XA, side * .25 * hit)
+        for side, names in pecs:
+            P.turn(names, XA, side * (np.array([.18, .12, .1]) * gather + np.array([.42, .2, .12]) * hit))
+            P.turn(names[0], ZA, -side * (.42 * hit - .12 * gather))
+        return P
+
     fit(p, 0, 9.0)
-    return p
+    return rg.finish(animations(4.0, swim, strike))
 
 
 # ---------------------------------------------------------------- the module's meshes and their contract

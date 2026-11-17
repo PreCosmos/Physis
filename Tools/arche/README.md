@@ -179,8 +179,18 @@ Stalkers keep three caches. They fight with their bodies and never fire (`arche_
 forward and lands the blow only if she is still inside its reach (`S_AnimalStrike`). `DroneAnimal` moves the mesh
 every tick: each kind swims in its own way at rest (the Medusa's bell pulses, the Ray banks), and strikes in its own
 way (the Medusa and the Ray turn a full circle to lash with tendrils or tail, the Shellback rolls forward shell first,
-the Stalker rears and bites down, the Leviathan slams). The motion is of the whole body: the meshes have no skeleton,
-so fins, tendrils and jaws do not move on their own. The story's rule for the living (they scatter and gather again,
+the Stalker rears and bites down, the Leviathan slams). That motion is of the whole body; the limbs move by skeleton (next paragraph).
+
+**Rigs**: every builder in `creatures.py` also leaves `part.rig`: bones (first `Root`), four skin weights per vertex,
+and two animations as `pose(t)` functions (rotation vectors per bone, in mesh axes): `Swim`, a seamless loop, and
+`Strike`, 1.3 s, which starts and ends in Swim's first pose and hits at about 0.68 s, matching the Blueprint's timing.
+Bones: Mote 21, Medusa 73, Shellback 40, Ray 23, Stalker 41, Leviathan 19. `Tools/build_physis_arche_rigs.py` (Blender)
+writes `Art/Meshes/Arche/Rigged/SK_AE_<Name>.fbx` and `A_AE_<Name>_<Anim>.fbx`; `arche:import_rigs` imports them to
+`/Game/Arche/Rigged` (it deletes the old assets first, so run `arche:scenario` after it); `arche:animal_body` once
+gave `BP_TrainingDrone` its empty `Body` part under `Shape`. The scenario puts the skinned mesh in `Body` and sets the
+actor's `Swim` and `Strike`; in play `DroneAnimal` loops Swim, plays Strike from `StrikeAt`, and hides the static
+mesh, which stays for bounds and collision. The rig scene is built in centimetres: exported in metres, the root bone
+reaches Unreal at scale 100 and every animation shrinks the mesh to a hundredth. The story's rule for the living (they scatter and gather again,
 they are not destroyed) is told in their scans, not yet shown by a different defeat effect.
 
 **The Climb**: `climb()` in the scenario hangs 14 `SM_AN_Causeway` slabs against the Chasm's south wall at 20 degrees,
@@ -192,4 +202,5 @@ rock and stone carry a large-scale colour breakup so the scan's repeat no longer
 tagged `ArcheScar`, and a dark twin with `MI_AR_GlowOff`, tagged `ArcheBloom`) so its glow goes out with it.
 
 **Known rough edges**: Earth-style frost grass was dropped (it stayed green under any tint); the animals share the
-Ward's hit and defeat effects and have no skeletal animation; crystal translucency on the animals was judged in engine only from stills.
+Ward's hit and defeat effects; Swim cuts to Strike without a blend; the Leviathan's open mouth is stretched skin, not
+a modelled cavity; crystal translucency on the animals was judged in engine only from stills.

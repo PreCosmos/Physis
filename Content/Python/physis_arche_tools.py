@@ -134,6 +134,113 @@ def apply_slots(mesh):
     return unknown
 
 
+RIGGED = ARCHE + '/Rigged'
+
+
+def skinned_usage(material):
+    """The base material of `material` compiled for skinned meshes too (a packaged game draws the default grey
+    material on a skinned mesh whose material was not)."""
+    base = material.get_base_material() if hasattr(material, 'get_base_material') else material
+    if base is None or base.get_editor_property('used_with_skeletal_mesh'):
+        return None
+    base.set_editor_property('used_with_skeletal_mesh', True)
+    unreal.MaterialEditingLibrary.recompile_material(base)
+    game.save(base)
+    return base.get_name()
+
+
+def import_rigs(source=None, destination=None):
+    """Art/Meshes/Arche/Rigged (Tools/build_physis_arche_rigs.py): SK_AE_<Name>.fbx as a skinned mesh in the slots'
+    looks, then each A_AE_<Name>_<Anim>.fbx as an animation on that mesh's skeleton."""
+    source = pathlib.Path(source) if source else ART / 'Rigged'
+    destination = destination or RIGGED
+    report = {'meshes': {}, 'anims': {}, 'failed': [], 'usage': []}
+    for path in sorted(source.glob('SK_*.fbx')):
+        # A rig whose bones changed cannot be imported over its old skeleton, so the old assets go first (run the
+        # scenario afterwards: placed animals lose their mesh until it sets it again).
+        for old in [str(a).split('.')[0] for a in library.list_assets(destination, recursive=False)]:
+            name = old.split('/')[-1]
+            if name in (path.stem, path.stem + '_Skeleton', path.stem + '_PhysicsAsset') or name.startswith('A_%s_' % path.stem[3:]):
+                library.delete_asset(old)
+        options = unreal.FbxImportUI()
+        for key, value in (('import_mesh', True), ('import_as_skeletal', True), ('import_materials', False), ('import_textures', False),
+                           ('import_animations', False), ('create_physics_asset', False), ('mesh_type_to_import', unreal.FBXImportType.FBXIT_SKELETAL_MESH)):
+            options.set_editor_property(key, value)
+        data = options.skeletal_mesh_import_data
+        data.set_editor_property('vertex_color_import_option', unreal.VertexColorImportOption.REPLACE)
+        data.set_editor_property('normal_import_method', unreal.FBXNormalImportMethod.FBXNIM_IMPORT_NORMALS)
+        data.set_editor_property('import_morph_targets', False)
+        game.import_file(str(path), destination, options)
+        mesh = unreal.load_asset(destination + '/' + path.stem)
+        if not isinstance(mesh, unreal.SkeletalMesh):
+            report['failed'].append(path.stem)
+            continue
+        slots, unknown = list(mesh.get_editor_property('materials')), []
+        for slot in slots:
+            name = str(slot.get_editor_property('material_slot_name'))
+            material = unreal.load_asset(MATS + '/' + SLOT_MATERIAL.get(name, '?'))
+            if material is None:
+                unknown.append(name)
+                continue
+            slot.set_editor_property('material_interface', material)
+            changed = skinned_usage(material)
+            if changed:
+                report['usage'].append(changed)
+        mesh.set_editor_property('materials', slots)
+        game.save(mesh)
+        skeleton = mesh.get_editor_property('skeleton')
+        box = mesh.get_bounds().box_extent
+        report['meshes'][path.stem] = {'bones': len(mesh.get_editor_property('skeleton').get_reference_pose().get_bone_names()) if hasattr(skeleton, 'get_reference_pose') else None,
+                                      'slots': [str(s.get_editor_property('material_slot_name')) for s in slots], 'unknown': unknown,
+                                      'half_size': [round(box.x), round(box.y), round(box.z)], 'skeleton': skeleton.get_name()}
+        for clip in sorted(source.glob('A_%s_*.fbx' % path.stem[3:])):
+            options = unreal.FbxImportUI()
+            for key, value in (('import_mesh', False), ('import_as_skeletal', False), ('import_materials', False), ('import_textures', False),
+                               ('import_animations', True), ('mesh_type_to_import', unreal.FBXImportType.FBXIT_ANIMATION), ('skeleton', skeleton)):
+                options.set_editor_property(key, value)
+            anim_data = options.anim_sequence_import_data
+            anim_data.set_editor_property('remove_redundant_keys', False)
+            anim_data.set_editor_property('import_bone_tracks', True)
+            game.import_file(str(clip), destination, options)
+            sequence = unreal.load_asset(destination + '/' + clip.stem)
+            if not isinstance(sequence, unreal.AnimSequence):
+                report['failed'].append(clip.stem)
+                continue
+            report['anims'][clip.stem] = round(sequence.get_play_length(), 2)
+    report['assets'] = sorted(str(a).split('.')[-1] for a in library.list_assets(destination, recursive=False))
+    return report
+
+
+def animal_body():
+    """BP_TrainingDrone's Body: an empty skinned-mesh part under Shape. An animal's skinned mesh goes in it (the
+    scenario sets it per actor) and rides Shape's motion; the machines leave it empty."""
+    path = '/Game/Characters/Physis/Blueprints/BP_TrainingDrone'
+    bp = unreal.load_asset(path)
+    subobjects = unreal.get_engine_subsystem(unreal.SubobjectDataSubsystem)
+    data_of = unreal.SubobjectDataBlueprintFunctionLibrary
+    parts = {}
+    for handle in subobjects.k2_gather_subobject_data_for_blueprint(bp):
+        item = data_of.get_associated_object(data_of.get_data(handle))
+        if isinstance(item, unreal.SceneComponent):
+            parts[item.get_name().split('_GEN')[0]] = handle
+    if 'Body' in parts:
+        return {'body': 'already there', 'parts': sorted(parts)}
+    handle, why = subobjects.add_new_subobject(unreal.AddNewSubobjectParams(parent_handle=parts['Shape'], new_class=unreal.SkeletalMeshComponent,
+                                                                            blueprint_context=bp))
+    body = data_of.get_object_for_blueprint(data_of.get_data(handle), bp)
+    if body is None:
+        raise RuntimeError('Body was not added (%s)' % why)
+    subobjects.rename_subobject(handle, unreal.Text('Body'))
+    body.set_mobility(unreal.ComponentMobility.MOVABLE)
+    body.set_collision_profile_name('NoCollision')
+    body.set_editor_property('animation_mode', unreal.AnimationMode.ANIMATION_SINGLE_NODE)
+    body.set_editor_property('bounds_scale', 2.0)   # limbs swing outside the rest pose's box
+    body.set_editor_property('visibility_based_anim_tick_option', unreal.VisibilityBasedAnimTickOption.ONLY_TICK_POSE_WHEN_RENDERED)
+    unreal.BlueprintEditorLibrary.compile_blueprint(bp)
+    game.save(bp)
+    return {'body': 'added', 'parts': sorted(parts)}
+
+
 def import_meshes(prefix=''):
     made, unknown, failed, notes = [], {}, [], []
     for path in sorted(ART.glob(prefix + '*.fbx')):
@@ -288,6 +395,11 @@ def execute(operation):
         return json.dumps(import_meshes(operation.partition(':')[2]), default=str)
     if operation == 'audio':
         return json.dumps(import_audio(), default=str)
+    if operation == 'animal_body':
+        return json.dumps(animal_body(), default=str)
+    if operation == 'import_rigs' or operation.startswith('import_rigs:'):
+        test = operation.partition(':')[2]   # a trial folder under the project, imported in place of Art/Meshes/Arche/Rigged
+        return json.dumps(import_rigs(*((ROOT / test,) if test else ())), default=str)
     if operation == 'blueprints':
         return json.dumps(blueprints(), default=str)
     if operation == 'map_art':
