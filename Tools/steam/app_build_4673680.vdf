@@ -1,7 +1,7 @@
 "AppBuild"
 {
 	"AppID" "4673680"
-	"Desc" "Physis 2026-11-16 - Linux and Windows, UE 5.9, five levels (adds the Grove)"
+	"Desc" "Physis 2026-11-17 - Linux and Windows, UE 5.9, six levels (adds Arche)"
 	"ContentRoot" "../../Build/"
 	"BuildOutput" "../../Build/SteamOutput/"
 	"SetLive" ""
