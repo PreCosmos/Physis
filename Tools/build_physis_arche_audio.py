@@ -146,6 +146,41 @@ def unweave():
     finish('S_Unweave', track, 70, 11000, .5, .25, 83, 8500, .8, cap=1.25)
 
 
+def animal_cry():
+    """An air-swimmer about to strike: a short sung call that rises and breaks, with breath in it. Nothing in it
+    is metal or glass: two soft voices a fifth apart, a slow wobble, a little air."""
+    seconds = .62
+    t = t_(seconds)
+    x = t / seconds
+    pitch = 260 * (1 + .9 * np.sin(np.pi * np.clip(x * 1.25, 0, 1)) ** 1.5) * (1 + .025 * np.sin(2 * np.pi * 11 * t))
+    phase = 2 * np.pi * np.cumsum(pitch) / RATE
+    voice = np.sin(phase) + .45 * np.sin(2 * phase + .6) + .22 * np.sin(3 * phase + 1.1) + .3 * np.sin(1.5 * phase)
+    shape = np.clip(t / .05, 0, 1) * np.clip((seconds - t) / .22, 0, 1) ** 1.4
+    breath = band(rng.normal(size=len(t)), 900, 5200) * (.25 + .5 * x) * .35
+    one = (voice * .5 + breath) * shape
+    track = np.zeros((int(.8 * RATE), 2))
+    place(track, sway(one, np.clip(-.25 + .5 * x, -1, 1)), 0, .8)
+    finish('S_AnimalCry', track, 90, 9000, .5, .25, 83, 8500, .8, cap=1.25)
+
+
+def animal_strike():
+    """A body thrown through the air and landing its blow: a rush of displaced air, then a soft heavy slap. No
+    ring and no click: flesh, not a machine."""
+    track = np.zeros((int(.7 * RATE), 2))
+    seconds = .2
+    t = t_(seconds)
+    x = t / seconds
+    rush = sweep(500 + 2600 * x ** 2, .7, 611) * np.sin(np.pi * x) ** 1.5
+    place(track, sway(rush, np.clip(-.6 + 1.2 * x, -1, 1)), 0, .7)
+    seconds = .34
+    t = t_(seconds)
+    thump = np.sin(2 * np.pi * (95 * np.exp(-t * 9) + 48) * t) * np.exp(-t / .07)
+    slap = band(rng.normal(size=len(t)), 180, 2400) * np.exp(-t / .022)
+    hit = (thump * .9 + slap * .6) * np.clip(t / .002, 0, 1)
+    place(track, np.stack((hit, hit), 1), .17, 1.0)
+    finish('S_AnimalStrike', track, 40, 9000, .5, .25, 83, 8500, .8, cap=1.25)
+
+
 def current_travel():
     """Stepping into a Divinity current on Arche: thin air rising and turning around her, a stack of open
     fifths (C, G, D: no third, so no warmth) swelling under it, and glass notes climbing in fifths and
@@ -529,8 +564,8 @@ def arche_music(excerpt=None, from_bar=0, profile='MuseSounds'):
 
 KNEE = 2.0
 SOUNDS = {'S_Music_Arche': arche_music, 'S_Weave': weave, 'S_WeaveRestless': weave_restless, 'S_Unweave': unweave,
-          'S_CurrentTravel': current_travel, 'S_Amb_Arche': amb_arche, 'S_Amb_Cistern': amb_cistern, 'S_Amb_Lens': amb_lens}
-PARTS = {'music': ['S_Music_Arche'], 'sfx': ['S_Weave', 'S_WeaveRestless', 'S_Unweave', 'S_CurrentTravel'],
+          'S_CurrentTravel': current_travel, 'S_AnimalCry': animal_cry, 'S_AnimalStrike': animal_strike, 'S_Amb_Arche': amb_arche, 'S_Amb_Cistern': amb_cistern, 'S_Amb_Lens': amb_lens}
+PARTS = {'music': ['S_Music_Arche'], 'sfx': ['S_Weave', 'S_WeaveRestless', 'S_Unweave', 'S_CurrentTravel', 'S_AnimalCry', 'S_AnimalStrike'],
          'amb': ['S_Amb_Arche', 'S_Amb_Cistern', 'S_Amb_Lens']}
 
 

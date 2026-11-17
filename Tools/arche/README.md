@@ -174,12 +174,22 @@ current home. Not played by hand: any fight, the walk between places, the side r
 **Animals (2026-11-16)**: `ARCHE_ENEMIES` 8 to 13 in `physis_arche_lore.py` are Arche's own animals. The scenario's
 `WILD` table turns every open-ground pack (room 0) from Ward tiers 1 to 6 into the animal of the same tier; the Ward
 keeps the rooms it guards (Stairs, Mirrors, the Sunderer's court). The Leviathan circles the Ossuary and Crest
-Stalkers keep three caches. They use the shared enemy behaviours of their tier; the story's rule for the living (they
-scatter and gather again, they are not destroyed) is told in their scans, not yet shown by a different defeat effect.
+Stalkers keep three caches. They fight with their bodies and never fire (`arche_shared.animals`, on the shared `BP_TrainingDrone`: `Organic`,
+`Animal` 1 to 6, `Reach`): each closes to its reach, calls and draws back (the warning, `S_AnimalCry`), throws itself
+forward and lands the blow only if she is still inside its reach (`S_AnimalStrike`). `DroneAnimal` moves the mesh
+every tick: each kind swims in its own way at rest (the Medusa's bell pulses, the Ray banks), and strikes in its own
+way (the Medusa and the Ray turn a full circle to lash with tendrils or tail, the Shellback rolls forward shell first,
+the Stalker rears and bites down, the Leviathan slams). The motion is of the whole body: the meshes have no skeleton,
+so fins, tendrils and jaws do not move on their own. The story's rule for the living (they scatter and gather again,
+they are not destroyed) is told in their scans, not yet shown by a different defeat effect.
+
+**The Climb**: `climb()` in the scenario hangs 14 `SM_AN_Causeway` slabs against the Chasm's south wall at 20 degrees,
+from the floor 110 m east of the Span up to the south rim 25 m east of it, with a level landing let into the rim and
+lanterns at its foot and head. It needs no ability and leads only to the south side, so it does not cross the Chasm.
 
 **Smoothed since the first build**: the tier risers and the chasm sides are faced with `SM_AN_Wall` retaining panels;
 rock and stone carry a large-scale colour breakup so the scan's repeat no longer reads; the Lens is placed twice (lit,
 tagged `ArcheScar`, and a dark twin with `MI_AR_GlowOff`, tagged `ArcheBloom`) so its glow goes out with it.
 
 **Known rough edges**: Earth-style frost grass was dropped (it stayed green under any tint); the animals share the
-Ward's hit and defeat effects; crystal translucency on the animals was judged in engine only from stills.
+Ward's hit and defeat effects and have no skeletal animation; crystal translucency on the animals was judged in engine only from stills.

@@ -881,12 +881,19 @@ The Conclave's AL, at home: Ward Mite 5, Ward Lancer 9, Ward Bulwark 16 (turns l
 Ward Reaver 26 (guards the Mirrors and the Stairs), Ward Siegeframe 60 (the Ossuary road; avoidable), and the boss,
 **the Sunderer**, 120: its face turns every blow, and she fights it among four bulwarks that she must keep reweaving.
 
+### The Climb
+
+Whoever falls into the Great Chasm walks out: a ramp of hung causeway slabs rises against the south wall from the
+floor to the south rim beside the Span. It leads only to the south side, so the Span is still the way across.
+
 ### Enemies: the air-swimmers (living, so they scatter and gather again)
 
 Arche has animals older than the city, and the Lens has maddened them. They hold the open ground between the places
-the Ward guards: **Drift Mote** 4 (shoals), **Bell Medusa** 9 (throws light from range), **Shellback** 18 (its shell
-turns light blows), **Sky Ray** 20 (fast), **Crest Stalker** 28 (keeps a territory: three of the caches), and the
-**Leviathan**, 70, circling the Ossuary (avoidable). None of them is destroyed: struck enough, one scatters like breath
+the Ward guards: **Drift Mote** 4 (shoals, a darting bite), **Bell Medusa** 9 (turns and lashes with its tendrils),
+**Shellback** 18 (its shell turns light blows; it rams shell first), **Sky Ray** 20 (fast; a tail whip), **Crest
+Stalker** 28 (keeps a territory: three of the caches; rears and bites), and the **Leviathan**, 70, circling the
+Ossuary (avoidable; a body slam). They fight only with their bodies, never with fire: each closes, calls and draws
+back before it strikes, and the blow lands only if she is still in reach. None of them is destroyed: struck enough, one scatters like breath
 on glass and gathers again somewhere quieter. They are the game's first organic enemies; the same kind of animal is
 wanted on the earlier worlds too (Proposed: grove and basin fauna for levels 1 and 4).
 

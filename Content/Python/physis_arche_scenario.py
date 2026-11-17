@@ -99,6 +99,11 @@ class Place(base.Place):
                            Health=health)
         actor.set_editor_property('Static', False)
         actor.set_editor_property('EnemyKind', kind)
+        if level in ANIMALS:
+            # A living thing: it never fires. It closes, calls, draws back and strikes with its body (arche_shared.animals).
+            number, reach = ANIMALS[level]
+            for name, value in (('Organic', True), ('Animal', number), ('Reach', reach)):
+                actor.set_editor_property(name, value)
         self.reskin(actor, mesh)
         self.tag(actor, entry, place, label)
         self.enemies += 1
@@ -148,6 +153,8 @@ class Place(base.Place):
 
 
 WILD = {1: 8, 2: 9, 3: 10, 4: 11, 5: 12, 6: 13}   # the Ward's levels as Arche's own animals
+# ARCHE_ENEMIES level: (BP_TrainingDrone.Animal, how far its blow reaches from its middle, cm)
+ANIMALS = {8: (1, 230.0), 9: (2, 300.0), 10: (3, 300.0), 11: (4, 330.0), 12: (5, 350.0), 13: (6, 800.0)}
 
 
 def pack(p, label, x, y, levels, room=0, spread=700.0, z=None):
@@ -265,11 +272,64 @@ def chasm(p):
     pit = (mx, my, p.g.at(mx, my) + 96.0)
     p.hops.append(('Chasm floor south', pit, south))
     p.hops.append(('Chasm floor north', pit, north))
+    climb(p)
     for y in (-180.0, 220.0):
         cx = plan.chasm_x(y) * M
         knot = p.anchor('Chasm South %d' % y, cx - (plan.CHASM_RIM + 7.0) * M, y * M, need=',resonance,', range_m=70.0, lift=400.0, folder='Chasm')
         over(knot, 800.0)
         p.hops.append(('Chasm floor %d' % y, (cx, y * M, p.g.at(cx, y * M) + 96.0), knot))
+
+
+CLIMB_TOP_Y, CLIMB_SLOPE = 55.0, 20.0   # the Climb's head (m, 25 m east of the Span) and its pitch in degrees
+
+
+def wall_x(p, y, z):
+    """Where the Chasm's south wall stands at height z on the line y (cm): the northernmost ground at least that high."""
+    centre = plan.chasm_x(y / M) * M
+    x = centre - 2600.0
+    for step in range(105):
+        if p.g.at(x + 25.0, y) < z:
+            break
+        x += 25.0
+    return x
+
+
+def climb(p):
+    """The Climb: the way back up for whoever falls into the Chasm. Causeway slabs hung against the south wall, as
+    the First Ones hung their stepping slabs, rising from the floor to the south rim beside the Span. It is always
+    there (no ability, nothing to reweave) and it leads only to the south side, so it does not cross the Chasm."""
+    slope = math.radians(CLIMB_SLOPE)
+    run, rise = 840.0 * math.cos(slope), 840.0 * math.sin(slope)   # slabs are 9 m long: 0.6 m of overlap
+    top_y = CLIMB_TOP_Y * M
+    rim = p.g.at(wall_x(p, top_y, T0 - 300.0) - 300.0, top_y)
+    foot_y = top_y
+    count = 0
+    while True:   # how many slabs it takes from the floor at its foot
+        count += 1
+        foot_y = top_y + count * run
+        floor = p.g.at(plan.chasm_x(foot_y / M) * M, foot_y)
+        if rim - count * rise <= floor + 40.0 or count > 30:
+            break
+    slabs = []
+    for k in range(count):
+        y = top_y + (count - k - .5) * run
+        z = rim - (count - k - .5) * rise
+        x = wall_x(p, y, z) + 170.0 - 70.0   # 3.4 m wide, 0.7 m of it inside the wall
+        ahead = wall_x(p, y - run, z) - wall_x(p, y + run, z)
+        yaw = -90.0 + max(-6.0, min(6.0, math.degrees(math.atan2(ahead, 2 * run))))   # uphill is towards -y, following the wall
+        p.mesh('Climb %02d' % k, 'SM_AN_Causeway', (x, y, z), yaw, folder='Chasm', pitch=CLIMB_SLOPE)
+        slabs.append((round(x), round(y), round(z), round(yaw, 1)))
+    # The landing: a level slab let into the rim, and lanterns at the foot and the head so it is found from the floor.
+    # two level slabs side by side carry on from the last one and reach back into the rim
+    last_x, last_y = slabs[-1][0], slabs[-1][1]
+    head_x, head_y = last_x - 150.0, last_y - 450.0 * math.cos(slope) - 420.0
+    for k, dx in enumerate((0.0, -320.0, -640.0)):
+        p.mesh('Climb Landing %d' % k, 'SM_AN_Causeway', (last_x + dx, head_y, rim + 4.0), -90.0, folder='Chasm')
+    foot = (plan.chasm_x(foot_y / M) * M, foot_y + 250.0)
+    for label, (x, y) in (('Foot A', (foot[0] - 250.0, foot[1])), ('Foot B', (foot[0] + 250.0, foot[1])), ('Head', (last_x - 900.0, head_y - 520.0))):
+        p.mesh('Climb Lantern ' + label, 'SM_AN_Lantern', (x, y, p.g.at(x, y) - 5.0), folder='Chasm')
+        p.light('Climb Light ' + label, (x, y, p.g.at(x, y) + 330.0), SERENE, 1800, 1800, 'Chasm')
+    p.climb = {'slabs': slabs, 'rim': round(rim), 'foot': [round(v) for v in foot], 'count': count}
 
 
 def concourse(p):
@@ -680,7 +740,7 @@ def place(ground, save=True):
         base.save_level(LEVEL)
     return {'level': LEVEL, 'removed': removed, 'placed': p.count, 'enemies': p.enemies, 'rays': rays, 'sounds': sounds, 'people': p.people, 'unset': p.unset,
             'unvoiced': len(p.unvoiced), 'hops': hops, 'raised': raised, 'blocked': blocked, 'weaves': seen, 'hidden': hidden, 'missing_assets': sorted(base.MISSING)[:60],
-            'missing_count': len(base.MISSING), 'marks': {name: [round(v) for v in spot] for name, spot in p.marks.items()}}
+            'missing_count': len(base.MISSING), 'climb': getattr(p, 'climb', None), 'marks': {name: [round(v) for v in spot] for name, spot in p.marks.items()}}
 
 
 # ---------------------------------------------------------------- the Center's temple current

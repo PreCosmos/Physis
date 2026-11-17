@@ -216,4 +216,121 @@ def music():
     gl.comp('BP_Physis')
 
 
-PARTS = {'shared': shared, 'hud': hud, 'relic': relic, 'music': music}
+# ---------------------------------------------------------------- the animals (ARCHE_ENEMIES 8 to 13)
+
+# Per animal (BP_TrainingDrone.Animal 1 to 6: Mote, Medusa, Shellback, Ray, Stalker, Leviathan): how its body moves at
+# rest and when it strikes. Angles in degrees, lengths in cm, in the mesh's own frame (it faces +x).
+ANIMAL_MOTION = {
+    'roll':       (16.0, 4.0, 5.0, 20.0, 6.0, 5.0),      # the side-to-side bank of its swimming
+    'roll_rate':  (7.0, 1.2, 1.5, 1.8, 1.4, 0.6),
+    'nod':        (6.0, 3.0, 4.0, 8.0, 4.0, 4.0),        # the nose rising and falling
+    'nod_rate':   (5.0, 1.0, 1.2, 2.2, 1.8, 0.5),
+    'pulse':      (0.05, 0.14, 0.02, 0.03, 0.03, 0.02),  # the body swelling and closing (the Medusa's bell most)
+    'draw':       (40.0, 30.0, 70.0, 50.0, 55.0, 130.0),   # how far it draws back before a strike
+    'reach':      (120.0, 70.0, 170.0, 130.0, 170.0, 340.0),  # how far it throws itself forward
+    'coil':       (12.0, 22.0, 14.0, 16.0, 26.0, 14.0),  # the nose lifting as it draws back
+    'bite':       (-18.0, -38.0, 0.0, -10.0, -40.0, -22.0),   # the nose coming down with the blow
+    'whip':       (0.0, 360.0, 0.0, 360.0, 0.0, 0.0),    # a full turn about the upright axis: tendrils, a tail
+    'tumble':     (0.0, 0.0, -360.0, 0.0, 0.0, 0.0),     # a full forward roll: the Shellback rams shell first
+}
+
+
+def animals():
+    """Arche's animals fight with their bodies. A BP_TrainingDrone with Organic set never fires a bolt: it closes to
+    its Reach, calls and draws back (the warning), throws itself at her and lands the blow only if she is still in
+    reach. DroneAnimal moves its mesh (Shape) each tick: it swims at rest, and coils, strikes and recovers around
+    StrikeAt. Machines (Organic false) are untouched."""
+    D = 'BP_TrainingDrone'
+    for name, kind, shown in (('Organic', 'bool', True), ('Animal', 'int', True), ('Reach', 'float', True), ('StrikeAt', 'float', False)):
+        gl.var(D, name, kind, shown)
+    gl.shell(D, 'DroneAnimal')
+    organic = '(`self.Organic`)'
+    now = gl.NOW
+
+    def table(key):
+        values = ANIMAL_MOTION[key]
+        text = '%r' % values[0]
+        for index in range(1, 6):
+            text = gl.pick('(== (`self.Animal`) %d)' % (index + 1), '%r' % values[index], text)
+        return text
+
+    def sin(x):
+        return '(`KismetMathLibrary.Sin` %s)' % x
+
+    t = '(- %s (`self.StrikeAt`))' % now
+    on = '(and (> (`self.StrikeAt`) 0.0) (< %s 1.3))' % t
+    draw = gl.pick(on, gl.pick('(< %s 0.6)' % t, sin('(* %s 2.618)' % t), '0.0'), '0.0')
+    go = gl.pick(on, gl.pick('(>= %s 0.6)' % t, '(`KismetMathLibrary.FClamp` (- 1.0 (/ (- %s 0.6) 0.7)) 0.0 1.0)' % t, '0.0'), '0.0')
+    turn = gl.pick(on, '(`KismetMathLibrary.FClamp` (/ (- %s 0.6) 0.4) 0.0 1.0)' % t, '0.0')
+    gl.write(D, 'DroneAnimal', """(fn `DroneAnimal`
+  (params (DeltaSeconds :type "Float (double-precision)"))
+  (bind draw %s)
+  (bind go %s)
+  (bind thrust (* go go))
+  (bind turn %s)
+  (bind swell (* %s %s))
+  (bind long (- (+ 1.0 (* 0.2 thrust)) (* 0.12 draw)))
+  (bind wide (- (+ 1.0 (* 0.08 draw)) (* 0.07 thrust)))
+  (`SceneComponent.K2_SetRelativeLocationAndRotation` (`self.Shape`) %s (`KismetMathLibrary.MakeRotator` %s %s %s) false true)
+  (`SceneComponent.SetRelativeScale3D` (`self.Shape`) %s))""" % (
+        draw, go, turn, table('pulse'), sin('(* (`self.Phase`) 2.6)'),
+        gl.vec('(- (* %s thrust) (* %s draw))' % (table('reach'), table('draw')), '0.0', '(* -0.25 (* %s draw))' % table('draw')),
+        '(* %s %s)' % (table('roll'), sin('(* (`self.Phase`) %s)' % table('roll_rate'))),
+        '(+ (+ (* %s %s) (+ (* %s draw) (* %s thrust))) (* %s turn))' % (table('nod'), sin('(* (`self.Phase`) %s)' % table('nod_rate')), table('coil'), table('bite'),
+                                                                    table('tumble')),
+        '(* %s turn)' % table('whip'),
+        gl.vec('(* long (- 1.0 (* 0.5 swell)))', '(* wide (- 1.0 (* 0.5 swell)))', '(* wide (+ 1.0 swell))')))
+
+    cry, strike = al.AA + 'S_AnimalCry', al.AA + 'S_AnimalStrike'
+    for path in (cry, strike):
+        if not (al.ROOT / ('Content' + path[5:] + '.uasset')).exists():
+            print('animals: %s is not imported yet' % path)
+            gl.FAILED.append('animals (no %s)' % path.split('/')[-1])
+            return
+
+    def play(path, volume):
+        return '(`GameplayStatics.PlaySoundAtLocation` "%s.%s" (`self.K2_GetActorLocation`) (struct) %s)' % (path, path.split('/')[-1], volume)
+
+    def wrap_bind(code, name, mine):
+        opening = '(bind %s ' % name
+        at = code.index(opening)
+        end = form(code, at)
+        inner = code[at + len(opening):end - 1]
+        return code[:at] + opening + gl.pick(organic, mine, inner) + ')' + code[end:]
+
+    def think(code):
+        code = once(code, '(`self.DroneSeparate` _returnvalue_3)', '(if %s\n    (`self.DroneAnimal` _returnvalue_3))\n  (`self.DroneSeparate` _returnvalue_3)' % organic)
+        # It closes on her: the band it holds is inside its reach, and every kind lunges over the last 0.6 s.
+        code = wrap_bind(code, '_returnvalue_5', '(* 0.5 (`self.Reach`))')
+        code = wrap_bind(code, '_returnvalue_6', '(* 0.85 (`self.Reach`))')
+        code = once(code, '(bind _returnvalue_9 (and (== _enemykind 3) (and (< (`self.Cooldown`) 0.35) (< _returnvalue_8 900.0))))',
+                    '(bind _returnvalue_9 (and (or (== _enemykind 3) %s) (and (< (`self.Cooldown`) %s) (< _returnvalue_8 900.0))))' % (organic, gl.pick(organic, '0.6', '0.35')))
+        # The warning: a call and the drawing back, in place of the machines' charge sound and spark.
+        at = code.index('(`GameplayStatics.PlaySoundAtLocation` "/Game/Audio/S_SwordHeavy.S_SwordHeavy"')
+        end = form(code, at)
+        spark = code.index('(', end)
+        assert 'BP_Spark' in code[spark:spark + 120], code[spark:spark + 120]
+        end = form(code, spark)
+        code = (code[:at] + '(if %s\n      (if (< _returnvalue_8 900.0)\n        (set `self.StrikeAt` %s)\n        %s)\n      (else\n        %s))' % (organic, now, play(cry, 0.8), code[at:end])
+                + code[end:])
+        # The blow: its body, within its reach. Never a bolt.
+        code = once(code, '(set `self.Warned` false)', '(set `self.Warned` false)\n    (if (and %s (< _returnvalue_8 900.0))\n      %s)' % (organic, play(strike, 1.0)))
+        old = '(select `bool` _boss :`false` (select `bool` (== _enemykind 1) :`false` 240.0 :`true` 300.0) :`true` 340.0)'
+        code = once(code, '(if (< _returnvalue_8 %s)' % old, '(if (< _returnvalue_8 %s)' % gl.pick(organic, '(`self.Reach`)', old))
+        code = once(code, '(elif (and (< _returnvalue_8 1500.0) _returnvalue)', '(elif (and (not %s) (and (< _returnvalue_8 1500.0) _returnvalue))' % organic)
+        return code
+    edit(D, 'DroneThink', 'DroneAnimal', think)
+
+    def halt(code):
+        # The lunge ends short of her (it had carried the small ones through her): inside 0.45 of its reach it gives ground.
+        tail = '(< _returnvalue_8 900.0))))'
+        at = code.index('(bind _returnvalue_9 (and (or (== _enemykind 3) (`self.Organic`))')
+        end = form(code, at)
+        if not code[at:end].endswith(tail):
+            raise ValueError('the lunge test changed')
+        return code[:end - 2] + ' (or (not %s) (> _returnvalue_8 (* 0.45 (`self.Reach`))))))' % organic + code[end:]
+    edit(D, 'DroneThink', '(* 0.45 (`self.Reach`))', halt)
+    gl.comp(D)
+
+
+PARTS = {'shared': shared, 'hud': hud, 'relic': relic, 'music': music, 'animals': animals}
