@@ -881,7 +881,17 @@ The Conclave's AL, at home: Ward Mite 5, Ward Lancer 9, Ward Bulwark 16 (turns l
 Ward Reaver 26 (guards the Mirrors and the Stairs), Ward Siegeframe 60 (the Ossuary road; avoidable), and the boss,
 **the Sunderer**, 120: its face turns every blow, and she fights it among four bulwarks that she must keep reweaving.
 
-### The Climb
+### Reweave, seen
+
+A sundered thing is not gone: it hangs where it stood as a slowly turning field of its own stone blocks. When she
+reweaves it the blocks fly home in the order they were laid, so the Span builds outward across the Chasm, a stair
+climbs, a wall closes. A restless thing lets go the same way. This holds for everything Reweave touches.
+
+### The keepers
+
+Besides Aeon and the Hearthold's four, nine Serene keepers stayed at their posts across the city, from the Landing
+to the Upper Tier. Each says who they are, what they keep, and answers one question that helps with what lies ahead.
+
 
 Whoever falls into the Great Chasm walks out: a ramp of hung causeway slabs rises against the south wall from the
 floor to the south rim beside the Span. It leads only to the south side, so the Span is still the way across.

@@ -115,17 +115,18 @@ def materials():
 # ---------------------------------------------------------------- import
 
 NO_COLLISION = ('SM_AE_', 'SM_AP_', 'SM_AN_Shard', 'SM_AN_Knot', 'SM_AN_Cache', 'SM_AN_Chime', 'SM_AN_Tablet', 'SM_AN_Seedstone', 'SM_AT_Cistern')
-BOX_MESHES = ('SM_AN_Veil', 'SM_AN_VaultDoor', 'SM_AN_Bulwark')
+BOX_MESHES = ('SM_AN_Veil', 'SM_AN_VaultDoor', 'SM_AN_Bulwark', 'SM_AW_Bulwark')
 HARD_LODS = ((1.0, 1.0), (.5, .3), (.25, .12), (.12, .04))
 TERRAIN_LODS = ((1.0, 1.0), (.5, .45), (.25, .2))
 
 
-def apply_slots(mesh):
+def apply_slots(mesh, suffix=''):
     unknown = []
     for index, slot in enumerate(mesh.get_editor_property('static_materials')):
         name = cn.slot_name(slot)
         want = SLOT_MATERIAL.get(name)
-        material = unreal.load_asset(MATS + '/' + want) if want else None
+        want = want + suffix if want else None
+        material = unreal.load_asset(MATS + '/' + want) if want and library.does_asset_exist(MATS + '/' + want) else None
         if material is None:
             unknown.append('%s -> %s' % (name, want))
             continue
@@ -211,6 +212,83 @@ def import_rigs(source=None, destination=None):
     return report
 
 
+# ---------------------------------------------------------------- Reweave: a thing in blocks
+
+WEAVE_MASTERS = {'M_GRSurface': 'M_AR_SurfaceWeave', 'M_GRPlain': 'M_AR_PlainWeave', 'M_CNGlass': 'M_AR_GlassWeave'}
+WEAVE_LOOKS = ('MI_AR_Stone', 'MI_AR_Electrum', 'MI_AR_Alloy', 'MI_AR_Crystal', 'MI_AR_Lichen')
+# A block's offset from where its vertex belongs, in mesh space (cm). Pivot, seed and order come from the SM_AW_
+# mesh's extra UV sets (Tools/build_physis_arche_weave.py); T (0 sundered .. 1 whole) and Drift (how far the blocks
+# hang, cm) are the component's custom primitive data 0 and 1, which BP_Weave sets. Blocks come home in `order`,
+# each along an arc, turning about its own middle; sundered, they hang and turn slowly.
+WEAVE_HLSL = """float3 pivot = float3(A.x, A.y, B.x);
+float seed = B.y;
+float t = saturate(T * 2.2 - 1.2 * C.x);
+float e = t * t * (3.0 - 2.0 * t);
+float k = 1.0 - e;
+float3 h = frac(sin(seed * float3(12.9898, 78.233, 37.719)) * 43758.5453);
+float3 dir = normalize(float3(h.x * 2.0 - 1.0, h.y * 2.0 - 1.0, h.z * 1.3 - 0.2));
+float bob = sin(Time * 0.5 + seed * 40.0) * 0.07;
+float3 off = dir * Drift * (0.45 + 0.8 * h.z + bob) * k;
+off.z += sin(e * 3.14159) * Drift * 0.3;
+float ang = k * (2.5 + 4.0 * h.x) + k * Time * (0.1 + 0.25 * h.y);
+float3 ax = normalize(float3(h.y - 0.5, h.z - 0.5, h.x - 0.5) + 0.001);
+float3 r = LP - pivot;
+float s, c;
+sincos(ang, s, c);
+float3 turned = r * c + cross(ax, r) * s + ax * dot(ax, r) * (1.0 - c);
+return pivot + turned + off - LP;"""
+
+
+def weave_materials(force=False):
+    """The weave masters (copies of the masters the woven meshes' looks use, with the block motion as their world
+    position offset, two-sided) and a _W copy of each look on them."""
+    from physis_center_tools import custom, node
+    lib = unreal.MaterialEditingLibrary
+    report = {'masters': [], 'looks': []}
+    for source, name in WEAVE_MASTERS.items():
+        path = MATS + '/' + name
+        if library.does_asset_exist(path):
+            if not force:
+                continue
+            library.delete_asset(path)
+        origin = (gt.MATS if source.startswith('M_GR') else cn.MATS) + '/' + source
+        m = library.duplicate_asset(origin, path)
+        x, y = -900, 1800
+
+        def data(label, default, index):
+            return node(m, unreal.MaterialExpressionScalarParameter, x - 500, y + 100 * index + 400, parameter_name=label, default_value=default,
+                        use_custom_primitive_data=True, primitive_data_index=index)
+        offset = custom(m, WEAVE_HLSL, [('LP', node(m, unreal.MaterialExpressionLocalPosition, x - 500, y)),
+                                        ('A', node(m, unreal.MaterialExpressionTextureCoordinate, x - 500, y + 100, coordinate_index=1)),
+                                        ('B', node(m, unreal.MaterialExpressionTextureCoordinate, x - 500, y + 200, coordinate_index=2)),
+                                        ('C', node(m, unreal.MaterialExpressionTextureCoordinate, x - 500, y + 300, coordinate_index=3)),
+                                        ('T', data('WeaveT', 1.0, 0)), ('Drift', data('WeaveDrift', 300.0, 1)),
+                                        ('Time', node(m, unreal.MaterialExpressionTime, x - 500, y + 600))], x, y, unreal.CustomMaterialOutputType.CMOT_FLOAT3)
+        world = node(m, unreal.MaterialExpressionTransform, x + 300, y, transform_source_type=unreal.MaterialVectorCoordTransformSource.TRANSFORMSOURCE_LOCAL,
+                     transform_type=unreal.MaterialVectorCoordTransform.TRANSFORM_WORLD)
+        lib.connect_material_expressions(offset, '', world, '')
+        lib.connect_material_property(world, '', unreal.MaterialProperty.MP_WORLD_POSITION_OFFSET)
+        m.set_editor_property('two_sided', True)
+        lib.recompile_material(m)
+        game.save(m)
+        report['masters'].append(name)
+    for look in WEAVE_LOOKS:
+        mi = unreal.load_asset(MATS + '/' + look)
+        master = WEAVE_MASTERS.get(mi.get_base_material().get_name())
+        if master is None:
+            report['looks'].append('%s: no weave master for %s' % (look, mi.get_base_material().get_name()))
+            continue
+        path = MATS + '/' + look + '_W'
+        if library.does_asset_exist(path):
+            library.delete_asset(path)
+        copy = library.duplicate_asset(MATS + '/' + look, path)
+        lib.set_material_instance_parent(copy, unreal.load_asset(MATS + '/' + master))
+        lib.update_material_instance(copy)
+        game.save(copy)
+        report['looks'].append(look + '_W')
+    return report
+
+
 def animal_body():
     """BP_TrainingDrone's Body: an empty skinned-mesh part under Shape. An animal's skinned mesh goes in it (the
     scenario sets it per actor) and rides Shape's motion; the machines leave it empty."""
@@ -252,11 +330,12 @@ def import_meshes(prefix=''):
         if mesh is None:
             failed.append(stem)
             continue
-        missing = apply_slots(mesh)
+        missing = apply_slots(mesh, '_W' if stem.startswith('SM_AW_') else '')
         if missing:
             unknown[stem] = missing
         cn.collision(mesh, 'box' if stem.startswith(BOX_MESHES) else 'none' if stem.startswith(NO_COLLISION) else 'complex')
-        chain = TERRAIN_LODS if stem.startswith('SM_AT_Terrain') else None if stem.startswith('SM_AT_') else HARD_LODS
+        # SM_AW_: a thing in blocks (Reweave). No reduced levels: a reduction would join one block's faces to another's.
+        chain = TERRAIN_LODS if stem.startswith('SM_AT_Terrain') else None if stem.startswith(('SM_AT_', 'SM_AW_')) else HARD_LODS
         if chain is not None:
             why = cn.apply_lods(mesh, chain)
             if why:
@@ -395,6 +474,8 @@ def execute(operation):
         return json.dumps(import_meshes(operation.partition(':')[2]), default=str)
     if operation == 'audio':
         return json.dumps(import_audio(), default=str)
+    if operation in ('weave_materials', 'weave_materials:force'):
+        return json.dumps(weave_materials(operation.endswith(':force')), default=str)
     if operation == 'animal_body':
         return json.dumps(animal_body(), default=str)
     if operation == 'import_rigs' or operation.startswith('import_rigs:'):

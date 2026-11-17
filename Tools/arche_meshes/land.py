@@ -220,19 +220,25 @@ def layout():
                             rng.uniform(-tilt, tilt), scale[k]))
 
     # Crystals: thick in the Garden, along the risers' feet and the Chasm's rims, thin elsewhere.
-    x, y = candidates(7.0)
+    x, y = candidates(5.5)
     garden = np.clip(1 - np.hypot(x - plan.GARDEN[0], y - plan.GARDEN[1]) / 120.0, 0, 1)
     edge = np.clip(1 - sample(G['riser_d'], x, y) / 16.0, 0, 1) * .5 + np.clip(1 - (sample(G['chasm_d'], x, y) - plan.CHASM_RIM) / 14.0, 0, 1) * .35
-    chance = .03 + .75 * garden ** 1.3 + edge * .5
+    # Groves: some ninety clumps over the whole city, so no stretch of ground is bare (author, 2026-11-17: the level
+    # felt empty). A clump is thick at its middle and thins over 14 m.
+    groves = rng.uniform((-HALF_X + 30, -HALF_Y + 30), (HALF_X - 30, HALF_Y - 30), (90, 2))
+    near = np.min(np.hypot(x[:, None] - groves[None, :, 0], y[:, None] - groves[None, :, 1]), 1)
+    chance = .10 + .75 * garden ** 1.3 + edge * .5 + .7 * np.exp(-(near / 11.0) ** 2)
     ok = pick(walk & ~busy, x, y) & (rng.uniform(0, 1, len(x)) < chance) & (sample(G['slope'], x, y) < .5)
     x, y = x[ok], y[ok]
     kind = rng.choice(3, len(x), p=(.5, .33, .17))
     for k in range(3):
         sel = kind == k
-        put('SM_AV_Crystal%d' % k, x[sel], y[sel], rng.uniform(.75, 1.5, sel.sum()), sink=.15, tilt=7.0)
+        put('SM_AV_Crystal%d' % k, x[sel], y[sel], rng.uniform(.9, 1.6, sel.sum()) * (1 + 1.1 * np.exp(-(near[ok][sel] / 9.0) ** 2)), sink=.15, tilt=7.0)
     # The great crystals: a ring of landmarks in the Garden, and two sentinels below the First Stair.
     great = [(plan.GARDEN[0] + math.cos(a) * r, plan.GARDEN[1] + math.sin(a) * r) for a, r in
              ((0.3, 46), (1.5, 62), (2.6, 40), (3.7, 66), (4.9, 50), (5.8, 74))] + [(40.0, 60.0), (44.0, -64.0), (-380.0, -150.0)]
+    # ... and one standing in the heart of every third grove.
+    great += [(gx, gy) for gx, gy in groves[::3] if pick(walk & ~busy, np.array([gx]), np.array([gy]))[0]]
     gx_, gy_ = np.array([p[0] for p in great]), np.array([p[1] for p in great])
     put('SM_AV_CrystalGreat', gx_, gy_, rng.uniform(.8, 1.25, len(great)), sink=.6, tilt=5.0)
     # Fallen and standing columns along the roads: the Processional keeps its avenue, the rest is broken.

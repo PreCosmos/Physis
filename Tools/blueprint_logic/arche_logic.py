@@ -116,6 +116,10 @@ def weave():
         (`@P.PhysisSay` p (`self.Done`))))
     (if (not """ + empty('(`self.Loom`)') + """)
       (`self.LoomKeep`))))""")
+    # The thing itself is one mesh cut into blocks (SM_AW_*, Tools/build_physis_arche_weave.py) in the weave materials
+    # (arche:weave_materials): Shape's custom primitive data 0 is T (0 sundered: the blocks hang apart, turning; 1 whole)
+    # and 1 is Drift (how far they hang, cm). The blocks come home in order along the mesh, so a bridge builds outward.
+    # A lasting weave takes 2.4 s; a restless one (Hold > 0, used in fights) 1 s.
     t = '(`self.T`)'
     ease = '(* (* %s %s) (- 3.0 (* 2.0 %s)))' % (t, t, t)
     mark = '(`SceneComponent.K2_GetComponentLocation` (`self.Mark`))'
@@ -138,7 +142,8 @@ def weave():
   (`PrimitiveComponent.SetCollisionEnabled` (`self.Shape`) "NoCollision")
   (`PrimitiveComponent.SetCollisionEnabled` (`self.Mark`) "NoCollision")
   (if (<= (`self.Drift`) 0.0)
-    (set `self.Drift` 260.0)))
+    (set `self.Drift` 260.0))
+  (`PrimitiveComponent.SetCustomPrimitiveDataFloat` (`self.Shape`) 1 (`self.Drift`)))
 
 (event `self.ReceiveTick`
   """ + TICK + """
@@ -152,11 +157,10 @@ def weave():
   (if (and (`self.Woven`) (and (> (`self.Hold`) 0.0) (> """ + NOW + """ (`self.Until`))))
     (set `self.Woven` false)
     (`GameplayStatics.PlaySoundAtLocation` "%s.%s" (`self.K2_GetActorLocation`)))
-  (set `self.T` (`KismetMathLibrary.FInterpTo_Constant` (`self.T`) """ % (sound('unweave'), sound('unweave').split('/')[-1]) + pick('(`self.Woven`)', '1.0', '0.0') + """ DeltaSeconds 1.25))
+  (set `self.T` (`KismetMathLibrary.FInterpTo_Constant` (`self.T`) """ % (sound('unweave'), sound('unweave').split('/')[-1]) + pick('(`self.Woven`)', '1.0', '0.0') + """ DeltaSeconds """ + pick('(> (`self.Hold`) 0.0)', '1.0', '0.42') + """))
   (set `self.Aimed` (and (`self.Shown`) (`KismetMathLibrary.EqualEqual_ObjectObject` (`@P.WeaveAim` p) self)))
   (set `self.Swell` (`KismetMathLibrary.FInterpTo` (`self.Swell`) """ + pick('(`self.Aimed`)', '1.0', '0.0') + """ DeltaSeconds 10.0))
-  (`SceneComponent.SetRelativeScale3D` (`self.Shape`) (* """ + full + ' ' + grown + """))
-  (`SceneComponent.SetVisibility` (`self.Shape`) (> (`self.T`) 0.03) false)
+  (`PrimitiveComponent.SetCustomPrimitiveDataFloat` (`self.Shape`) 0 (`self.T`))
   (if (and (>= (`self.T`) 0.97) (not (`self.Solid`)))
     (set `self.Solid` true)
     (`PrimitiveComponent.SetCollisionEnabled` (`self.Shape`) "QueryAndPhysics"))
@@ -166,7 +170,7 @@ def weave():
   (`SceneComponent.SetVisibility` (`self.Mark`) (< (`self.T`) 0.6) false)
   (`SceneComponent.SetWorldScale3D` (`self.Mark`) """ + vec(*['(* (+ 1.0 (* 0.3 (`self.Swell`))) (- 1.0 (* 0.6 (`self.T`))))'] * 3) + """)
   (`SceneComponent.K2_SetWorldRotation` (`self.Mark`) (`KismetMathLibrary.MakeRotator` 0.0 0.0 (* """ + NOW + """ 40.0)) false true)
-  (`LightComponent.SetIntensity` (`self.Glow`) (* (+ 5.0 (* 14.0 (`self.Swell`))) (- 1.0 (* 0.8 (`self.T`)))))
+  (`LightComponent.SetIntensity` (`self.Glow`) (+ (* (+ 5.0 (* 14.0 (`self.Swell`))) (- 1.0 (* 0.8 (`self.T`)))) (* 45.0 (`KismetMathLibrary.Sin` (* 3.1416 (`self.T`))))))
   """ + '\n  '.join(pieces) + ')')
     comp(W)
     defaults(W, {'Range': 4500.0, 'Limit': 1, 'Drift': 260.0})

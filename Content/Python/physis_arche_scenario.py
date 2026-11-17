@@ -24,6 +24,7 @@ time under another name with Arche's folder, meshes, voices and Still Point rule
 """
 import importlib.util
 import math
+import random
 import pathlib
 
 import unreal
@@ -79,6 +80,7 @@ class Place(base.Place):
         super().__init__(ground)
         self.sights = []    # (label, where she stands cm, weave actor): each mark must be in plain sight from there
         self.unrigged = []  # animals placed without a skinned mesh (arche:import_rigs not run)
+        self.uncut = []     # woven things without a block mesh (Tools/build_physis_arche_weave.py)
 
     def ok(self, x, y, clear, still):
         mx, my = x / M, y / M
@@ -142,11 +144,24 @@ class Place(base.Place):
                            Limit=int(limit), Range=range_m * M, Drift=float(drift))
         actor.set_actor_rotation(unreal.Rotator(0, 0, yaw), False)
         shape = component(actor, 'Shape')
-        shape.set_static_mesh(mesh_asset(mesh))
+        # The same thing cut into blocks, where it has been made (SM_AW_*): sundered, its blocks hang apart, and they
+        # fly home when she reweaves it. The blocks hang at least a third of the thing's length away.
+        blocks = 'SM_AW_' + mesh[6:]
+        cut = unreal.EditorAssetLibrary.does_asset_exist('/Game/Arche/Meshes/' + blocks)
+        asset = mesh_asset(blocks if cut else mesh)
+        shape.set_static_mesh(asset)
         for slot in range(shape.get_num_materials()):
             shape.set_material(slot, None)
         size = scale if isinstance(scale, (tuple, list)) else (scale,) * 3
         shape.set_relative_scale3d(unreal.Vector(*size))
+        if cut:
+            box = asset.get_bounds().box_extent
+            longest = 2 * max(box.x, box.y, box.z) * max(size)
+            reach = max(float(drift), .34 * longest)
+            actor.set_editor_property('Drift', reach / max(size))
+            shape.set_editor_property('bounds_scale', min(12.0, 1.5 + 4.0 * reach / longest))
+        else:
+            self.uncut.append(mesh)
         for name in ('Mark', 'Glow'):
             part = component(actor, name)
             if part:
@@ -206,6 +221,111 @@ def dress(p, label, rows, folder, origin=(0.0, 0.0)):
 
 def stand_at(p, x, y, z=None):
     return (x, y, (p.floor(x, y) if z is None else z) + 96.0)
+
+
+# ---------------------------------------------------------------- the city between the set pieces
+
+SAFE = ((plan.LANDING, 55.0), (plan.HEARTHOLD, 75.0), (plan.FIRST_ARCH, 30.0))   # no enemy is added this near (m)
+# What stands beside the roads: (mesh, forward m, sideways m, yaw relative to the road, scale, solid cm or 0, lit)
+ROADSIDE = {
+    'shrine': (('SM_AN_Obelisk', 0.0, 0.0, 20.0, 1.0, 120, False), ('SM_AN_Urn', 1.6, 1.2, 0.0, 1.0, 60, False), ('SM_AN_Urn', -1.5, 1.4, 40.0, .8, 50, False),
+               ('SM_AN_Lantern', 0.4, -2.2, 0.0, 1.0, 40, True)),
+    'colonnade': (('SM_AN_Column', -7.5, 0.0, 0.0, 1.0, 90, False), ('SM_AN_ColumnBroken', -2.5, 0.0, 70.0, 1.0, 90, False),
+                  ('SM_AN_Column', 2.5, 0.0, 0.0, 1.0, 90, False), ('SM_AN_ColumnBroken', 7.5, 0.0, 200.0, 1.0, 90, False),
+                  ('SM_AN_Urn', 0.0, 2.4, 0.0, 1.0, 60, False)),
+    'house': (('SM_AN_House0', 0.0, 4.0, -90.0, 1.0, 650, False), ('SM_AN_Bench', 5.5, -3.0, 0.0, 1.0, 130, False),
+              ('SM_AN_Urn', -5.0, -2.4, 0.0, 1.0, 60, False), ('SM_AN_Lantern', 3.0, -4.6, 0.0, 1.0, 40, True)),
+    'workshop': (('SM_AN_House1', 0.0, 4.0, -90.0, 1.0, 550, False), ('SM_AN_Urn', 4.6, -1.6, 0.0, 1.0, 60, False), ('SM_AN_Urn', 5.6, -2.6, 30.0, .8, 50, False),
+                 ('SM_AN_ColumnBroken', -5.5, -2.0, 120.0, 1.0, 90, False), ('SM_AN_Lantern', -2.6, -4.4, 0.0, 1.0, 40, True)),
+    'rest': (('SM_AN_Basin', 0.0, 0.0, 0.0, 1.0, 380, False), ('SM_AN_Bench', 0.0, 5.0, 90.0, 1.0, 130, False), ('SM_AN_Bench', 5.0, 0.0, 0.0, 1.0, 130, False),
+             ('SM_AN_Lantern', -4.0, -4.0, 0.0, 1.0, 40, True), ('SM_AN_Lantern', 4.0, 4.4, 0.0, 1.0, 40, True)),
+    'court': (('SM_AV_Crystal2', 0.0, 0.0, 0.0, 1.2, 150, False), ('SM_AV_Crystal1', 3.2, 1.0, 60.0, 1.0, 100, False), ('SM_AV_Crystal1', -2.6, 2.4, 140.0, .9, 100, False),
+              ('SM_AV_Crystal0', 1.0, -3.0, 220.0, 1.1, 80, False), ('SM_AV_Crystal0', -3.0, -1.6, 300.0, .9, 80, False), ('SM_AN_Bench', 0.6, 5.6, 90.0, 1.0, 130, False)),
+}
+# Shoals and patrols by tier: what a pack is made of (ARCHE_ENEMIES levels 1 to 5; pack() turns a shoal into animals).
+SHOALS = {0: ((1, 1, 2), (1, 2), (1, 1, 1), (2, 3)), 1: ((2, 3, 4), (3, 4), (2, 2, 4), (1, 1, 2, 2)), 2: ((4, 5), (3, 4, 5), (4, 4), (2, 3, 4))}
+PATROLS = {0: ((1, 1, 2), (2, 2), (1, 3)), 1: ((2, 3), (2, 4), (3, 3, 1)), 2: ((4, 5), (3, 5, 5), (4, 4, 2))}
+
+
+def along(points, step, start):
+    """Points every `step` metres along a road: (x, y, heading in radians)."""
+    out, carry = [], start
+    for (ax, ay), (bx, by) in zip(points, points[1:]):
+        length = math.hypot(bx - ax, by - ay)
+        heading = math.atan2(by - ay, bx - ax)
+        while carry < length:
+            out.append((ax + (bx - ax) * carry / length, ay + (by - ay) * carry / length, heading))
+            carry += step
+        carry -= length
+    return out
+
+
+def life(p):
+    """The city between the set pieces (author, 2026-11-17: "the level feels too empty"): ruins, shrines and crystal
+    courts beside every road, a shoal of animals out in the open ground every 90 m or so, and the Ward's patrols
+    on the roads themselves. Seeded, so a rerun places the same city. Nothing is put on a road, in water, on a
+    riser, in the Chasm, on a set piece or (enemies) near the Landing, the Hearthold or the First Arch."""
+    rng = random.Random(5)
+    kinds = sorted(ROADSIDE)
+    for row in lore.KEEPERS:   # the keepers are placed later (people()): keep their ground free
+        p.solids.append((row[5][0] * M, row[5][1] * M, 450.0))
+    made = {'roadside': 0, 'shoals': 0, 'patrols': 0}
+
+    def tier(x):
+        return 0 if x < plan.TIER2_X - 6 else 1 if x < plan.TIER3_X - 6 else 2
+
+    def safe(x, y):
+        return any(math.hypot(x - sx, y - sy) < r for (sx, sy), r in SAFE)
+
+    def off_road(x, y, pad):
+        for _, _, half, points in plan.PATHS:
+            for (ax, ay), (bx, by) in zip(points, points[1:]):
+                t = max(0.0, min(1.0, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2)))
+                if math.hypot(x - ax - t * (bx - ax), y - ay - t * (by - ay)) < half + pad:
+                    return False
+        return True
+
+    for name, kind, half, points in plan.PATHS:
+        side = 1
+        for k, (x, y, heading) in enumerate(along(points, 34.0, 14.0)):
+            side = -side
+            reach = half + rng.uniform(13.0, 24.0)
+            cx, cy = x - math.sin(heading) * reach * side, y + math.cos(heading) * reach * side
+            what = rng.choice(kinds)
+            radius = 900.0 if what in ('house', 'workshop') else 600.0
+            if not off_road(cx, cy, 7.0) or not p.ok(cx * M, cy * M, radius, 1500.0):
+                continue
+            face = heading + (math.pi if side > 0 else 0.0)   # the cluster's own "forward" runs along the road, its back to the open ground
+            for n, (mesh, forward, sideways, yaw, scale, solid, lit) in enumerate(ROADSIDE[what]):
+                px = (cx + math.cos(face) * forward - math.sin(face) * sideways) * M
+                py = (cy + math.sin(face) * forward + math.cos(face) * sideways) * M
+                label = 'Roadside %s %d %s %d' % (name, k, what, n)
+                p.mesh(label, mesh, (px, py, p.g.at(px, py) - 4), math.degrees(face) + yaw, scale, 'Roadside', solid=solid)
+                if lit:
+                    p.light(label + ' Light', (px, py, p.g.at(px, py) + 300), SERENE, 2200, 1200, 'Roadside')
+            p.solids.append((cx * M, cy * M, radius))
+            made['roadside'] += 1
+    # Shoals out in the open ground, to either side of every road and trail.
+    for name, kind, half, points in plan.PATHS:
+        side = -1
+        for k, (x, y, heading) in enumerate(along(points, 88.0, 50.0)):
+            side = -side
+            reach = half + rng.uniform(34.0, 60.0)
+            cx, cy = x - math.sin(heading) * reach * side, y + math.cos(heading) * reach * side
+            if safe(cx, cy) or not p.ok(cx * M, cy * M, 500.0, 3000.0):
+                continue
+            pack(p, 'Shoal %s %d' % (name, k), cx * M, cy * M, rng.choice(SHOALS[tier(cx)]), 0, 650)
+            made['shoals'] += 1
+    # The Ward walks the roads (not the trails): machines, so pack() is not asked to turn them into animals.
+    for name, kind, half, points in plan.PATHS:
+        if kind != 'road':
+            continue
+        for k, (x, y, heading) in enumerate(along(points, 85.0, 40.0)):
+            if safe(x, y) or plan.in_chasm(x, y, 8.0):
+                continue
+            base.pack(p, 'Patrol %s %d' % (name, k), x * M, y * M, rng.choice(PATROLS[tier(x)]), 0, 500)
+            made['patrols'] += 1
+    p.life = made
 
 
 # ---------------------------------------------------------------- the regions
@@ -750,6 +870,7 @@ def place(ground, save=True):
     court(p)
     ossuary(p)
     sealed(p)
+    life(p)
     p.require('Record Tablets', p.at(*cm(*plan.HEARTHOLD), lift=600), (',tab1,', ',tab2,', ',tab3,'), ',tablets,', lore.MESSAGES['tablets'])
     people(p)
     scans(p)
@@ -765,7 +886,7 @@ def place(ground, save=True):
         base.save_level(LEVEL)
     return {'level': LEVEL, 'removed': removed, 'placed': p.count, 'enemies': p.enemies, 'rays': rays, 'sounds': sounds, 'people': p.people, 'unset': p.unset,
             'unvoiced': len(p.unvoiced), 'hops': hops, 'raised': raised, 'blocked': blocked, 'weaves': seen, 'hidden': hidden, 'missing_assets': sorted(base.MISSING)[:60],
-            'missing_count': len(base.MISSING), 'climb': getattr(p, 'climb', None), 'unrigged': sorted(set(p.unrigged)), 'marks': {name: [round(v) for v in spot] for name, spot in p.marks.items()}}
+            'missing_count': len(base.MISSING), 'climb': getattr(p, 'climb', None), 'unrigged': sorted(set(p.unrigged)), 'uncut': sorted(set(p.uncut)), 'life': getattr(p, 'life', None), 'marks': {name: [round(v) for v in spot] for name, spot in p.marks.items()}}
 
 
 # ---------------------------------------------------------------- the Center's temple current

@@ -174,6 +174,52 @@ PEOPLE = (
      ',maruth,', QUEST_AEON, {'note': 'Maruth has nothing to give but his word, and gives it.'}),
 )
 
+# The keepers who stayed at their posts across the city (author, 2026-11-17: the level felt empty): each has a
+# greeting and one thing to ask. They give nothing and want nothing.
+def keeper(key, mesh, voice, spot, yaw, greeting, question, answer):
+    return (key, key, mesh, voice, 'firstone', spot, yaw, '', '', greeting, ((question, (answer,)),), '', '', {})
+
+
+KEEPERS = (
+    keeper('Thessin', 'SM_AP_Serene2', 'bf_isabella', (plan.LANDING[0] + 14.0, plan.LANDING[1] - 20.0), 60,
+           ('You came by the current. I felt the pool rise before I saw you. I am Thessin. I keep the Landing, which until today meant keeping an empty pool.',
+            'The road north is the Processional. It is watched by the Ward, the Lens\'s machines, and by the air-swimmers, who were gentle before the Lens. Neither will listen to me. They may listen to you.'),
+           'What is the current?', 'Divinity, moving. It runs between worlds the way water runs between pools. When you are done here, stand in it again and it will carry you back the way you came.'),
+    keeper('Vael', 'SM_AP_Serene1', 'bm_daniel', (-388.0, 6.0), 40,
+           ('Walk softly here. The Drift Motes shoal along this road at this hour, and they bite first now.',
+            'I am Vael. I counted them every evening for the record. I still count. There are fewer each year, and they come back from being struck remembering less.'),
+           'Can they be helped?', 'Stop the Lens and I think they will quiet. Until then, when one calls and draws back, step aside. It is not hunting. It is frightened, and you are near.'),
+    keeper('Corun', 'SM_AP_Serene0', 'bm_fable', (plan.FIRST_ARCH[0] - 8.0, plan.FIRST_ARCH[1] + 15.0), 300,
+           ('Put your hand on the stone if you like. It is leaning toward you. They all are, since you came down the road.',
+            'Corun. I listen to stone. Every block in Kathodos remembers the shape it was cut for. The Lens made them forget each other, not themselves. That is why they hang, and do not fall.'),
+           'Why do the stones hang?', 'Because nothing told them to stop being a bridge. Ask them, the way Aeon will show you, and they will come home in the order they were laid.'),
+    keeper('Halae', 'SM_AP_Serene2', 'bf_alice', (plan.chasm_x(52.0) - plan.CHASM_RIM - 12.0, 56.0), 20,
+           ('You are not the first to look over that edge and wonder. Most who go down did not mean to.',
+            'I am Halae. I hung these slabs against the wall myself, one each season, so that anyone who falls can walk out again. It comes up on this side only. I will not build a way round the Span.'),
+           'Where is the way up?', 'On the floor of the Chasm, east of the Span, look for two lanterns. The slabs rise from there along the south wall to where we are standing.'),
+    keeper('Imreth', 'SM_AP_Serene1', 'bm_lewis', (plan.CONCOURSE[0] - 9.0, plan.CONCOURSE[1] - 16.0), 70,
+           ('Three ways part here. Ahead, the First Stair, which is broken. West, the trail to the Cisterns. And behind you, the only bridge, which I am told is standing again.',
+            'Imreth. I kept the Concourse when it was a market. Now I keep count of which bulwarks are whole. It is a short count.'),
+           'What are the bulwarks?', 'Walls that will not stay. Reweave one and it holds for a while, long enough to stand behind when the Ward fires. Then it lets go. Do not take it personally. Nothing here stays until the Lens stops.'),
+    keeper('Sova', 'SM_AP_Serene0', 'bf_lily', (plan.CISTERN_SHORE[0] - 10.0, plan.CISTERN_SHORE[1] + 9.0), 250,
+           ('Do not drink until you have looked. The water is clean, but the Medusae come down to it in the evening, and their tendrils reach further than they seem.',
+            'I am Sova, Ilun\'s student. She keeps the lantern at the Hearthold. I keep the shore, and wait for the day she can cross and tell me everything I have done wrong.'),
+           'How do I reach the island?', 'There were causeways. They are there still, in pieces, above the water. Some will hold once rewoven, and some are restless and will let go under you. Cross quickly, and look before each one.'),
+    keeper('Deluin', 'SM_AP_Serene1', 'bm_george', (plan.STAIR1[0] + 22.0, -16.0), 160,
+           ('You climbed the First Stair. Then it is true, and I owe Oreth an apology and a jar of salt.',
+            'Deluin. This was the makers\' tier. Every house you see hanging in pieces up here was a workshop. We made the Mirrors here, and the Lens, to our shame.'),
+           'What do the Mirrors do?', 'They turn light. Three of them, turned on the Veil together, will open it. The Vigil unmade them so that no one could. One is in the Cisterns, one in the Crystal Garden, one on the Galleries.'),
+    keeper('Arath', 'SM_AP_Serene2', 'bf_emma', (plan.GARDEN_STILL[0] - 12.0, plan.GARDEN_STILL[1] - 8.0), 30,
+           ('Mind the tall ones. A great crystal sings when you pass, and the Sky Rays come to the singing.',
+            'I am Arath. I tend the Garden. It does not need tending. Crystal grows whether or not anyone watches. But someone should watch.'),
+           'What is the loom?', 'The stepping stones in the Garden share one memory. Reweave a new one and the oldest lets go. Think about which stone you are standing on before you ask for another.'),
+    keeper('Nemi', 'SM_AP_Serene0', 'bf_isabella', (plan.STAIR2[0] + 24.0, 18.0), 200,
+           ('This high, the Lens is loud. You feel it in your teeth. I have stopped noticing, which frightens me more than the noise did.',
+            'Nemi. I was of the Vigil, once. I left when Maruth lit the Lens. I could not unmake it, so I stayed where I could see it, to be sure I never forgot what we did.'),
+           'What is inside the Court?', 'A ring wall, a veil of light across its gate, and behind it the Sunderer, which is the Lens\'s own hand. Its face turns every blow. Get behind it. And do not hate Maruth. Maruth was afraid, as all of us were.'),
+)
+PEOPLE = PEOPLE + KEEPERS
+
 ARCHE_TUTORIALS = (
     ('Divinity current: step into the light to travel between Arche and the Center.', (plan.LANDING[0] + 8.0, plan.LANDING[1] + 6.0), (.35, 2.0, 1)),
     ('Reweave: B / |R3|     Look at a turning ring of slivers and reweave: the thing remembers its shape.', (plan.SPAN_SOUTH[0] - 16.0, plan.SPAN_SOUTH[1]), (.6, 3.0, 1)),

@@ -201,6 +201,27 @@ lanterns at its foot and head. It needs no ability and leads only to the south s
 rock and stone carry a large-scale colour breakup so the scan's repeat no longer reads; the Lens is placed twice (lit,
 tagged `ArcheScar`, and a dark twin with `MI_AR_GlowOff`, tagged `ArcheBloom`) so its glow goes out with it.
 
+**Reweave, in blocks (2026-11-17)**: every mesh a `BP_Weave` shows (`WOVEN` in `Tools/build_physis_arche_weave.py`:
+Span, Stair, Causeway, Bulwark, Mirror, Obelisk) also exists cut into about a hundred stone blocks, `SM_AW_<Name>`,
+each vertex carrying its block's middle, a seed and its order along the mesh in UV sets 1 to 3. The weave masters
+(`arche:weave_materials`: `M_AR_SurfaceWeave`, `M_AR_PlainWeave`, `M_AR_GlassWeave`, copies of the masters those looks
+use, two-sided, with the block motion as world position offset; looks `MI_AR_*_W`) move whole blocks from the
+component's custom primitive data: 0 is T (0 sundered, 1 whole), 1 is Drift (how far the blocks hang, cm). Sundered,
+the thing hangs in the air as a slowly turning field of its own blocks; rewoven, the blocks fly home along arcs in
+order, so a bridge builds outward from one end. `BP_Weave` only sets T and Drift (2.4 s for a lasting weave, 1 s for a
+restless one) and turns collision on at the end. The scenario uses the block mesh when it exists and reports any
+`uncut`. Blocks are open shells and their shading does not turn with them. After changing a woven mesh: rerun the
+weave script in Blender, then `arche:import:SM_AW_` and `arche:scenario`.
+
+**The city between the set pieces (2026-11-17)**: `land.layout()` scatters about 2,200 crystals (some ninety groves,
+larger at their hearts, a great crystal in every third); `life()` in the scenario puts a cluster beside every road
+and trail about every 34 m (shrine, colonnade, house, workshop, rest, crystal court: 41 in all), a shoal of animals
+in the open ground about every 88 m (18), and Ward patrols on the roads (6): 131 enemies in all, none near the
+Landing, the Hearthold or the First Arch. Nine more Serene keepers (`KEEPERS` in the lore: Thessin at the Landing,
+Vael on the Processional, Corun at the First Arch, Halae at the Climb's head, Imreth at the Concourse, Sova on the
+Cisterns' shore, Deluin above the First Stair, Arath in the Garden, Nemi on the Upper Tier) each have a greeting
+and one thing to ask, voiced.
+
 **Known rough edges**: Earth-style frost grass was dropped (it stayed green under any tint); the animals share the
 Ward's hit and defeat effects; Swim cuts to Strike without a blend; the Leviathan's open mouth is stretched skin, not
 a modelled cavity; crystal translucency on the animals was judged in engine only from stills.
