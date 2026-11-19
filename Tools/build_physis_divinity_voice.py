@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT / 'Content/Python'))
 from physis_lore import all_entries, voice_name  # noqa: E402
 
 FOLDERS = {'ship': 'Art/Audio/Voice', 'center': 'Art/Audio/Voice/Center', 'conclave': 'Art/Audio/Conclave/Voice', 'grove': 'Art/Audio/Grove/Voice',
-           'arche': 'Art/Audio/Arche/Voice'}
+           'arche': 'Art/Audio/Arche/Voice', 'monsters': 'Art/Audio/Voice/Monsters'}
 # The model's own middle: the widest pitch movement of the settings tried, at her Kokoro takes' pace (16 chars/s).
 EXAGGERATION, CFG = .5, .5
 # Her effect, as build_physis_voice.py gives it to Kokoro's takes (both models speak at 24 kHz).
@@ -50,6 +50,9 @@ PAUSE, BREAK = .42, .7  # seconds between sentence groups, and at a line break (
 
 
 def lines(which):
+    if which == 'monsters':   # the six elemental monsters, one set of lines for every world (author, 2026-11-17)
+        import physis_monster_lore as monsters
+        return [(voice_name(title), text) for _, title, text in monsters.entries()]
     if which == 'ship':
         rows = all_entries()
     elif which == 'center':
@@ -64,6 +67,8 @@ def lines(which):
     else:
         import physis_arche_lore as lore
         rows = lore.arche_entries() + [('Story',) + lore.ARRIVAL_LINE]
+    import physis_fauna_lore as fauna   # each world's living animals (author, 2026-11-17)
+    rows = list(rows) + (fauna.entries(which) if which in fauna.FAUNA else [])
     return [(voice_name(title), text) for _, title, text in rows]
 
 

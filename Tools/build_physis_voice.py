@@ -1,6 +1,6 @@
 """Generates Divinity's narration with Kokoro, then gives it her reverb.
 
-Run with the Kokoro venv: python build_physis_voice.py MODELS_DIR OUTPUT_DIR [--samples] [--center] [--conclave] [--grove] [--arche]
+Run with the Kokoro venv: python build_physis_voice.py MODELS_DIR OUTPUT_DIR [--samples] [--center] [--conclave] [--grove] [--arche] [--halcyon] [--hesper] [--morrow]
 Text comes from Content/Python/physis_lore.py. Output is 44.1 kHz stereo wav.
 --conclave voices level 3 from Content/Python/physis_conclave_lore.py into OUTPUT_DIR (Art/Audio/Conclave/Voice):
 Divinity's scans and arrival line, then every page of every person in that person's own voice, set in a
@@ -86,6 +86,7 @@ KINDS['stone'] = (.84, 'asetrate=24000*0.9,aresample=44100,atempo=1.111,highpass
                   dict(rt60=.6, drr=8, damp=.15, share=.45, seed=18, early=((2.4, 1), (4.3, .8), (6.9, .6), (10.2, .4))))
 ARCHE_SPOKEN = (('Arche', 'Ar-kee'), ('Kathodos', 'Kathodoss'), ('Aeon', 'Ee-on'), ('Maruth', 'Maruth'), ('Oreth', 'Oreth'), ('Sael', 'Sah-el'),
                 ('Ilun', 'Iloon')) + SPOKEN
+HALCYON_SPOKEN = (('Halcyon', 'Halsee-on'),) + CONCLAVE_SPOKEN
 # Kokoro's speech peaks sit 15-19 dB over its loudness, but -12 LUFS under -1 dBTP leaves room for 11, so
 # loudnorm alone limits the peakiest kinds (the robot) to -14. Levelling every take to -20 LUFS first
 # gives a voice-over compressor the same input everywhere; it eases the syllable peaks, and loudnorm then
@@ -221,10 +222,53 @@ def grove(engine, out):
             print(name, flush=True)
 
 
-def arche(engine, out):
+def halcyon(engine, out):
+    """Level 6: arche()'s method with Halcyon's lore; Kairos spelt as in the Conclave."""
+    import physis_halcyon_lore as lore
+    arche(engine, out, lore, lore.halcyon_entries(), HALCYON_SPOKEN)
+
+
+def hesper(engine, out):
+    """Level 7: arche()'s method with Hesper's lore and Arche's spellings."""
+    import physis_hesper_lore as lore
+    arche(engine, out, lore, lore.hesper_entries(), (('Vaelun', 'Vay-loon'), ('Anwe', 'Ahn-way'), ('Liss', 'Liss')) + ARCHE_SPOKEN)
+
+
+MORROW_SPOKEN = (('Morrow', 'Morrow'), ('Maren', 'Mah-ren'), ('Ines', 'Ee-ness'), ('Okon', 'Oh-kon'), ('Edda', 'Edda'), ('Jory', 'Jory'),
+                 ('Teo', 'Tay-oh'), ('Ruiz', 'Roo-eeth')) + CONCLAVE_SPOKEN
+
+
+def morrow(engine, out):
+    """Level 8: arche()'s method with Morrow's lore and spellings, then the lines voiced in a person's own voice outside
+    conversations: the Stilled's words as they wake and Maren's lines in the final stage (lore.voiced_lines())."""
+    import physis_morrow_lore as lore
+    arche(engine, out, lore, lore.morrow_entries() + [('Story',) + tuple(lore.MORNING_LINE)], MORROW_SPOKEN)
+    only = [re.sub(r'\.wav$', '', p) for p in sys.argv[sys.argv.index('--only') + 1].split(',')] if '--only' in sys.argv else None
+    with tempfile.TemporaryDirectory() as scratch:
+        scratch = pathlib.Path(scratch)
+        spaces = {}
+        for title, text, voice, kind in lore.voiced_lines():
+            name = voice_name(title)
+            target = out / (name + '.wav')
+            if target.exists() or (only and not any(fnmatch.fnmatch(name, pattern) for pattern in only)):
+                continue
+            speed, chain, space = KINDS[kind]
+            if kind not in spaces:
+                path = scratch / ('Room_%s.wav' % kind)
+                spaces[kind] = (path, room(path, **space))
+            path, seconds = spaces[kind]
+            effect = '[0:a]%s,apad=pad_dur=%.2f,pan=stereo|c0=c0|c1=c0[v];[v][1:a]afir=irnorm=-1,%s' % (chain, seconds, LOUDNESS)
+            speak(engine, text.replace('...', ','), voice, target, effect, MORROW_SPOKEN, speed * .96, path, scratch)
+            print(name, flush=True)
+
+
+def arche(engine, out, lore=None, entries=None, spellings=None):
     """Level 5: grove()'s method with Arche's lore and spellings (the AL respelt as in the Conclave)."""
-    import physis_arche_lore as lore
-    jobs = [(voice_name(title), text, VOICE, None) for _, title, text in lore.arche_entries() + [('Story',) + lore.ARRIVAL_LINE]]
+    if lore is None:
+        import physis_arche_lore as lore
+        entries = lore.arche_entries()
+    ARCHE_SPOKEN = spellings or globals()['ARCHE_SPOKEN']
+    jobs = [(voice_name(title), text, VOICE, None) for _, title, text in entries + [('Story',) + lore.ARRIVAL_LINE]]
     for person in lore.PEOPLE:
         if person[3]:
             jobs += [(voice_name(lore.person_key(person[0], k)), page, person[3], person[4]) for k, page in enumerate(lore.conversation_pages(person))]
@@ -274,6 +318,15 @@ def main():
         return
     if '--arche' in sys.argv:
         arche(engine, out)
+        return
+    if '--halcyon' in sys.argv:
+        halcyon(engine, out)
+        return
+    if '--hesper' in sys.argv:
+        hesper(engine, out)
+        return
+    if '--morrow' in sys.argv:
+        morrow(engine, out)
         return
     rows = all_entries()
     if '--center' in sys.argv:
