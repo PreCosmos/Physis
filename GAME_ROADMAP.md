@@ -444,7 +444,8 @@ Steam Input code.
 Health is shown in tanks of 10. The main bar shows the current tank. Each reserve
 tank is a small icon under it, lit while full and dark once spent. The Life
 Augmentation in the Damage Control vault adds one tank. Further augmentations in
-later levels add more, and the HUD supports up to nine reserve tanks.
+later levels add more. The HUD shows up to sixteen reserve tanks: it showed nine until 2026-11-19, when Hesper's
+brought the total to eleven and two were held but never drawn (`Tools/blueprint_logic/augment_fix.py`).
 
 ### Augmentations and ability vaults (Author, 2026-11-04)
 
@@ -455,8 +456,13 @@ Augmentations are permanent upgrades, kept as progress flags so saves keep them:
 | Health | One more Health Tank (+10 health), fully heals | 4 |
 | Katana damage | Sword hits +25% | 3 |
 | Pistol damage | Gun hits +30%, the Divinity Shot too | 2 |
-| Defense | 15% less damage from every hit | 3 |
+| Defense | 15% less damage from every hit, each on what the others leave (×0.85 each: eight leave 27%) | 3 |
 | Agility | Perfect-parry window +0.1 s (base 0.3 s), parry reach grows with it | 3 |
+
+Defense stacked by subtraction (1 − 0.15 per augmentation) until 2026-11-19. That reached zero at the seventh
+(Halcyon's), and the hit code reads zero or less as "not set" and charges full damage, so the seventh brought full
+damage back. It now multiplies (`Tools/blueprint_logic/augment_fix.py`). Each level since the Grove adds one of every
+kind; levels after Hesper should not keep that pattern unchanged (parry window 1.1 s and about ×3 damage after Hesper).
 
 Each one sits in an **ability vault**, a puzzle harder than the open-world puzzles
 that needs abilities from every phase of the game: sword or gun, Divinity Sense
@@ -908,6 +914,27 @@ and tails swim on their own and take part in the strike. None of them is destroy
 on glass and gathers again somewhere quieter. They are the game's first organic enemies; the same kind of animal is
 wanted on the earlier worlds too (Proposed: grove and basin fauna for levels 1 and 4).
 
+**The other worlds' animals (author, 2026-11-17: "organic enemies in all levels with physical attacks"; species, names
+and text Proposed).** Each earlier world has three species of its own on the body plans of Arche's air-swimmers
+(`Tools/arche_meshes/fauna.py`, `Content/Python/physis_fauna_lore.py`), added beside the machines, none replacing one
+(`Content/Python/physis_fauna.py`): the station's **Breach Mite** 3, **Coolant Bell** 7 and **Hull Limpet** 12 (things
+of the dark between ships, in through the breach after the reactor's Divinity; they joined the fight rooms until the
+author had them all removed on 2026-11-18, so the station keeps only its machines and the Pyre Lion); the Center's
+**Lantern Angel** 4, **Glass Ray** 16 and **Marsh Stalker** 22 (its own crystal life, strayed too near the wounds); the
+Conclave's **Goldgrass Mote** 4, **Reservoir Bell** 9 and **Terrace Ray** 18 (the Wise's garden and reservoir stock,
+driven wild by the swarm's signal); the Grove's **Blightfly** 4, **Burlback** 18 and **Canopy Stalker** 26 (the
+valley's animals after forty years of the Array's discharges). They fight as Arche's do, with their bodies.
+
+**Elements (author, 2026-11-17: "give elemental types and attacks to the already existing enemies"; the assignment is
+Proposed).** Every enemy has an element: fire (a hit burns for three seconds), ice (slows her walk for 3.5 s), thunder
+(a fast bolt; she cannot act for 0.6 s), wind (throws her back), dark (takes 15 Divinity) or light (a bolt no guard
+stops). A blocked or parried hit carries none. Machines fire bolts of their element; living animals carry it on their
+blow, and all but the small swarm animals now also spit a bolt of it from range (so "never with fire" above no longer
+holds for them). Rules: `Tools/blueprint_logic/elements.py` (`BP_TrainingDrone.Element` and `Spits`, `BP_EnemyBolt`,
+`BP_Physis.PhysisElement`). Who has which: `Content/Python/physis_elements.py`, whose `apply(world)` must be run again
+after a level's scenario is re-placed. Seven new elemental monsters are designed but not made:
+`Art/Monsters/DESIGN_BRIEFS.md`.
+
 ### Rewards
 
 Five augmentations: Health (`,aug_hp8,`, the Lens's Heart), Katana (`,aug_katana6,`, the Ossuary), Pistol
@@ -928,6 +955,447 @@ in the Center's temple opens once the Warden has fallen (`,warden,`) and carries
 its Blueprints, the placement of the whole level, the map page, travel, saves. The critical path was tested by script
 in Play-in-Editor (`Tools/arche/README.md`, "Gameplay pieces"). Nobody has played it by hand, and Aeon's and Maruth's
 lines and the First Ones' design are new writing for the author to review.
+
+## Level 6 — Earth: Halcyon, the Drowned Harbour (2026-11-18)
+
+Author decisions (2026-11-18): the level after Arche is **the second Earth Great Installation**, in which Physis
+learns **Trace Reading** from **Kairos and the Wise** (ability 5 in the table; the Reckoning, Act 3, comes later); its
+look is **realistic, in a neutral palette**. Everything below that is not one of those decisions is Proposed, the
+name included.
+
+### Premise
+
+**Port Halcyon**, on Earth's coast, a few weeks after Meridian. In the war's first year a First One strike broke its
+sea wall and the lower town drowned in one morning. It was the first blow to fall on Earth. The Just answered by
+building their coastal command in the harbour mouth, **Bastion Halcyon**, and around it **the Undertow**, an engine
+that forces Divinity through the sea so that the water stands back from the Bastion in walls: **the Held Sea**. The
+Just swore their oath there, the **Halcyon Litany**, and the Bastion's Sea Gate still opens only to its three lines.
+
+When the fleets fell silent at Meridian no order to stand down reached Halcyon. Its machines, the **Tide Guard**,
+sealed the Bastion with its commander inside and went on holding the sea. One of the book's seventeen human
+installations, the second she undoes.
+
+**Kairos** and a small party of the Wise are camped above the town. They came for the record: the morning of the
+strike is still written in the Divinity here, and Kairos means to read it before the Just and the First Ones ever
+sit at one table. He teaches Physis **Trace Reading**, which is what the Wise have spent years learning to do and she
+can do at once: to see what a place remembers.
+
+It mirrors the Grove without repeating it: there the Just forced a living thing; here they forced the sea, and the
+past is what she walks on. The Just's fear here is **Commodore Hollis Marr**'s: the sea came once without warning.
+She is not argued out of it. She watches it lie down.
+
+**Look (Author, 2026-11-18): realistic, neutral.** As realistic as the Grove and Arche (scanned surfaces, physically
+based materials, real light) in a palette that belongs to neither: an overcast marine sky, a low pale sun, grey-white
+limestone and render, slate roofs, weathered steel, grey-green sea, kelp and wrack on everything the tide reached.
+Three lights tell three things apart: the Just's machines keep **amber**, forced Divinity (the Held Sea, the Undertow)
+glows the Grove's sick **magenta**, and Trace Reading shows the past in pale **silver**. No post-process stylisation,
+no 3D text.
+
+### Layout (x north, y east, metres; the bay is about 1.1 km by 0.8 km, the town on a slope down to the sea)
+
+| # | Space | Where | What happens |
+| --- | --- | --- | --- |
+| 1 | The Cliff Garden | South end, x −500, 40 m above the sea | She steps out of the current. Still Point; the current home stays here |
+| 2 | The High Street | x −480 to −300 | The dry upper town, forty-year ruins and eleven-year ones. First Tide Guard patrols |
+| 3 | The Signal House | x −290 | The safe place: **Kairos**, **Petra Lune** (the Conclave's archivist) and **Ledger**, the Wise's Robot scribe |
+| 4 | The Clocktower | x −215 | Its clock stopped at the moment of the strike. Kairos shows her how a room remembers: **Trace Reading** |
+| 5 | The Breach | x −150, wall to wall | Where the sea came through: a flooded cut 26 m wide. The **Harbour Bridge** stands only in the past. The barrier she remembers |
+| 6 | The Market Steps | x −70 | Still Point where the town's ways part, down to the waterline |
+| 7 | The Drowned Quarter | West, at sea level | Flooded streets around the old harbour. Past catwalks and rooftops; the **harbourmaster's echo** keeps the Litany's first line |
+| 8 | The Cannery Yards | East | Sheds and cranes on the quays. A crane that moved only in the past; the **foreman's echo**, the second line |
+| 9 | Lighthouse Point | North-east headland | The old lighthouse; its stair stands only in the past. The **keeper's echo** at the lamp, the third line |
+| 10 | The Mole | x +250 to +380 | The breakwater out to the Bastion between the standing walls of the Held Sea. The **Sea Gate** opens to the three lines |
+| 11 | Bastion Halcyon | North, x +420, in the sea | The Undertow's chamber and **the Keel**, the Tide Guard's command frame. Then Commodore Marr, in person |
+| 12 | The Drowned Library | South-east | Optional: Petra's request; three shelves to read open a reading room (Katana Augmentation); a Harrow that can be avoided |
+
+Critical path, about 40 to 50 minutes: Cliff Garden → High Street → Signal House (Kairos) → the Clocktower (Trace
+Reading) → across the Breach → Market Steps → the three echoes in any order → the Mole and the Sea Gate → the Keel →
+Commodore Marr → back to Kairos. With the side requests, the Library, the caches and the sealed vaults the level runs
+about an hour.
+
+Progress tokens: `,halcyon,` `,at_halcyon,` (saves load here), `,kairos_h,`, `,trace,`, `,ha_line1,` `,ha_line2,`
+`,ha_line3,`, `,ha_gate,`, `,keel,`, `,marr,`, `,halcyon_done,`; side requests `,petra_h,` `,shelf1-3,` `,shelves,`
+`,ledger,` `,logbook,`; guards, caches and seals `,ha_*`.
+
+When the Keel falls the Undertow stops and the Held Sea lies down into the bay (everything tagged `HalcyonScar`
+goes, `HalcyonBloom` shows): the walls of water and the magenta light go, the stained ground heals, and the town lays a
+plank footbridge over the Breach (the shortcut home). Kairos
+tells her what the record says, and that it will be needed when both peoples sit down together.
+
+**The Metroid rule.** The Breach is the map's barrier: authored, crossed only by reading, never changed (the
+footbridge after the Keel is a second way, not a change to it). Whoever falls in walks out up a slipway on its south
+side, which leads only back south. Traces stand only while she reads; they never save. Two
+**sealed vaults** (Reweave, Dissonance) are seen here: Reweave, from Arche, opens one already.
+
+### Trace Reading
+
+| | |
+| --- | --- |
+| Input | **T** on the keyboard; **hold D-pad down** on a pad (a tap is still Reload) |
+| Cost | None; a reading lasts 10 s, 1 s between readings; reading again while one lasts renews it |
+| Range | Every trace within 40 m of her when she reads, and any she comes within 40 m of while it lasts |
+| Traversal | **Traces**: what stood here once (a bridge, a stair, a catwalk, a roof) shows in pale silver and bears her weight while she reads. They fade over the last 2 s |
+| Echoes | People the place remembers stand where they stood and say one thing, once: the Litany's lines, the town's record |
+| Combat | Not in the first build (Proposed: the next blow of the machine she locks on to shows a beat early) |
+| Locks | It reports `,trace,` to `PhysisUsedAbility`, so the trace sockets on Arche and elsewhere answer it |
+| Visual stage | Memory layers: the past shows over the present |
+
+### People
+
+| Person | Kind | Role |
+| --- | --- | --- |
+| Kairos | Human historian, the Wise | Quest giver; teaches Trace Reading; reads the record; closes the level |
+| Petra Lune | Human archivist | Side request: three shelves in the Drowned Library (Pistol Augmentation) |
+| Ledger | Robot scribe of the Wise | Side request: its field logbook, left on Lighthouse Point (Defense Augmentation) |
+| Commodore Hollis Marr | Human, the Bastion's commander (MetaHuman) | A voice on the Sea Gate's speaker; in person once the Keel falls |
+
+### Enemies: the Tide Guard (machines without will, so they are destroyed)
+
+The Hedge's machines in the Just's coastal service (the Grove's meshes): Tide Wasp 5, Tide Lancet 9, Tide Burl 16,
+Tide Palisade 20, Tide Thresher 26 (guards the echoes and the Mole), Tide Harrow 60 (the Library; avoidable), and the
+boss, **the Keel**, 130: a command frame fed by the Undertow. Its shield answers to four pumps round the chamber:
+break them with the sidearm, then fight it. Living animals: the Grove's three
+species stand in for the coast's own until those are made.
+
+### Rewards
+
+Five augmentations: Health (`,aug_hp9,`, the Undertow's Heart), Katana (`,aug_katana7,`, the Library's reading room),
+Pistol (`,aug_pistol6,`, Petra), Defense (`,aug_defense7,`, Ledger), Agility (`,aug_agility7,`, Kairos, once the
+record is read). Tide caches (cyan rays), sealed vaults (violet). Halcyon has its own page on the pause-menu map.
+
+### Implementation
+
+`Tools/halcyon/README.md` is the build contract; the pipeline is Arche's, cloned (`Tools/halcyon_meshes`,
+`Tools/build_physis_halcyon.py`, `Content/Python/physis_halcyon_*.py`, `Tools/blueprint_logic/halcyon_logic.py`). The
+level is `/Game/Levels/L_Halcyon`, assets `/Game/Halcyon`. A Divinity current in the Center's temple opens once the
+Sunderer has fallen (`,sunderer,`) and carries her to the Cliff Garden.
+
+**Status (2026-11-18).** Built in one pass: the land and look, the town and its landmarks as generated meshes (no
+downloads; the Grove's scans and Hedge machines are reused), Trace Reading and its Blueprints (`BP_Trace`, the director,
+the current, BP_Physis), the whole level's placement (449 actors, 78 machines, 35 traces), the map page, travel both
+ways, saves (world 6), the cook lists. Tested by script in Play-in-Editor: arrival; the Clocktower refusing without
+Kairos and teaching Trace Reading with him; reading the Harbour Bridge and standing on it, and falling into the
+Breach when the reading ends; standing on every past stair (the office, the crane, the lighthouse) and the roofs
+they reach; the three echoes' lines; the Sea Gate opening; the Keel's room ending the level (the Held Sea gone, the
+footbridge and Commodore Marr shown); save and load on Halcyon; the current home and back. Not done or not played by
+hand: any fight, walking the routes with the controls, the slipway, the side requests' rewards, the Library; Trace
+Reading's combat use; Halcyon's own sound effects (Trace Reading, the echoes and the current borrow Arche's and the
+Grove's; its music, *the Litany*, and its three ambience beds are its own, `Tools/build_physis_halcyon_audio.py`); the
+coast's own animals. Kairos's, Petra's, Ledger's and Marr's lines, the echoes and the town's story are new writing for
+the author to review.
+
+**People (2026-11-19).** Kairos and Petra are the Conclave's MetaHumans of them; Ledger is the Conclave's robot
+figure. Commodore Marr, who wore Rhea Sato's MetaHuman until then, has her own (`Content/Python/physis_earth_people.py`,
+Proposed look: about fifty-seven, deep brown skin, cropped greying hair, the Just's black officer's coat with brass
+buttons and a white collar). Checked in L_Halcyon where she stands after the Keel.
+
+## Level 7 — Arche: Hesper, the City of One Voice (2026-11-18)
+
+Author decisions (2026-11-18): the level after Halcyon is **the second First Ones' Great Installation, on Arche**, in
+which Physis learns **Dissonance** from **Aeon**, as preparation for the Reckoning (ability 6 in the table); its look
+is **realistic, a warm dusk**. Everything below that is not one of those decisions is Proposed, the name included.
+
+### Premise
+
+**Hesper**, "the Evening", is the Vigil's seat on Arche: a city on a high plateau on the line between Arche's day and
+its night, where the sun has stood on the horizon for as long as there have been First Ones to watch it. Its people
+argued under that sun for ten thousand years. When the war came the Vigil decided they could not afford to: they
+raised **the Concord**, an engine that sounds one tone through every thread of Divinity in the city, so that inside
+Hesper every voice agrees with the Vigil's. Where the tone is strongest it stands in the air as **Unison**: walls and
+veils of trembling amber light that nothing out of tune can pass. The Concord's AL, **the Choir**, keep it sounding;
+nothing ever told them to stop.
+
+The **Serene** of Hesper did not leave. They stopped speaking, because in the Concord's field every word they said came
+out as the Vigil's. **Aeon** has come from Kathodos to them, and brings Physis, because of what comes next: the Reckoning
+needs both peoples at one table, and the Vigil cannot sit at it while an engine speaks for them. Aeon teaches her
+**Dissonance**: to hold a note of her own inside someone else's, so that for a while the field around her is free to
+disagree.
+
+It mirrors Kathodos without repeating it: there the Vigil unmade their own city so no stranger could walk it; here they
+unmade their own disagreement so no doubt could weaken them. The Vigil's fear here is **Vaelun**'s, the Precentor who
+keeps the Concord: a divided people loses. She is not argued out of it. She hears the city argue again, and stays.
+
+**Look (Author, 2026-11-18): realistic, warm dusk.** As realistic as Arche and Halcyon (scanned surfaces, physically
+based materials, real light), under a sun that sits on the horizon: long raking light, long violet shadows, an
+amber-rose sky going to deep blue overhead, warm haze in the low ground. The First Ones' pale stone takes the light as
+honey and rose; the rock is red-brown and violet. Four lights tell four things apart: **Unison** (the Concord's tone)
+glows **amber gold**, the Serene's lamps keep **ice blue**, the Vigil's works their cold **violet**, and **Dissonance**
+shows as a clear **blue-white** ring. The Choir keep the AL's red. No post-process stylisation, no 3D text.
+
+### Layout (x north, y east, metres; the plateau is about 1.1 km by 0.8 km, ringed by cliffs; the ground climbs north to the Concord)
+
+| # | Space | Where | What happens |
+| --- | --- | --- | --- |
+| 1 | The Sunward Stair | South end, x −500 | She steps out of the current. Still Point; the current home stays here |
+| 2 | The Long Terrace | x −480 to −300 | The road into the city along the cliff edge, the sun on the left. First Choir patrols |
+| 3 | The House of Listeners | x −290 | The safe place: **Aeon**, and the Serene of Hesper: **Liss**, **Tavor**, **Anwe** |
+| 4 | The Tuning Court | x −215 | A small Unison veil round a fallen bell. Aeon shows her how to hold a note of her own: **Dissonance** |
+| 5 | **The Choir Wall** | x −150, cliff to cliff | A standing wall of Unison 6 m thick across the whole plateau. The barrier she remembers: crossed only inside Dissonance |
+| 6 | The Bell Market | x −70 | Still Point where the ways part |
+| 7 | The Reed Terraces | West | Stepped pools and reed beds; Unison veils across the causeways. **The Low Bell**, silenced in a shell of Unison |
+| 8 | The Amber Galleries | East | Long colonnades; Unison closes the cross-walks into a maze. **The Middle Bell** |
+| 9 | The Watch Spire | North-east | A tower on a rock terrace, its ramp barred by Unison gates one after another. **The High Bell** at its foot |
+| 10 | The Nave | x +250 to +380 | The processional way to the Concord under arches, Unison across it again and again; break each with a fresh note |
+| 11 | The Concord | North, x +420 | **The Choir Gate** opens when the three bells ring. Inside: the Concord's horn, its four tuning pylons, and **the Cantor**. Then Vaelun, in person |
+| 12 | The Hall of Withheld Votes | South-east | Optional: Liss's request; three speaking stones sealed in Unison open the hall (Katana Augmentation); a Siegeframe that can be avoided |
+
+Critical path, about 40 to 50 minutes: Sunward Stair → Long Terrace → House of Listeners (Aeon) → the Tuning Court
+(Dissonance) → through the Choir Wall → Bell Market → the three bells in any order → the Nave → the Choir Gate → the
+Cantor → Vaelun → back to Aeon. With the side requests, the Hall, the caches and the sealed vaults the level runs about
+an hour.
+
+Progress tokens: `,hesper,` `,at_hesper,` (saves load here), `,aeon_h,`, `,dissonance,`, `,hs_bell1,` `,hs_bell2,`
+`,hs_bell3,`, `,hs_gate,`, `,cantor,`, `,vaelun,`, `,hesper_done,`; side requests `,liss,` `,hs_stone1-3,` `,hs_stones,`
+`,tavor,` `,tuningfork,` `,anwe,` `,reedflute,`; guards, caches and seals `,hs_*`.
+
+When the Cantor falls the Concord stops. Every Unison in the city (tag `HesperScar`) goes, the amber in the air goes
+with it, and the city's own bells, rung by nobody, ring once each (`HesperBloom`). Vaelun hears the Serene speak for the
+first time in eleven years. Aeon tells Physis that both peoples can now be asked to the table, and that asking is the
+hard part.
+
+**The Metroid rule.** The Choir Wall is the map's barrier: authored, crossed only inside Dissonance, never changed until
+the Concord stops, and the Concord stopping is the level's end, so it never strands a player. Unison walls only open and
+close around her; nothing moves. Two **sealed vaults** (Trace Reading, Reweave) are seen here, and both open already.
+The Center's and the Conclave's Dissonance vaults (`physis_center_vaults.py`, the Conclave's Vault of Discord) now open
+too.
+
+### Dissonance
+
+| | |
+| --- | --- |
+| Input | **C** on the keyboard; **hold D-pad up** on a pad (a tap still switches weapons) |
+| Cost | None; a note lasts 8 s; another can be held 2 s after it ends |
+| Reach | A ring 9 m round her, which moves with her |
+| Traversal | **Unison** (walls, veils, gates, steps) inside the ring thins and lets her through. It never closes on her: a panel she stands in waits until she is out |
+| Locks | **Shells** of Unison round a thing (the bells, the speaking stones, the Cantor's pylons) break for good once she holds the ring on them for 3 s |
+| Combat | The Choir's bolts falter inside the ring and go out (`BP_EnemyBolt`) |
+| Sockets | It reports `,dissonance,` to `PhysisUsedAbility`, so every Dissonance vault on the other worlds answers it |
+| Visual stage | Lighting depth: the ring shows the dusk without the Concord's amber in it |
+
+### People
+
+| Person | Kind | Role |
+| --- | --- | --- |
+| Aeon | First One, eldest of the Serene | Quest giver; teaches Dissonance; closes the level |
+| Liss | Serene, a singer who stopped singing | Side request: three speaking stones in the Hall of Withheld Votes (Agility Augmentation) |
+| Tavor | Serene, the bell-wright | Side request: his tuning fork, left at the foot of the Watch Spire (Defense Augmentation) |
+| Anwe | Serene, the youngest | Side request: a reed flute from the Reed Terraces' far pool (Pistol Augmentation) |
+| Vaelun | First One, Precentor of the Vigil | A voice in the Concord's speaking stone at the Choir Gate; in person once the Cantor falls |
+
+The book names none of these but Aeon; their lines are new writing for the author to review. Vaelun keeps one engine
+and leads no one: the Vigil's leader is still unnamed (decision 6 below).
+
+### Enemies: the Choir (AL: tools, so they are destroyed), and Hesper's animals
+
+The Conclave's AL, in the Concord's service (the Ward's meshes): Choir Mite 5, Choir Lancer 9, Choir Bulwark 16,
+Choir Hunter 20, Choir Reaver 26 (guards the bells and the Nave), Choir Siegeframe 60 (the Hall; avoidable), and the
+boss, **the Cantor**, 140: a floating ring of pipes round a masked core, the Concord's own voice. Its shield answers to
+four tuning pylons round the court, each sealed in a Unison shell: break a shell with Dissonance, then stop the pylon
+with the sidearm. Arche's own animals, maddened by the tone, hold the open ground between (the air-swimmers of
+Kathodos, as there: they scatter and gather again).
+
+### Rewards
+
+Five augmentations: Health (`,aug_hp10,`, the Concord's Heart), Katana (`,aug_katana8,`, the Hall of Withheld Votes),
+Pistol (`,aug_pistol7,`, Anwe), Defense (`,aug_defense8,`, Tavor), Agility (`,aug_agility8,`, Liss). Dusk caches
+(gold rays), sealed vaults (violet). Hesper has its own page on the pause-menu map.
+
+### Implementation
+
+`Tools/hesper/README.md` is the build contract; the pipeline is Halcyon's and Arche's, cloned (`Tools/hesper_meshes`,
+`Tools/build_physis_hesper.py`, `Content/Python/physis_hesper_*.py`, `Tools/blueprint_logic/hesper_logic.py`). Hesper is
+on Arche, so it reuses Kathodos's architecture, its First Ones, its animals and the Ward's AL, regraded for the dusk.
+The level is `/Game/Levels/L_Hesper`, assets `/Game/Hesper`. A Divinity current in the Center's sanctum, north-east of
+the Heartbloom, opens once the Keel has fallen (`,keel,`) and carries her to the Sunward Stair.
+
+**Status (2026-11-19).** Built in one pass: the plateau, its western drop and the dusk look; Hesper's own meshes
+(Unison panel and shell, the bells, the Concord, its pylons, the Watch Spire, the parapet, the Cantor) as generated
+meshes, with Kathodos's architecture, First Ones, animals and the Ward's AL regraded warm; Dissonance and its
+Blueprints (`BP_Unison`, `BP_Dissonance`, the director, the current, BP_Physis, `BP_EnemyBolt`'s faltering bolts);
+the whole level's placement (646 actors, 78 enemies, 92 pieces of Unison of which 64 are the Choir Wall); 88 voiced
+pages and scans (Kokoro); the map page; travel both ways; saves (world 7); the cook lists; the music, *One Voice*
+(A Aeolian: a chant in unison that breaks into harmony), and three ambience beds (wind, the Concord, the reeds), all
+imported and placed (`Tools/build_physis_hesper_audio.py`). Tested in Play-in-Editor by script
+(`Saved/Hesper/run/pie_hesper.py`, at low quality): arrival (tokens, quest, Hesper's own music and beds); the Tuning
+Court refusing without Aeon and teaching Dissonance with him; the Fallen Bell Shell thinning under the note and
+breaking after 2 s; the Choir Wall stopping her without the note, letting her through with it and closing behind her
+once she is clear; the three bell shells breaking after 3 s each and the Choir Gate sinking (she walks through);
+a drone's bolt hitting her without the note and bursting into sparks inside it; a pylon shell breaking, and an intact
+one stopping a shot at its pylon; the Cantor's ending (`,cantor,` given: all 27 scarred pieces hidden, the bloom
+shown, every piece of Unison gone, the wall open); save and load on Hesper (world 7, the exact spot); the current to
+the Center and back. The Choir Gate opens the moment the third bell rings, wherever she is; the director keeps the
+objective "Follow the Nave north to the Choir Gate" until she is 25 m short of the gate (or past it), then gives
+"Silence the Cantor", never after the Cantor (tested).
+Not done or not played by hand: any fight (the Cantor's shield and its pylons, the Choir), walking the routes with the
+controls and the pad's D-pad hold, the Hall of Withheld Votes, the side requests' rewards, the music and beds by ear,
+Play-in-Editor at Epic quality (8 GB is tight with the desktop's 3 GB). Aeon's, the Serene's and Vaelun's lines, the
+bells and the city's story are new writing for the author to review.
+
+## Level 8 — Earth: Morrow, the Valley Before Morning (2026-11-19)
+
+Author decisions (2026-11-19): the level after Hesper is **the third Earth Great Installation**, and the **first
+hardened** one: Physis cannot undo it from outside and must enter the mind of someone inside (an Inner Installation).
+She learns **Sit With** there (ability 8 in the table). Its look is **realistic, a cold dawn**. Everything below that
+is not one of those decisions is Proposed, the name included.
+
+### Premise
+
+**Morrow** is a reservoir town of the Just high in Earth's northern mountains. Its dam powered the Meridian Front, and
+the Front's mountain depot, **the Hold**, is built into the dam. Its Warden is **Maren Holt**. Her son **Tam**, a
+pilot, fell at Meridian in the last week of the fighting, days before Physis came. The news reached Morrow at dawn,
+over the telegraph, and was carried up to the dam in a letter. Maren read it on the crest as the sun came over the
+eastern ridge. Then she turned the Hold's cold engine, **the Lull**, on her own valley.
+
+The Lull forces Divinity through every drop of water in Morrow so that nothing goes on from that hour. The reservoir
+froze. Frost stands on everything, mist lies in the low ground, and for forty days the sun has stood just under the
+eastern ridge. Where it is strongest the forcing stands up as **Rime**: walls and crusts of hoarfrost with the forced
+magenta deep in them. Whoever in the town was grieving that morning was caught in it: **the Stilled**, frosted where
+they stood when they heard, alive, not moving. The Hold's machines, **the Frost Guard**, keep the dam. The Hold is
+**hardened**: the Lull is bound to Maren's own mind, and Settle cannot touch it. It is the first time Physis's power
+is refused.
+
+**Edda Holt**, Maren's mother and Tam's grandmother, is not Stilled. She lost her husband twenty years ago and learned
+then what she teaches Physis: **Sit With**. Not mending, not settling. Staying, while someone cannot bear it, until
+they can.
+
+It mirrors the Grove and Halcyon without repeating them: there the Just forced a living thing and the sea; here a
+grieving mother has forced time, and kept one morning from ending. The Just's fear here is Maren's: if the morning
+ends, he is gone. She is not argued out of it, and Physis does not fight her. She is sat with, and the sun comes up.
+
+**Look (Author, 2026-11-19): realistic, cold dawn.** As realistic as Halcyon and Hesper (scanned surfaces, physically
+based materials, real light) in the blue hour before sunrise: the sun 2 degrees under the eastern ridge, the sky
+pale gold low in the east going to steel blue overhead, the western peaks' snow catching the first pink, the valley
+in cold blue shadow, mist in the low ground and on the ice, frost on every roof and branch, long soft shadows. Three
+lights tell three things apart: the Just's machines keep **amber**; the Rime (forced Divinity) shows **magenta** deep
+in white frost; **Sit With** is a small warm **ember rose**, the one warm light in the valley. When the Lull stops
+the sun clears the ridge: the level's one change of light, from cold dawn to morning. No post-process stylisation,
+no 3D text.
+
+### Layout (x north, y east, metres; the valley is about 1.1 km by 0.8 km, walled by peaks; it climbs north to the dam)
+
+| # | Space | Where | What happens |
+| --- | --- | --- | --- |
+| 1 | The Pass Chapel | South end, x −500 | She steps out of the current. Still Point; the current home stays here |
+| 2 | The Orchard Road | x −480 to −300 | Frozen orchards in the mist. First Frost Guard |
+| 3 | The Mill House | x −290 | The safe place: **Edda Holt**, **Corin Vell** (the dam engineer who walked out of the Hold the first night), and **Pilgrim**, the Hold's courier Mechanoid, which carried the letter |
+| 4 | Edda's Bench | By the Mill House | On the frozen millpond's bank. The miller is Stilled at his wheel. Edda shows Physis how to sit: **Sit With** |
+| 5 | **The Gorge** | x −150, wall to wall | The river's gorge, 26 m across, frozen. The **Ferry Bridge** is buried in a mound of Rime, its keeper Stilled at its head. The barrier she remembers: opened only by sitting with him |
+| 6 | Chapel Square | x −70 | Still Point where the ways part |
+| 7 | The Schoolhouse | West | Rime walls ring the school yard. Tam's teacher, **Ada Lowe**, Stilled at its door |
+| 8 | The Glider Field | East, on a bench above the town | Where Tam learned to fly. His friend **Jory Pike**, Stilled by the hangar with the glider they built |
+| 9 | The Telegraph House | North-east rock | Up a frosted path. **Ines Okon**, the operator who took the message down, Stilled at her key |
+| 10 | The Dam Stair | x +250 to +380 | The long stair up the dam's face beside the frozen spillway; the Frost Guard's heaviest |
+| 11 | The Crest and the Hold | North, x +420, on the dam | Maren, Stilled herself on the crest with the letter in her hand. Settle is refused. With the three memories, Physis sits with her and goes in |
+| 12 | **Inner Installation: The Morning** | In Maren's mind | Rooms made of what she lost: the Kitchen (the letter on the table), the Long Hall (his door at every age), the Field (the glider in the mist), and the Crest as she remembers it, where **the Unrisen** waits |
+| 13 | The Ice House | South-east | Optional: Corin's request; his night shift, three Stilled in the Hold's old ice house (Katana Augmentation); a Frost Harrow that can be avoided |
+
+Critical path, about 45 to 55 minutes: Pass Chapel → Orchard Road → Mill House (Edda) → Edda's Bench (Sit With) → the
+Ferry Bridge → Chapel Square → the three Stilled in any order → the Dam Stair → the Crest → the Morning (four rooms
+and the Unrisen) → Maren → back to Edda. With the side requests, the Ice House, the caches and the sealed vaults the
+level runs about an hour.
+
+Progress tokens: `,morrow,` `,at_morrow,` (saves load here), `,edda,`, `,sitwith,`, `,mw_bridge,`, `,mw_mem1,`
+`,mw_mem2,` `,mw_mem3,` (the three memories), `,mw_inner,` (inside), `,mw_room1-3,`, `,mw_still,` (the Unrisen stops),
+`,unrisen,`, `,maren,`, `,morrow_done,`; side requests `,corin,` `,mw_crew1-3,` `,mw_crew,` `,pilgrim,` `,satchel,`;
+guards, caches and seals `,mw_*`.
+
+The three Stilled each wake with something of Tam that Maren has stopped letting herself know (what he was like at
+eight, what he said before his first flight alone, the last line he sent): the three memories. Without them Maren
+does not let her in.
+
+When the Unrisen is sat with, the Lull stops. Every Rime in the valley (tag `MorrowScar`) goes, the Stilled all wake,
+the reservoir's ice breaks, and **the sun clears the eastern ridge** (`MorrowBloom`, and the director raises the sun
+over 40 s). Maren comes down from the crest with Edda. Edda tells Physis that the morning was always going to end, and
+that it was never her job to end it, only not to leave.
+
+**The Metroid rule.** The Gorge is the map's barrier: authored, opened once by Sit With, never changed after. Whoever
+falls in walks out up a ramp on its south side, which leads only back south. Rime walls only thaw while she sits by
+the person they hold; nothing moves. The Inner Installation is entered only from the crest and left only at its end
+or by its Still Point's way back to the crest; dying inside respawns at its Still Point. Two **sealed vaults** (Trace
+Reading, Dissonance) are seen here, and both open already.
+
+### Sit With
+
+| | |
+| --- | --- |
+| Input | **H** on the keyboard; **hold D-pad left** on a pad (a tap is still Mend) |
+| Cost | None. She kneels where she is; she stays until she presses again, moves, or is struck |
+| Reach | Whoever is within 3 m of her |
+| Traversal and locks | **The Stilled**: sitting with one for 4 s wakes them. They say what they were holding, give their token, and whatever their Rime held opens (the bridge, a yard wall, a door) |
+| Inner Installations | Sitting with someone at a hardened place, once she understands enough of them (here the three memories), takes her into their mind |
+| Combat | Grief bosses: fight until it stops attacking, then sit with it. The spoken final stage plays while she sits and pauses if she stands; it cannot fail. While she sits her Composure comes back slowly (Proposed) |
+| Sockets | It reports `,sitwith,` to `PhysisUsedAbility`, so later Inner Installations and vaults answer it |
+| Visual stage | Interior worlds: the mind-spaces, and the one warm light in a cold place |
+
+### People
+
+| Person | Kind | Role |
+| --- | --- | --- |
+| Edda Holt | Human, Maren's mother (MetaHuman) | Quest giver; teaches Sit With; closes the level |
+| Corin Vell | Human, the dam's engineer, the Just (MetaHuman) | Side request: his three Stilled crew in the Ice House (Katana, then Pistol Augmentation) |
+| Pilgrim | Mechanoid courier of the Just | Side request: its satchel, left at the Telegraph House (Defense Augmentation) |
+| Warden Maren Holt | Human, the Hold's commander, the Just (MetaHuman) | Stilled on the crest; met in her mind; in person once the Unrisen is sat with |
+| The Stilled | Humans of Morrow | The miller, the bridge keeper, Ada Lowe, Jory Pike, Ines Okon, Corin's crew |
+
+The book names none of these. Their lines, Tam, and the town's story are new writing for the author to review.
+
+### Enemies: the Frost Guard (machines without will, so they are destroyed), and the Rime-shapes
+
+The Hedge's machines in the Hold's service (the Grove's meshes, frosted): Frost Wasp 5, Frost Lancet 9, Frost Burl
+16, Frost Palisade 20, Frost Thresher 26 (guards the Stilled and the Dam Stair), Frost Harrow 60 (the Ice House;
+avoidable). In the Morning, **Rime-shapes**: Maren's grief, frost given form. They are not machines and not destroyed:
+struck enough, one scatters and gathers again (the rule for the living). The boss, **the Unrisen**, 150: a kneeling
+figure of Rime as tall as the house, holding the morning down in its arms. Fight it until it stops attacking; then
+sit with it.
+
+### Rewards
+
+Five augmentations: Health (`,aug_hp11,`, the Lull's Heart), Katana (`,aug_katana9,`, the Ice House), Pistol
+(`,aug_pistol8,`, Corin), Defense (`,aug_defense9,`, Pilgrim), Agility (`,aug_agility9,`, Edda, afterwards). Frost
+caches (cyan rays), sealed vaults (violet). Morrow has its own page on the pause-menu map.
+
+### Implementation
+
+`Tools/morrow/README.md` is the build contract; the pipeline is Halcyon's, cloned (`Tools/morrow_meshes`,
+`Tools/build_physis_morrow.py`, `Content/Python/physis_morrow_*.py`, `Tools/blueprint_logic/morrow_logic.py`). Morrow is
+on Earth, so it reuses the Grove's ground, scans and Hedge machines and Halcyon's houses, frosted. The level is
+`/Game/Levels/L_Morrow`, assets `/Game/Morrow`; the Morning is built in the same level, an island in the mist 1.6 km
+north of the dam. A Divinity current in the Center's sanctum, south-east of the Heartbloom, opens once the Cantor has
+fallen (`,cantor,`) and carries her to the Pass Chapel.
+
+**Status (2026-11-19).** Built in one pass: the valley, the dam and its reservoir, the cold-dawn look (frost on every
+upward face through Morrow's copies of the Grove's masters, `M_MW_*`; snow on the peaks; the sun under the eastern
+ridge), Morrow's own meshes (52: the Rime, chapel, mill and wheel, Edda's bench, the Ferry Bridge, school, hangar and
+glider, telegraph, the dam's crest and stair, the Hold, the ice house, the eight Stilled, the Rime-shapes, the Unrisen
+fighting and kneeling, and the Morning's kitchen, hall, islands and walks) with Halcyon's houses and the Grove's trees,
+scans and Hedge machines frosted; Sit With and its Blueprints (`BP_Stilled`, `BP_SitWith`, the director, the current,
+BP_Physis); the whole level's placement (502 actors, 79 enemies, 13 Stilled and memories); 89 voiced lines (Kokoro:
+Divinity, the people, the Stilled's words and Maren's stage lines); the map page; travel both ways; saves (world 8);
+the cook lists; the music, *The Valley Before Morning* (D minor, the lullaby, turning to D major in its morning
+section), three beds (the valley, the Lull, the Morning) and three effects (Sit With, the waking, the way in). Tested
+in Play-in-Editor by script (`Saved/Morrow/run/pie_morrow.py`, at low quality): arrival (tokens, objective, Morrow's own
+music); Edda's bench refusing without Edda and teaching Sit With with her; kneeling (the get-up clip held at its
+half-kneel, weapons hidden), the glow, standing by pressing again and by moving; the miller, the bridge keeper (the
+Ferry Bridge blocked by its Rime, then crossed), Ada, Jory and Ines waking after 4 s each and the three memories
+giving `,mw_mems,`; Maren taking her into the Morning; the chair, his door and the glider opening the Rime doors and
+the way; falling out of the Morning and coming back in the kitchen; the Unrisen hit to nothing and the encounter
+giving `,mw_still,` and the kneeling Unrisen; the spoken stage (13 lines at 6.5 s, paused while she stands, resumed)
+ending in `,unrisen,`, her return to the crest, the Rime gone, the reservoir thawed, Maren in person; the sunrise
+(pitch -5 to -26 and 5.5 to 15 lux over 40 s); save and load on Morrow (world 8, the exact spot, the sun already up);
+the current to the Center and back.
+Not done or not played by hand: any fight (the Frost Guard, the Rime-shapes, the Unrisen with the sword and gun), the
+routes walked with the controls and the pad's D-pad hold (Mend fires as the hold begins, as Reload and the weapon
+switch do for the other holds), the Ice House and Corin's crew, Pilgrim's satchel, the side requests' rewards, the
+music and beds by ear, Play-in-Editor at Epic quality. The Unrisen bursts as a machine does when it stops (the living
+"scatter and gather again" is still only words); the kneeling Unrisen then takes its place. The story, Tam, the Stilled's and Maren's lines are new
+writing for the author to review.
+
+**People (2026-11-19).** Edda, Corin and Maren, who wore the Conclave's MetaHumans until then (Wen, Marek, Ama), are
+their own (`Content/Python/physis_earth_people.py`; looks Proposed): Edda, seventy-four, white hair braided up, a deep
+red knitted shawl over a cream blouse and a slate skirt; Corin, about forty-four, a short dark beard and an ochre
+oilskin; Maren, in her forties, her mother's face drawn leaner, in the Just's olive field greatcoat and an officer's
+peaked cap as her Stilled figure wears them (`SM_OP_Stilled7`). Play-tested: Edda and Corin show in the valley and
+Edda's conversation opens and closes; Maren checked on the crest in the editor. Pilgrim is the Conclave's robot figure.
 
 ## Core play loop
 

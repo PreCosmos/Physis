@@ -596,6 +596,31 @@ def grass():
     return p
 
 
+def cut_grass():
+    """The grass her blade cuts (BP_CutGrass, physis_center_scenario.Place.grass): a tall pale tuft with gold tips and
+    seed heads, so it reads apart from the dark scatter grass around it. Cut, the Blueprint flattens it."""
+    rng = np.random.default_rng(81)
+    p = Part('SM_CT_CutGrass', (LEAF, GLOW))
+    for k in range(46):
+        base = np.append(rng.normal(0, .22, 2), -.05)
+        h = rng.uniform(.75, 1.3)
+        lean = rng.normal(0, .16, 2) + base[:2] * .5
+        tip = base + np.append(lean, h)
+        tone = np.tile(jitter(col(.16, .36, .3, .08), rng, .2), (10, 1))
+        tone[-4:, :3] = GLOW_GOLD[:3] * .8
+        tone[-4:, 3] = .7
+        ribbon(p, bezier(base, base + (0, 0, h * .5), tip - (0, 0, h * .15), tip, 5), np.linspace(.05, .006, 5), tone, 0,
+               normal=(rng.uniform(-1, 1), rng.uniform(-1, 1), .1))
+    for k in range(6):
+        base = np.append(rng.normal(0, .14, 2), 0)
+        h = rng.uniform(1.25, 1.6)
+        top = base + np.append(rng.normal(0, .12, 2), h)
+        ribbon(p, bezier(base, base + (0, 0, h * .5), top - (0, 0, h * .2), top, 5), .012, col(.2, .34, .22, .1), 0,
+               normal=(rng.uniform(-1, 1), rng.uniform(-1, 1), .1))
+        blob(p, top, (.035, .035, .1), GLOW_GOLD, 1, 1, 0, k)
+    return p
+
+
 def flowers():
     rng = np.random.default_rng(90)
     p = Part('SM_CT_Flowers', (LEAF, GLOW))
@@ -1425,7 +1450,7 @@ def scatter():
     print('scatter', {k: len(v) for k, v in data.items()}, flush=True)
 
 
-MESHES = (tree_glow, willow, mushroom, reeds, lily, fern, grass, flowers, crystal_cluster, rock, roots, root_bridge, still_tree,
+MESHES = (tree_glow, willow, mushroom, reeds, lily, fern, grass, cut_grass, flowers, crystal_cluster, rock, roots, root_bridge, still_tree,
           human_arch, human_pillar, human_wall, human_stairs, human_dish, lamp, first_ring, first_monolith, first_spire, first_platform,
           light_arch, lantern, shrine, stillstone, artifact, barrier, temple_base, temple_colonnade, temple_dome, temple_gate, temple_sanctum,
           moth, jelly, stag, fox, sky_whale, shardling, wraith, sentinel, warden,

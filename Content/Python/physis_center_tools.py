@@ -1398,7 +1398,7 @@ def execute(operation):
         return json.dumps(import_audio())
     if operation == 'sound_classes':
         return json.dumps(sound_classes())
-    if operation in ('fauna', 'swim', 'director', 'scenario', 'cinema'):
+    if operation in ('fauna', 'swim', 'director', 'scenario', 'cinema', 'grass'):
         # These build into the open map and save it: refuse before any change unless it is the Center, as it is
         # safe to save (center_open). center:level opens the Center itself (new_level).
         center_open('center:' + operation)
@@ -1416,6 +1416,12 @@ def execute(operation):
         return json.dumps(report)
     if operation == 'director':
         return json.dumps(place_director())
+    if operation == 'grass':
+        # Loose pickups out, cuttable grass in (after center:import:SM_CT_CutGrass; BP_CutGrass is the Conclave's).
+        import importlib
+        import physis_center_scenario
+        importlib.reload(physis_center_scenario)
+        return json.dumps(physis_center_scenario.grass(Ground()))
     if operation == 'save':
         save_level()
         return json.dumps({'saved': LEVEL})

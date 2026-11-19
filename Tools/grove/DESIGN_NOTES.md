@@ -118,7 +118,10 @@ gives `,gr_forecourt,`; 451 Root Court guards; 452 the Warden. Old Town: 461 the
 
 ## After the Warden
 
-`,warden,`: Heal eases to 1; `GroveBlight` actors go, `GroveBloom` actors show; root bridges (BP_Rise, Need
+`,warden,`: Heal eases to 1; `GroveBlight` actors go, `GroveBloom` actors show. Hiding does not silence a sound, so the
+Array's hum (an AmbientSound tagged `GroveBlight`) fades out: over 3 s when the Warden falls in play, and in 0.05 s
+after a load that finds him fallen (`grove_logic.hush`, added 2026-11-19 with `Tools/blueprint_logic/scar_sounds.py`).
+Root bridges (BP_Rise, Need
 `,warden,`) rise across the Rift's south side (bearing 180) and across the Gully at y 42: the shortcut from the
 Heartwood to the camp. Enemies elsewhere stay (the Hedge's patrols are not all ordered from here), except the
 Root Court's.

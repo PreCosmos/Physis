@@ -149,7 +149,10 @@ scale per instance; hidden and without collision while sundered, it grows in ove
 0, is whole from the first frame (after a load). Restless weaves are never saved.
 
 **`BP_ArcheDirector`**: the arrival (`,arche,` `,at_arche,`, the first quest, Divinity's line once); every 0.25 s it
-hides actors tagged `ArcheScar` and shows those tagged `ArcheBloom` once `,sunderer,` is held, shows each Mirror's
+hides actors tagged `ArcheScar` and shows those tagged `ArcheBloom` once `,sunderer,` is held. Hiding does not silence
+a sound, so it also fades out the sounds among the `ArcheScar` actors (the Lens's hum). The fade takes 3 s when the
+Sunderer falls in play and 0.05 s after a load that finds him fallen (`grove_logic.hush`, added 2026-11-19 with
+`Tools/blueprint_logic/scar_sounds.py`). It also shows each Mirror's
 shaft of light and glow (`ArcheMirrorW`, `E`, `N`) by its token, and sets the quests that follow from a token
 (`,ar_q_span,` `,ar_q_mirrors,` `,ar_q_sunderer,` mark each as given).
 

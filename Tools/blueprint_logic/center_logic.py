@@ -813,6 +813,11 @@ def swimming():
     bobs at up to about 140 cm/s, which by her full speed would flip the two loops and restart one on every bob.
     Every read of the old Mode (splash, cap, SetAnimationMode) comes before SetMode. want is re-read after it, but
     gives the same mode: 0 and 3 do not depend on Mode, and 1 and 2 keep their 90 / 40 cm/s hysteresis."""
+    # 2026-11-15: the graph in the asset is ahead of the text below (edited with the 5.9 Blueprint DSL tools, which this
+    # script is not ported to). Entering the water it now plays the blend space BS_Physis_Swim once (tread at 0, stroke
+    # at 100) instead of one clip per mode, and every tick while swimming it eases the float Blend toward 0 (tread) or 1
+    # (stroke) at 2.5 per second and sets the blend space position to 100 * smoothstep(Blend), so tread and stroke cross
+    # over in 0.4 s instead of cutting. Port that before running this function again, or it puts the cut back.
     var(SW, 'Mode', 'int')
     if any([var(P, 'WaterJumped', 'bool'), var(P, 'WaterJumpAt', 'float')]):  # BP_Physis's (part jump); read here
         comp(P)

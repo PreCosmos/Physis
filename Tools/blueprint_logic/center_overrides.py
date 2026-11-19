@@ -674,6 +674,9 @@ def still_points():
 # so every save keeps them. Health: the station's Life Augmentation and four vault tanks, 10 health each.
 # Katana: +25% sword damage each. Pistol: +30% gun damage each. Defense: 15% less damage taken each.
 # Agility: +0.1 s on the 0.3 s perfect-parry window each.
+# Defense is no longer this subtraction in the live BP_Physis: from 2026-11-19 HurtTaken = 0.85 ^ n
+# (Tools/blueprint_logic/augment_fix.py), because 1 - 0.15 n goes below zero at the seventh, and PhysisHurt then
+# charges full damage. Run augment_fix.py again after anything rewrites PhysisFidelity from this script.
 # The Conclave adds six (GAME_ROADMAP.md, "Rewards"): two Health tanks, and one each of the other four, from its side
 # requests and the Spire's crown (physis_conclave_lore PEOPLE gifts).
 AUGMENTS = {'Health': (',lifeaug,', ',aug_hp1,', ',aug_hp2,', ',aug_hp3,', ',aug_hp4,', ',aug_hp5,', ',aug_hp6,'),
@@ -1618,6 +1621,25 @@ def dealt(amount, power, carry):
           (Variables|Default|Set%s (- (Variables|Default|GetDamageNow) (Math|Conversions|ToFloat(Integer) (Math|Float|Truncate (Variables|Default|GetDamageNow)))))''' % (amount, power, carry, carry)
 
 
+GRASS = B + 'BP_CutGrass.BP_CutGrass'
+GRASS_CLASS = '"%sBP_CutGrass.BP_CutGrass_C"' % B
+
+
+def grass_strike():
+    """PhysisStrikeNow's last loop, as the Conclave session wrote it into the live graph on 2026-11-15 (with the
+    editor's BlueprintDslToolset, not from this file): the swing cuts every tuft of BP_CutGrass within 2.6 m ahead of
+    her (BP_CutGrass.GrassCut: the tuft flattens, may drop a pickup, and grows back). It is repeated here so that a
+    rewrite of PhysisStrikeNow from this file keeps it. Empty while BP_CutGrass has no GrassCut."""
+    if not built(GRASS, 'GrassCut'):
+        return ''
+    return """
+  (for tuft (Actor|GetAllActorsOfClass :ActorClass %s)
+    (if (and (< (Transformation|GetDistanceTo :OtherActor tuft) 260.0) (> (Transformation|GetDotProductTo :OtherActor tuft) 0.0))
+      (bind grass (Utilities|Casting|CastToBP_CutGrass :Object tuft)
+        (:then (Class|BPCutGrass|GrassCut :self grass))
+        (:CastFailed))))""" % GRASS_CLASS
+
+
 def augments():
     for n in ('KatanaPower', 'PistolPower', 'HurtTaken', 'ParryTime', 'DamageNow', 'KatanaCarry', 'PistolCarry'):
         var(P, n, 'float')
@@ -1654,7 +1676,7 @@ def augments():
           """ + dealt('amount', KATANA, 'KatanaCarry') + """
           (Class|BPTrainingDrone|SetHitPower :self drone :HitPower amount)
           (Class|BPTrainingDrone|TakeHit :self drone :Amount (Math|Float|Truncate (Variables|Default|GetDamageNow)))))
-      (:CastFailed))))""")
+      (:CastFailed)))""" + grass_strike() + """)""")
     fn(P, 'PhysisShotHit', """(fn PhysisShotHit (Damage Muzzle Far)
   (bind target (Variables|Default|GetShotTarget))
   (Utilities|IsValid target
@@ -1797,8 +1819,8 @@ def pause_menu_code(map_tab=True):
     DN = press('Down', 'S', 'Gamepad_DPad_Down', 'Gamepad_LeftStick_Down')
     LF = press('Left', 'A', 'Gamepad_DPad_Left', 'Gamepad_LeftStick_Left')
     RT = press('Right', 'D', 'Gamepad_DPad_Right', 'Gamepad_LeftStick_Right')
-    TL = press('Q', 'Gamepad_LeftShoulder')
-    TR = press('Tab', 'Gamepad_RightShoulder')
+    TL = press('Tab', 'Gamepad_LeftShoulder')
+    TR = press('Q', 'Gamepad_RightShoulder')
     OK = press('E', 'Enter', 'SpaceBar', 'Gamepad_FaceButton_Bottom')
     last = MAP_PAGE if map_tab else 3
     rows = (('Save Game', '""'), ('Load Game', '""'),
@@ -1823,8 +1845,8 @@ def pause_menu_code(map_tab=True):
     binddraw = ''.join('\n          ' + text('"%s"' % b, '(* u 960.0)', '(* u %d)' % (150 + i * 46), '(* u 1.05)', TEAL) for i, b in enumerate(bind))
     tabs = ['Logbook', 'Abilities', 'Quests', 'Settings'] + (['Map'] if map_tab else [])
     tabdraw = '\n      '.join('(CallFunction|MenuTab :Label "%s" :Index %d :Page shown :SizeY SizeY)' % (t, i) for i, t in enumerate(tabs))
-    footer = ('"Q, Tab / LB, RB: pages     E / A: select     M / View: map     Esc / Menu: resume"' if map_tab
-              else '"Q, Tab / LB, RB: pages     E / A: select     Esc / Menu: resume"')
+    footer = ('"Tab, Q / LB, RB: pages     E / A: select     M / View: map     Esc / Menu: resume"' if map_tab
+              else '"Tab, Q / LB, RB: pages     E / A: select     Esc / Menu: resume"')
     mappage = ('\n      (if (== shown %d)\n        (CallFunction|PageMap :SizeX SizeX :SizeY SizeY))' % MAP_PAGE) if map_tab else ''
     return """(fn DrawPauseMenu (SizeX SizeY)
   (bind u (/ SizeY 1080.0))

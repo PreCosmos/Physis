@@ -5,7 +5,8 @@ with the editor open, after `arche:blueprints` has made the Blueprint assets and
 weave     BP_Weave: something the Lens unwove. Shown by tokens; its mark (a ring of slivers round a pearl light) turns
           while it is sundered and swells when aimed at; Weave() knits it (for good, or for Hold seconds), keeps its
           loom's limit, gives its token; a woven thing held by a token is whole again after a load
-director  BP_ArcheDirector: the arrival, tagged actors by token, the quests that follow from a token, the aim
+director  BP_ArcheDirector: the arrival, tagged actors by token (the sounds among the ArcheScar ones faded out once the
+          Sunderer falls: hiding does not silence them), the quests that follow from a token, the aim
 current   BP_ArcheCurrent: the Divinity current between the Center's temple and the Landing
 physis    BP_Physis: PhysisReweave, PhysisWeaveFind, PhysisToArche, PhysisArcheHome
 input     IA_Reweave's Started event calls PhysisReweave
@@ -178,8 +179,13 @@ def weave():
 
 # ---------------------------------------------------------------- BP_ArcheDirector
 
+hush = gl.hush   # the Lens's hum (tag ArcheScar) fades once the Sunderer falls: hiding does not silence it
+
+
 def director():
     N = 'BP_ArcheDirector'
+    for name in ('Live', 'Hushed'):
+        var(N, name, 'bool')
     for name in ('Arrive', 'State'):
         shell(N, name)
     write(N, 'Arrive', """(fn `Arrive`
@@ -204,7 +210,8 @@ def director():
   """ + gl.tagged('ArcheBloom', '(not %s)' % done, 'bloom') + shows + """
   """ + gl.once(',ar_q_span,', has(PF, ',reweave,'), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_SPAN)) + """
   """ + gl.once(',ar_q_mirrors,', has(PF, ',ar_span,'), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_MIRRORS)) + """
-  """ + gl.once(',ar_q_sunderer,', has(PF, ',ar_veil,'), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_SUNDERER)) + ')')
+  """ + gl.once(',ar_q_sunderer,', has(PF, ',ar_veil,'), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_SUNDERER)) + """
+  """ + hush('ArcheScar', done) + ')')
     write(N, 'EventGraph', """(event `self.ReceiveBeginPlay`
   (`KismetSystemLibrary.K2_SetTimer` self "Arrive" 0.5 false)
   (`KismetSystemLibrary.K2_SetTimer` self "State" 0.25 true))

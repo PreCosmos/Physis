@@ -573,9 +573,25 @@ def once(token, cond, body):
     return '(if (and %s (not %s))\n    (`@P.PhysisGive` p "%s")\n    %s)' % (cond, has(PF, token), token, body)
 
 
+def hush(tag, done):
+    """The sounds among the actors tagged `tag`, faded out once `done` first holds. tagged() only hides an actor and
+    turns its collision off, and a hidden AmbientSound goes on playing (the Array's hum kept on after the Warden fell,
+    Arche's Lens after the Sunderer). Every AmbientSound carrying the tag fades over 3 s if the level was playing
+    before `done` held (`Live`), or at once after a load that finds it already done. The director needs the bool
+    members Live and Hushed (its own, never saved)."""
+    return """(if (not %s)
+    (set `self.Live` true))
+  (if (and %s (not (`self.Hushed`)))
+    (set `self.Hushed` true)
+    (for s (`GameplayStatics.GetAllActorsWithTag` "%s")
+      (bind snd (cast `/Script/Engine.AmbientSound` s))
+      (if (`KismetSystemLibrary.IsValid` snd)
+        (`AudioComponent.FadeOut` (`AmbientSound.AudioComponent` snd) %s 0.0 "Linear"))))""" % (done, done, tag, pick('(`self.Live`)', '3.0', '0.05'))
+
+
 def director():
     N = 'BP_GroveDirector'
-    for name, kind in (('Motion', 'float'), ('Heal', 'float')):
+    for name, kind in (('Motion', 'float'), ('Heal', 'float'), ('Live', 'bool'), ('Hushed', 'bool')):
         var(N, name, kind)
     for name in ('Arrive', 'State'):
         shell(N, name)
@@ -617,7 +633,8 @@ def director():
   """ + once(',gr_q_gully,', has(PF, ',resonance,'), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_GULLY)) + """
   """ + once(',gr_q_gate,', '(and %s %s)' % (water, power), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_GATE)) + """
   """ + once(',gr_q_core,', has(PF, ',arraygate,'), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_CORE)) + """
-  """ + once(',gr_q_warden,', has(PF, ',stabilized,'), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_WARDEN)) + ')')
+  """ + once(',gr_q_warden,', has(PF, ',stabilized,'), '(`@P.PhysisQuest` p %s)' % lit(lore.QUEST_WARDEN)) + """
+  """ + hush('GroveBlight', warden) + ')')
     at = '(`Actor.K2_GetActorLocation` p)'
     write(N, 'EventGraph', """(event `self.ReceiveBeginPlay`
   (set `self.Motion` 0.12)

@@ -219,7 +219,7 @@ def press(*keys):
     return out
 UP=press('Up','W','Gamepad_DPad_Up','Gamepad_LeftStick_Up');DN=press('Down','S','Gamepad_DPad_Down','Gamepad_LeftStick_Down')
 LF=press('Left','A','Gamepad_DPad_Left','Gamepad_LeftStick_Left');RT=press('Right','D','Gamepad_DPad_Right','Gamepad_LeftStick_Right')
-TL=press('Q','Gamepad_LeftShoulder');TR=press('Tab','Gamepad_RightShoulder');OK=press('E','Enter','SpaceBar','Gamepad_FaceButton_Bottom')
+TL=press('Tab','Gamepad_LeftShoulder');TR=press('Q','Gamepad_RightShoulder');OK=press('E','Enter','SpaceBar','Gamepad_FaceButton_Bottom')
 GOLD='"(R=1.0,G=0.82,B=0.42,A=1.0)"';DIM='"(R=0.62,G=0.68,B=0.74,A=1.0)"';CREAM='"(R=1.0,G=0.92,B=0.78,A=1.0)"'
 shell(H,'DrawPauseMenu',[('SizeX','float'),('SizeY','float')])
 for name,ps in (('MenuTab',[('Label','string'),('Index','int'),('Page','int'),('SizeY','float')]),('MenuAbility',[('Name','string'),('Text','string'),('Slot','int'),('SizeY','float')]),('MenuRowDraw',[('Label','string'),('Value','string'),('Index','int'),('Row','int'),('SizeY','float')]),('PageLogbook',[('SizeX','float'),('SizeY','float'),('Data','string')])):
@@ -306,7 +306,7 @@ fn(H,'DrawPauseMenu',"""(fn DrawPauseMenu (SizeX SizeY)
       (CallFunction|MenuTab :Label "Abilities" :Index 1 :Page shown :SizeY SizeY)
       (CallFunction|MenuTab :Label "Quests" :Index 2 :Page shown :SizeY SizeY)
       (CallFunction|MenuTab :Label "Settings" :Index 3 :Page shown :SizeY SizeY)
-      """+text('"Q, Tab / LB, RB: pages     E / A: select     Esc / Menu: resume"','(* u 80.0)','(- SizeY (* u 62.0))','(* u 1.1)',TEAL)+"""
+      """+text('"Tab, Q / LB, RB: pages     E / A: select     Esc / Menu: resume"','(* u 80.0)','(- SizeY (* u 62.0))','(* u 1.1)',TEAL)+"""
       (if (== shown 0)
         (CallFunction|PageLogbook :SizeX SizeX :SizeY SizeY :Data (Class|BPPhysis|GetLogData :self physis)))
       (if (== shown 1)

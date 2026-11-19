@@ -22,12 +22,13 @@ Run those parts (center_music.py runs every part) and ops before center:scenario
 anything while one is missing.
 """
 import math
+import random
 
 import unreal
 
 import physis_gameplay_tools as game
 from physis_aaa_tools import set_props, wrap_text
-from physis_center_lore import CENTER_SCANS, CENTER_TUTORIALS, ENEMY_ENTRIES, FAUNA_SCANS, KIND_ENTRIES, PUZZLE_SCANS, center_entries
+from physis_center_lore import CENTER_SCANS, CENTER_TUTORIALS, ENEMY_ENTRIES, FAUNA_SCANS, GRASS_SCAN, KIND_ENTRIES, PUZZLE_SCANS, center_entries
 from physis_lore import voice_name, image_name
 
 CENTER = '/Game/Center'
@@ -366,9 +367,48 @@ class Place:
         return tag
 
     def pickup(self, kind, label, x, y, lift=120):
+        """A loose BP_Pickup. The Center places none since 2026-11-15 (see grass)."""
         actor = self.spawn('BP_Pickup', label, self.at(x, y, lift), folder='Pickups')
         actor.set_editor_property('Kind', kind)
         return actor
+
+    def grass(self, label, x, y, tufts=6, spread=230.0):
+        """A patch of BP_CutGrass: tall gold-tipped grass her blade cuts. A cut tuft may drop a pickup and grows back,
+        so the Center has no loose pickups lying about (author, 2026-11-15: "remove any random pickups found in the
+        Center and put in a special kind of grass that can be cut and drops random pickups"). BP_CutGrass is shared
+        with the Conclave, whose session made it on 2026-11-15: BP_Physis PhysisStrikeNow calls GrassCut on tufts within
+        2.6 m ahead of her; a cut tuft flattens and after Regrow seconds returns to the Shape scale it began with;
+        Chance and Regrow are left at their defaults here (half the tufts drop, always when she is low; 120 s).
+        The Center's tufts wear SM_CT_CutGrass (build_physis_center.cut_grass) with Shape at 1, whatever the
+        Blueprint's own default is, so the actor's scale alone sizes them. Tufts stand on dry ground only; the same
+        label always gives the same patch. One GRASS_SCAN tag hangs 1.5 m over the patch, named 'Grass Tag <label>'."""
+        rng = random.Random('grass ' + label)
+        made = []
+        for k in range(tufts):
+            a, r = rng.uniform(0, 2 * math.pi), spread * math.sqrt(rng.uniform(.03, 1))
+            tx, ty = x + math.cos(a) * r, y + math.sin(a) * r
+            if self.floor(tx, ty) < 15:
+                continue
+            size = rng.uniform(.85, 1.25)
+            actor = self.spawn('BP_CutGrass', '%s Grass %d' % (label, k), self.at(tx, ty), (size, size, size * rng.uniform(.9, 1.15)), 'Grass')
+            actor.set_actor_rotation(unreal.Rotator(0, 0, rng.uniform(0, 360)), False)
+            # The Blueprint's own Shape is the Conclave's wheat in its gold material: here it wears the Center's tuft
+            # in that mesh's materials, at a scale of its own.
+            shape = actor.get_component_by_class(unreal.StaticMeshComponent)
+            tuft = unreal.load_asset(MESHES + '/SM_CT_CutGrass')
+            shape.set_static_mesh(tuft)
+            for index in range(len(tuft.get_editor_property('static_materials'))):
+                shape.set_material(index, tuft.get_material(index))
+            shape.set_editor_property('relative_scale3d', unreal.Vector(1, 1, 1))
+            shape.set_collision_profile_name('NoCollision')
+            shape.set_editor_property('cast_shadow', False)
+            made.append(actor)
+        if made:
+            category, title, text = GRASS_SCAN
+            tag = self.spawn('BP_ScanTarget', 'Grass Tag ' + label, self.at(x, y, 150), folder='Scans', ScanText=text, ScanCategory=category,
+                             ScanTitle=title, ScanImportant=False)
+            game.hide_scan(tag)
+        return made
 
     def encounter(self, label, x, y, room, give, message, goal='', fight='', radius=0.0):
         """A fight: done when no drone has its room. fight, the Goal, names its golden enemies: while some remain and
@@ -460,8 +500,8 @@ def place(ground):
     wx, wy = WAKE
     p.check('Glade', wx, wy, 'Explore the Center of the Universe', 900)
     for k, (dx, dy) in enumerate(((900, 700), (1100, -600), (-500, 900))):
-        p.pickup(1, 'Glade Crystal %d' % k, wx + dx, wy + dy)
-    p.pickup(0, 'Glade Capsule', wx + 1300, wy + 100)
+        p.grass('Glade Crystal %d' % k, wx + dx, wy + dy)
+    p.grass('Glade Capsule', wx + 1300, wy + 100)
     p.cage('Echo Cache Glade', -60000, 9000, ',cache1,', 'Echo Cache absorbed. Divinity +60.')
     p.light('Glade Cache Glow', p.at(-60000, 9000, 300), (.4, .9, 1), 3000, 900)
 
@@ -570,7 +610,7 @@ def place(ground):
         p.foe(1 if k == 1 else 0, 2, 'Marsh Matriarch %d' % k, mx2, my2)
     # Its thorns' tag on the south side: to the north it stood a metre from a leg of the Marsh Arch, 11 m away.
     p.cage('Echo Cache Marsh', -36500, -43000, ',cache2,', 'Echo Cache absorbed. Divinity +60.', bearing=math.pi)
-    p.pickup(0, 'Marsh Capsule', mx + 500, my + 300)
+    p.grass('Marsh Capsule', mx + 500, my + 300)
 
     # ---- The Concourse: an optional fight and an optional prism puzzle.
     p.check('Concourse', -9000, -4000, 'The Concourse. Clear the crystal hunters, or follow the roads: east to Choir Hollow, north-east to Thornveil, south-east to the Glass Highlands.')
@@ -614,8 +654,8 @@ def place(ground):
              Done='Physis remembers Meridian, and this time she means it.~Settle learned: V / |DR|.  It calms creatures, dissolves thorn barriers and closes Divinity wounds.~Her perception sharpens: the Center comes fully into focus.')
     p.light('Shrine Light', (-15000, 56000, 900), (.5, .9, 1), 20000, 3500)
     p.cage('Echo Cache Choir', -19000, 61000, ',cache5,', 'Echo Cache absorbed. Divinity +60.')
-    p.pickup(0, 'Choir Capsule', -12000, 42000)
-    p.pickup(2, 'Choir Ammo', -12500, 42500)
+    p.grass('Choir Capsule', -12000, 42000)
+    p.grass('Choir Ammo', -12500, 42500)
 
     # ---- Thornveil: Settle opens the thorns and closes the wounds; Stillstone 2 lies at the heart.
     p.check('Thornveil', 26000, 26000, 'Thornveil. Use Settle to pass the thorns and find the Stillstone at their heart.')
@@ -636,7 +676,7 @@ def place(ground):
     # guidance while she takes it (review, 2026-11-08). Its guardians stay gold.
     p.encounter('Thornveil Fight', hx, hy, 205, ',thornfight,', 'The Thornveil guardians fall still.', '')
     p.cage('Echo Cache Thornveil', 30000, 46000, ',cache6,', 'Echo Cache absorbed. Divinity +60.')
-    p.pickup(0, 'Thornveil Capsule', 28000, 29000)
+    p.grass('Thornveil Capsule', 28000, 29000)
 
     # ---- Glass Highlands: a spiral of floating stones to Stillstone 3; Sentinels are optional end-game.
     p.check('Highlands', 26000, -30000, 'Climb the floating stair at the Glass Highlands spire for the last Stillstone. It comes only to one who '
@@ -680,8 +720,8 @@ def place(ground):
     # No count line either: its circle would cover the whole floating stair to Stillstone Three (review, 2026-11-08).
     p.encounter('Sentinel Fight', cx, cy, 206, ',sentinels,', 'Both Hollow Sentinels fall silent. Very few would have managed that. A great cache of Divinity spills free on the high ground.', '')
     p.relic('Sentinel Hoard', p.at(cx - 3000, cy + 9000, 140), ',cache7,', 'The Sentinels guarded this for an age. Divinity +150, and Physis is fully healed.', ',sentinels,', 150.0, True, 'SM_CT_Crystal1', .3)
-    p.pickup(0, 'Highland Capsule', 26500, -30500)
-    p.pickup(2, 'Highland Ammo', 27000, -30500)
+    p.grass('Highland Capsule', 26500, -30500)
+    p.grass('Highland Ammo', 27000, -30500)
 
     # ---- The Temple of the First Light.
     tx, ty = TEMPLE
@@ -744,7 +784,7 @@ def place(ground):
     # set as is, after set_props, so the agreed four lines stay four.
     pedestal.set_editor_property('Done', HEARTBLOOM_DONE)
     for k in range(2):
-        p.pickup(0, 'Temple Capsule %d' % k, tx - 1800, ty - 600 + 1200 * k, 120)
+        p.grass('Temple Capsule %d' % k, tx - 1800, ty - 600 + 1200 * k)
 
     puzzles(p)
     # The fifteen ability vaults (physis_center_vaults.py), clear of the hubs, Still Points, fights and puzzles.
@@ -756,6 +796,7 @@ def place(ground):
         PUZZLE_SITES.append((title, x, y))
     divinity_rays(p)
     wilderness(p)
+    grass_fields(p)
 
     # ---- Scans, fauna, voices, tutorials.
     for category, title, text, place_, important in CENTER_SCANS:
@@ -1155,6 +1196,76 @@ def wilderness(p, packs=28):
             ex, ey = p.dry(px + math.cos(a) * 1300, py + math.sin(a) * 1300, 60)
             p.foe(kinds[k], level, 'Wild Pack %d %d' % (n, k), ex, ey)
     return picks
+
+
+GRASS_FIELDS = 34   # patches of cuttable grass beside the roads, besides those where the loose pickups stood
+# Where the Center's loose pickups stood until 2026-11-15: place() grows a patch at each (the same places, written
+# there beside their regions), and center:grass does from this list.
+PICKUP_SITES = (('Glade Crystal 0', -67500, 700), ('Glade Crystal 1', -67300, -600), ('Glade Crystal 2', -68900, 900),
+                ('Glade Capsule', -67100, 100), ('Marsh Capsule', -29500, -13700), ('Choir Capsule', -12000, 42000),
+                ('Choir Ammo', -12500, 42500), ('Thornveil Capsule', 28000, 29000), ('Highland Capsule', 26500, -30500),
+                ('Highland Ammo', 27000, -30500), ('Temple Capsule 0', 74200, -600), ('Temple Capsule 1', 74200, 600))
+
+
+def grass_fields(p, count=GRASS_FIELDS):
+    """Patches of BP_CutGrass along the roads: 6 to 30 m off a road, on dry and fairly level ground, clear of the
+    temple and the ground where she wakes, 12 m from anything else the scenario placed (enemies aside: they move),
+    spread as far from each other as they will go. It reads the placed actors, so place() calls it last and
+    center:grass gives the same patches in a level place() built."""
+    placed = []
+    for actor in sub().get_all_level_actors():
+        if actor.get_actor_label().startswith('Scene ') and str(actor.get_folder_path()) not in ('Center/Enemies', 'Center/Grass'):
+            at = actor.get_actor_location()
+            placed.append((at.x, at.y))
+    cands = []
+    for gx in range(-76000, 76001, 2000):
+        for gy in range(-76000, 76001, 2000):
+            if not 600 <= road_gap(gx, gy) <= 3000 or p.g.at(gx, gy) < 80:
+                continue
+            if math.hypot(gx - TEMPLE[0], gy - TEMPLE[1]) < 18000 or math.hypot(gx - WAKE[0], gy - WAKE[1]) < 2500:
+                continue
+            rim = [p.g.at(gx + math.cos(b / 4 * math.pi) * 400, gy + math.sin(b / 4 * math.pi) * 400) for b in range(8)]
+            if max(rim) - min(rim) > 220 or min(rim) < 40:
+                continue
+            if any(abs(gx - ax) < 1200 and abs(gy - ay) < 1200 and math.hypot(gx - ax, gy - ay) < 1200 for ax, ay in placed):
+                continue
+            cands.append((gx, gy))
+    picks = []
+    while len(picks) < count and cands:
+        far = max(cands, key=lambda c: min(math.hypot(c[0] - q[0], c[1] - q[1]) for q in picks + [WAKE]))
+        picks.append(far)
+        cands.remove(far)
+    for n, (gx, gy) in enumerate(picks):
+        p.grass('Roadside %d' % n, gx, gy, 7, 260.0)
+    return picks
+
+
+def grass(ground):
+    """center:grass. In the open Center, every loose BP_Pickup goes, a patch of BP_CutGrass grows at each of
+    PICKUP_SITES (as place() builds them), and the roadside patches are placed. Run again, it places the same patches."""
+    p = Place(ground)
+    stood, removed = list(PICKUP_SITES), 0
+    for actor in sub().get_all_level_actors():
+        name = actor.get_class().get_name()
+        if name == 'BP_CutGrass_C' or actor.get_actor_label().startswith('Scene Grass Tag '):
+            sub().destroy_actor(actor)
+        elif name == 'BP_Pickup_C':
+            for kid in actor.get_attached_actors():
+                sub().destroy_actor(kid)
+            sub().destroy_actor(actor)
+            removed += 1
+    tufts = sum(len(p.grass(label, x, y)) for label, x, y in stood)
+    fields = grass_fields(p)
+    # The Logbook's entry for the grass, as place() spawns one for every entry.
+    title = GRASS_SCAN[1]
+    if not any(actor.get_actor_label() == 'Scene Voice ' + title for actor in sub().get_all_level_actors()):
+        p.spawn('BP_LogVoice', 'Voice ' + title, (0, 0, -50000), folder='Voices', Title=title,
+                Voice=unreal.load_asset(AUDIO + '/Voice/' + voice_name(title)), Image=unreal.load_asset('/Game/UI/Log/' + image_name(title)))
+    from physis_center_tools import save_level
+    save_level()
+    grown = sum(actor.get_class().get_name() == 'BP_CutGrass_C' for actor in sub().get_all_level_actors())
+    return {'pickups_removed': removed, 'pickup_sites': [s[0] for s in stood], 'roadside_patches': len(fields), 'tufts': grown,
+            'tufts_at_pickup_sites': tufts}
 
 
 def sound_scape(p):

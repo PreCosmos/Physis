@@ -73,6 +73,11 @@ ITEM_ROWS = (
     ('Items', 'Divinity Cache', 'A pocket of condensed Divinity, kept by the place around it until its puzzle is solved or its guardians fall. Walk into it to absorb the Divinity it holds. There are others, hidden across the Center for those who look.'),
 )
 
+# The grass her blade cuts (physis_center_scenario.Place.grass): one tag over every patch, all of this one kind, so the
+# first scan logs it and the rest turn grey (author, 2026-11-15: "make the grass that can be cut scannable as well").
+# No voice or Logbook image yet.
+GRASS_SCAN = ('Story', 'Gleamgrass', 'Tall pale grass with gold seed heads. Its roots drink the Divinity that runs under the Center and hold whatever the ground has swallowed. Cut it with your blade: a tuft may give up a Divinity crystal, a health capsule or an ammo cell. It grows back within minutes.')
+
 # The open puzzles (physis_center_scenario puzzles()): one scan tag at each, above whatever stands there, saying what
 # to do (lantern review, 2026-11-08: none of the eight had one, so the Sunken Causeway showed only a gold ray over an
 # islet no one could climb). Category, title, text; the titles are the puzzles' own names.
@@ -141,5 +146,5 @@ def center_entries():
     rows += list(VAULT_SCANS) + list(GATE_SCANS) + list(AUG_SCANS)
     # Added 2026-11-08. Their voices (Tools/build_physis_voice.py --center) and Logbook images come later: until
     # then each one's BP_LogVoice has no sound or image, and scanning only adds the text.
-    rows += [KIND_ENTRIES[kind] for kind in sorted(KIND_ENTRIES)] + list(PUZZLE_SCANS) + list(ITEM_ROWS)
+    rows += [KIND_ENTRIES[kind] for kind in sorted(KIND_ENTRIES)] + list(PUZZLE_SCANS) + list(ITEM_ROWS) + [GRASS_SCAN]
     return rows
