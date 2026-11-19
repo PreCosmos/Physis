@@ -92,3 +92,11 @@ DerivedDataCache/*
 # Python bytecode caches
 __pycache__/
 *.pyc
+
+# Kept out of git (2026-11-19): too large for GitHub, which refuses pushes over 2 GB and wants repositories under
+# 5 GB. These stay on disk; back them up some other way.
+Marketing/
+Art/Scans/
+Art/Audio/
+Art/Sky/T_Sky_Space_8K.exr
+Art/Sky/T_Sky_Space_8K.png
