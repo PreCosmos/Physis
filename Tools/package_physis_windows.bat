@@ -17,7 +17,7 @@ if not exist "%ENGINE%\Engine\Build\BatchFiles\RunUAT.bat" (
 )
 call "%ENGINE%\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
     -project="%CD%\Physis.uproject" -platform=Win64 -clientconfig=Shipping ^
-    -cook -map=/Game/Levels/L_MainMenu+/Game/Levels/L_BattleStation+/Game/Levels/L_CenterOfTheUniverse+/Game/Levels/L_Conclave+/Game/Levels/L_Grove+/Game/Levels/L_Arche -build -stage -pak -iostore -package -archive -archivedirectory="%CD%\Build" ^
+    -cook -map=/Game/Levels/L_MainMenu+/Game/Levels/L_BattleStation+/Game/Levels/L_CenterOfTheUniverse+/Game/Levels/L_Conclave+/Game/Levels/L_Grove+/Game/Levels/L_Arche+/Game/Levels/L_Halcyon+/Game/Levels/L_Hesper+/Game/Levels/L_Morrow -build -stage -pak -iostore -package -archive -archivedirectory="%CD%\Build" ^
     -prereqs -IgnoreCookErrors -nop4 -utf8output
 if errorlevel 1 exit /b 1
 rem Lets the packaged build find Steam when launched outside the Steam client.
