@@ -878,14 +878,28 @@ def people_import(key):
 
 # ---------------------------------------------------------------- people_post, people_verify
 
-def put_costume(parts, body, costume):
+def put_costume(parts, body, costume, blueprint=None):
     """The costume as a SkeletalMeshComponent under Body (Physis's restore_outfit_component); the Blueprint's
     construction script makes Body's children follow it by leader pose. A rebuild deletes every extra skeletal mesh
     component (MetaHumanDefaultEditorPipelineLegacy.cpp), so this adds it again; an existing one takes the mesh again."""
     existing = parts.get(COSTUME)
     if existing is None:
-        from editor_toolset.toolsets.actor import ActorTools
-        part, state = ActorTools.add_component(body, unreal.SkeletalMeshComponent.static_class(), COSTUME), 'added'
+        try:
+            from editor_toolset.toolsets.actor import ActorTools
+            part = ActorTools.add_component(body, unreal.SkeletalMeshComponent.static_class(), COSTUME)
+        except ImportError:
+            # Unreal 5.9 dropped editor_toolset.toolsets.actor: the same component through the subobject subsystem.
+            subobjects = unreal.get_engine_subsystem(unreal.SubobjectDataSubsystem)
+            library = unreal.SubobjectDataBlueprintFunctionLibrary
+            blueprint = unreal.BlueprintEditorLibrary.get_blueprint_asset(body.get_outer()) if blueprint is None else blueprint
+            handle, why = subobjects.add_new_subobject(unreal.AddNewSubobjectParams(parent_handle=parts['Body'][1],
+                                                                                    new_class=unreal.SkeletalMeshComponent,
+                                                                                    blueprint_context=blueprint))
+            part = library.get_object_for_blueprint(library.get_data(handle), blueprint)
+            if part is None:
+                raise RuntimeError('the costume component was not added (%s)' % why)
+            subobjects.rename_subobject(handle, unreal.Text(COSTUME))
+        state = 'added'
     else:
         part, state = existing[0], 'updated'
     part.set_skeletal_mesh_asset(costume)
@@ -955,7 +969,7 @@ def people_post(key):
         raise RuntimeError('%s has no Body component' % package(blueprint))
     report = {'blueprint': package(blueprint)}
     if exists(costume_path):
-        report['costume'] = put_costume(parts, parts['Body'][0], unreal.load_asset(costume_path))
+        report['costume'] = put_costume(parts, parts['Body'][0], unreal.load_asset(costume_path), blueprint)
         parts = blueprint_parts(blueprint)  # adding a component compiled the Blueprint: read its components again
     else:
         report['costume'] = 'not imported yet: run conclave:people_import:%s, then people_post again' % key
