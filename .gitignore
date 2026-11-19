@@ -100,3 +100,30 @@ Art/Scans/
 Art/Audio/
 Art/Sky/T_Sky_Space_8K.exr
 Art/Sky/T_Sky_Space_8K.png
+
+# The repository holds the build scripts, docs and config (2026-11-19). The binary assets they make or use stay on
+# disk only: art, levels, models, Blender files, audio, video, fonts and data blobs. Back them up some other way.
+Art/
+*.umap
+*.png
+*.jpg
+*.jpeg
+*.exr
+*.tga
+*.psd
+*.hdr
+*.fbx
+*.glb
+*.gltf
+*.obj
+*.blend
+*.blend1
+*.mp4
+*.mov
+*.wav
+*.ogg
+*.mp3
+*.flac
+*.otf
+*.ttf
+*.bin
